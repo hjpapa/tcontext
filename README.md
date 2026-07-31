@@ -159,6 +159,8 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 
 ## Vercel 배포
 
+운영 주소: [https://tcontext.vercel.app](https://tcontext.vercel.app)
+
 1. GitHub `hjpapa/tcontext` 저장소를 Vercel `tcontext` 프로젝트에 연결합니다.
 2. `.env.example`의 값을 Preview와 Production에 각각 설정합니다.
 3. 두 환경에는 서로 독립된 `DELETE_TOKEN_PEPPER`, `CRON_SECRET`을 사용합니다.
