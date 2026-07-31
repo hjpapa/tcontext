@@ -17,7 +17,7 @@ TContext는 교사를 점수화하거나 MBTI처럼 유형화하지 않습니다
 - 저장 없이 전체 기능 사용
 - 별도 동의가 있을 때만 최종 결과를 Supabase에 선택 저장
 - 제출 ID와 일회성 삭제 코드를 이용한 비로그인 삭제
-- 365일 보유기간과 보호된 Vercel Cron 만료 삭제
+- 일일 정리 간격을 포함한 최대 365일 실제 보유기간과 보호된 Vercel Cron 삭제
 
 ## 서비스 흐름
 
@@ -26,14 +26,14 @@ TContext는 교사를 점수화하거나 MBTI처럼 유형화하지 않습니다
 3. 한 화면에 한 질문씩 답변
 4. 필요한 경우에만 AI 후속 질문
 5. 구조화 프로필 초안 생성
-6. 근거 상태별 문장 수정·삭제·확인
+6. 근거 상태별 문장과 AI 작성 제목·요약·원칙·지침 수정·삭제·확인
 7. 분석 태그 확인
 8. 개인정보 최종 검토
 9. Markdown 다운로드·복사·인쇄
 10. 원하는 경우에만 최종 결과 기여
 11. 저장 영수증과 삭제 코드 보관
 
-진행 상태는 기본적으로 현재 탭의 `sessionStorage`에만 남습니다. 사용자가 “이 기기에 임시 저장”을 명시적으로 켠 경우에만 `localStorage`를 사용하며, 언제든 모든 브라우저 기록을 지울 수 있습니다.
+원본 답변은 React 메모리에만 남으며 Web Storage, 쿠키, IndexedDB에 기록하지 않습니다. `sessionStorage`에는 학교급·역할·현재 질문 위치 같은 비민감 진행 메타데이터만 남고, 언제든 모든 브라우저 기록을 지울 수 있습니다. 새로고침하거나 탭을 닫으면 답변을 복구할 수 없습니다.
 
 ## 기술 구성
 
@@ -50,11 +50,11 @@ OpenAI와 Supabase Secret Key를 사용하는 코드는 모두 Next.js Route Han
 
 ## OpenAI 모델
 
-| 작업 | 환경 변수 | 기본값 | reasoning effort |
-| --- | --- | --- | --- |
-| 후속 질문 판단·생성 | `OPENAI_INTERVIEW_MODEL` | `gpt-5-nano` | `none` |
-| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL` | `gpt-5.4-nano` | `low` |
-| 최종 개인정보 검토 | `OPENAI_PRIVACY_MODEL` | `gpt-5-nano` | `none` |
+| 작업                           | 환경 변수                | 기본값         | reasoning effort |
+| ------------------------------ | ------------------------ | -------------- | ---------------- |
+| 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5-nano`   | `minimal`        |
+| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-5.4-nano` | `low`            |
+| 최종 개인정보 검토             | `OPENAI_PRIVACY_MODEL`   | `gpt-5-nano`   | `minimal`        |
 
 모델은 환경 변수로 교체할 수 있습니다. 교체 전 Structured Output 호환성, Zod 검증, 충실성, 개인정보 평가를 다시 실행해야 합니다. 비용은 OpenAI 계정의 해당 모델 입력·출력 토큰 단가에 따라 달라지므로 운영 시 실제 사용량과 공식 가격표를 확인하세요. 애플리케이션 로그에는 모델명, 처리 시간, 토큰 사용량, 성공 여부만 남기며 질문·답변·프로필 본문은 남기지 않습니다.
 
@@ -70,11 +70,11 @@ OpenAI와 Supabase Secret Key를 사용하는 코드는 모두 Next.js Route Han
 - 동의 시각, 보유 만료 시각
 - 삭제 코드의 해시
 
-원본 인터뷰 답변, 이름, 이메일, IP 주소, 학교명, 학생명, 브라우저 식별자, 삭제 코드 원문은 저장하지 않습니다. RLS를 강제하고 `anon` 및 `authenticated`에는 읽기·쓰기 정책과 권한을 주지 않습니다.
+원본 인터뷰의 전사본이나 별도 답변 필드, 이름, 이메일, IP 주소, 학교명, 학생명, 브라우저 식별자, 삭제 코드 원문은 저장하지 않습니다. 교사가 근거별 문장과 AI 작성 제목·요약·원칙·지침을 검토한 최종 프로필만 선택적으로 저장하며, 이 프로필에는 인터뷰에서 확인한 수업 맥락이 요약되어 있습니다. RLS를 강제하고 `anon` 및 `authenticated`에는 읽기·쓰기 정책과 권한을 주지 않습니다.
 
 ## 선택적 데이터 기여
 
-Markdown 다운로드가 가장 중요한 동작이며 데이터 기여는 별도 보조 동작입니다. 체크박스는 기본 해제 상태이고, 저장 항목·목적·365일 보유기간을 확인한 사용자가 명시적으로 동의해야만 서버가 저장합니다.
+Markdown 다운로드가 가장 중요한 동작이며 데이터 기여는 별도 보조 동작입니다. 체크박스는 기본 해제 상태이고, 저장 항목·목적·최대 365일 실제 보유기간을 확인한 사용자가 명시적으로 동의해야만 서버가 저장합니다. 기본 정책에서는 일일 정리 작업이 끝날 때까지의 최대 하루를 보유기간 안에 포함하기 위해 기여 364일 뒤 삭제 대상으로 전환합니다.
 
 저장 시 반환되는 `tcontext-submission-receipt-{submissionId}.txt`에는 제출 ID와 일회성 삭제 코드가 들어 있습니다. 로그인이나 이메일을 수집하지 않으므로 이 코드를 잃으면 제출물을 다시 찾거나 삭제하기 어렵습니다.
 
@@ -84,7 +84,7 @@ Markdown 다운로드가 가장 중요한 동작이며 데이터 기여는 별�
 
 구조화 JSON이 canonical source이며 Markdown은 그 JSON에서 결정적으로 생성됩니다. 결과에는 버전, 생성 시각, 학교급, 역할의 YAML front matter와 7개 모듈, 수업 설계 원칙, 지원 고려사항, 현실적 제약, AI 협업 지침, 교사가 확인한 태그가 포함됩니다.
 
-데이터베이스 저장을 거부해도 다운로드·전체 복사·AI용 요약 복사·인쇄를 모두 사용할 수 있습니다.
+데이터베이스 저장을 거부해도 Markdown 다운로드·Markdown 복사·일반 텍스트 복사·AI용 압축본 복사·인쇄를 모두 사용할 수 있습니다.
 
 ## 로컬 실행
 
@@ -121,9 +121,12 @@ DELETE_TOKEN_PEPPER=
 CRON_SECRET=
 
 NEXT_PUBLIC_APP_NAME=TContext
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 `OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `CRON_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
+
+`DATA_RETENTION_DAYS`는 일일 정리 지연까지 포함해 행이 실제로 저장될 수 있는 최장 일수입니다. 삭제 대상 전환 시각은 `consented_at + max(DATA_RETENTION_DAYS - 1, 0)일`로 계산합니다. 값이 `1`이면 기여 즉시 삭제 대상이 되고 다음 일일 정리 주기 안에 삭제됩니다.
 
 ## Supabase 마이그레이션
 
@@ -138,8 +141,9 @@ supabase db push
 
 - `supabase/migrations/202607300001_create_teacher_context_submissions.sql`
 - `supabase/migrations/202607300002_create_analytics_views.sql`
+- `supabase/migrations/202607310001_allow_immediate_retention_eligibility.sql`
 
-첫 마이그레이션은 테이블, 제약조건, 인덱스, RLS, 권한, 만료 삭제 함수를 만듭니다. 두 번째는 5건 미만 집단을 제외하는 서버 전용 집계 뷰를 만듭니다.
+첫 마이그레이션은 테이블, 제약조건, 인덱스, RLS와 최소 권한을 만듭니다. 두 번째는 5건 미만 집단을 제외하는 서버 전용 집계 뷰를 만듭니다. 만료 삭제는 보호된 Next.js Route Handler가 서버 전용 Supabase 클라이언트로 직접 수행합니다.
 
 ## 검사와 테스트
 
@@ -161,7 +165,7 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 4. Preview에서 전체 흐름과 모바일 화면을 확인합니다.
 5. 통과한 `main` 커밋을 Production으로 승격합니다.
 
-`vercel.json`의 Cron은 매일 만료된 행을 삭제합니다. 상세 운영 절차는 [docs/deployment.md](docs/deployment.md)를 참고하세요.
+`vercel.json`의 Cron은 매일 삭제 대상이 된 행을 정리합니다. 기본 365일 정책은 364일째 삭제 대상으로 전환해 다음 일일 실행까지 포함한 실제 보유기간이 최대 365일을 넘지 않게 합니다. 상세 운영 절차는 [docs/deployment.md](docs/deployment.md)를 참고하세요.
 
 ## 문서
 
@@ -183,4 +187,3 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 ## 라이선스와 운영 책임
 
 교육 현장에서 실제 운영하기 전 조직의 개인정보 처리방침, 위탁·국외 이전 여부, 보유기간, 민원·삭제 대응 절차에 대해 별도 법률·보안 검토가 필요합니다.
-

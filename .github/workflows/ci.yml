@@ -17,7 +17,8 @@ jobs:
       SUPABASE_URL: https://example.supabase.co
       SUPABASE_SECRET_KEY: test-secret-not-used
       DELETE_TOKEN_PEPPER: test-pepper-with-at-least-32-characters
-      CRON_SECRET: test-cron-secret
+      CRON_SECRET: test-cron-secret-with-at-least-32-characters
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -32,3 +33,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

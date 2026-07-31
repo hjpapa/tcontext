@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { getRetentionDays } from "@/lib/consent/policy";
 
 const modules = [
   "기본 프로파일과 현재 역할",
@@ -46,48 +47,14 @@ const principles = [
 ];
 
 export default function Home() {
+  const retentionDays = getRetentionDays();
+
   return (
     <div className="min-h-screen overflow-x-hidden">
-      <header className="border-b border-border/80 bg-background/95">
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link
-            className="group flex items-center gap-3"
-            href="/"
-            aria-label="TContext 홈"
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              T
-            </span>
-            <span>
-              <span className="block text-base font-semibold tracking-[-0.02em]">
-                TContext
-              </span>
-              <span className="hidden text-[11px] text-muted-foreground sm:block">
-                교사 컨텍스트 인터뷰
-              </span>
-            </span>
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-3" aria-label="주요 메뉴">
-            <Button asChild className="hidden" variant="ghost" size="sm">
-              <Link href="/examples">가상 예시</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/privacy">개인정보 안내</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/interview">
-                인터뷰 시작
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
-
-      <main id="main-content">
+      <div>
         <section className="relative border-b">
           <div
-            className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-px bg-border xl:block"
+            className="bg-border pointer-events-none absolute inset-y-0 left-1/2 hidden w-px xl:block"
             aria-hidden="true"
           />
           <div className="mx-auto grid max-w-7xl lg:grid-cols-[1.06fr_0.94fr]">
@@ -99,13 +66,13 @@ export default function Home() {
                 <ShieldCheck aria-hidden="true" />
                 로그인 없이, 저장 없이
               </Badge>
-              <h1 className="max-w-3xl text-balance text-[clamp(2.75rem,6vw,5.5rem)] leading-[1.03] font-semibold tracking-[-0.055em]">
+              <h1 className="max-w-3xl text-[clamp(2.75rem,6vw,5.5rem)] leading-[1.03] font-semibold tracking-[-0.055em] text-balance">
                 교사의 수업 맥락을,
-                <span className="mt-2 block text-primary">
+                <span className="text-primary mt-2 block">
                   AI가 이해할 문서로.
                 </span>
               </h1>
-              <p className="mt-8 max-w-2xl text-pretty text-lg leading-8 text-muted-foreground sm:text-xl">
+              <p className="text-muted-foreground mt-8 max-w-2xl text-lg leading-8 text-pretty sm:text-xl">
                 나의 교육관, 수업 방식, 학급 맥락을 12–18분 동안 정리합니다.
                 교사가 검토한 결과만 여러 생성형 AI에서 활용할 수 있는 Markdown
                 문서로 완성됩니다.
@@ -126,11 +93,11 @@ export default function Home() {
                   <Link href="/examples">가상 예시 보기</Link>
                 </Button>
               </div>
-              <div className="mt-12 flex flex-wrap gap-x-6 gap-y-3 text-sm text-muted-foreground">
+              <div className="text-muted-foreground mt-12 flex flex-wrap gap-x-6 gap-y-3 text-sm">
                 {["회원가입 없음", "원본 답변 미저장", "범용 Markdown"].map(
                   (item) => (
                     <span className="flex items-center gap-2" key={item}>
-                      <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <span className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-full">
                         <Check className="size-3.5" aria-hidden="true" />
                       </span>
                       {item}
@@ -140,8 +107,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center bg-secondary/55 px-5 py-16 sm:px-8 lg:px-12 xl:px-16">
-              <div className="w-full rounded-[1.5rem] border bg-card p-5 shadow-[0_24px_70px_rgba(35,55,44,0.10)] sm:p-7">
+            <div className="bg-secondary/55 flex items-center px-5 py-16 sm:px-8 lg:px-12 xl:px-16">
+              <div className="bg-card w-full rounded-[1.5rem] border p-5 shadow-[0_24px_70px_rgba(35,55,44,0.10)] sm:p-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="eyebrow">완성 문서 미리보기</p>
@@ -149,7 +116,7 @@ export default function Home() {
                       나의 교사 컨텍스트
                     </h2>
                   </div>
-                  <span className="rounded-md border bg-secondary px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+                  <span className="bg-secondary text-muted-foreground rounded-md border px-2.5 py-1 font-mono text-[11px]">
                     .md
                   </span>
                 </div>
@@ -160,8 +127,8 @@ export default function Home() {
                       <li
                         className={
                           index === 3
-                            ? "rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-primary-foreground"
-                            : "px-3 py-1.5 text-xs leading-5 text-muted-foreground"
+                            ? "bg-primary text-primary-foreground rounded-lg px-3 py-2.5 text-sm font-medium"
+                            : "text-muted-foreground px-3 py-1.5 text-xs leading-5"
                         }
                         key={module}
                       >
@@ -172,8 +139,8 @@ export default function Home() {
                       </li>
                     ))}
                   </ol>
-                  <div className="rounded-xl border bg-background p-4">
-                    <p className="text-xs font-semibold text-primary">
+                  <div className="bg-background rounded-xl border p-4">
+                    <p className="text-primary text-xs font-semibold">
                       04 · 학급 맥락
                     </p>
                     <p className="mt-3 text-sm leading-6">
@@ -184,28 +151,28 @@ export default function Home() {
                       <span className="rounded-full bg-emerald-950 px-2 py-1 text-[10px] font-semibold text-white">
                         직접 진술
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[11px]">
                         교사 확인 완료
                       </span>
                     </div>
-                    <div className="mt-5 rounded-lg border border-dashed border-primary/35 bg-primary/[0.04] p-3">
+                    <div className="border-primary/35 bg-primary/[0.04] mt-5 rounded-lg border border-dashed p-3">
                       <p className="flex items-center gap-2 text-xs font-semibold">
                         <Sparkles className="size-3.5" aria-hidden="true" />
                         AI 협업 지침
                       </p>
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      <p className="text-muted-foreground mt-2 text-xs leading-5">
                         학생의 생각이 먼저 드러나도록 질문과 기다림 시간을
                         포함한다.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-5 flex items-center justify-between rounded-xl bg-secondary px-4 py-3">
+                <div className="bg-secondary mt-5 flex items-center justify-between rounded-xl px-4 py-3">
                   <span className="flex items-center gap-2 text-xs font-medium">
                     <FileText className="size-4" aria-hidden="true" />
                     7개 모듈 · 교사 검토 완료
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                  <span className="text-primary flex items-center gap-1.5 text-xs font-semibold">
                     <Download className="size-3.5" aria-hidden="true" />
                     Markdown
                   </span>
@@ -218,25 +185,25 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
           <div className="max-w-2xl">
             <p className="eyebrow">검사가 아닌 인터뷰</p>
-            <h2 className="mt-4 text-balance text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em] text-balance sm:text-5xl">
               유형을 붙이지 않고,
               <br />
               수업을 움직이는 맥락을 찾습니다.
             </h2>
           </div>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border bg-border md:grid-cols-3">
+          <div className="bg-border mt-14 grid gap-px overflow-hidden rounded-2xl border md:grid-cols-3">
             {principles.map(({ icon: Icon, title, description }, index) => (
               <article className="bg-background p-7 sm:p-9" key={title}>
                 <div className="flex items-center justify-between">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-secondary text-primary">
+                  <span className="bg-secondary text-primary flex size-10 items-center justify-center rounded-xl">
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
-                  <span className="font-mono text-xs text-muted-foreground">
+                  <span className="text-muted-foreground font-mono text-xs">
                     0{index + 1}
                   </span>
                 </div>
                 <h3 className="mt-8 text-xl font-semibold">{title}</h3>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                <p className="text-muted-foreground mt-3 text-sm leading-7">
                   {description}
                 </p>
               </article>
@@ -244,10 +211,10 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-y bg-primary text-primary-foreground">
+        <section className="bg-primary text-primary-foreground border-y">
           <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:py-24">
             <div>
-              <p className="text-xs font-semibold tracking-[0.18em] text-primary-foreground/65 uppercase">
+              <p className="text-primary-foreground/65 text-xs font-semibold tracking-[0.18em] uppercase">
                 개인정보 보호 원칙
               </p>
               <h2 className="mt-4 text-3xl leading-tight font-semibold tracking-[-0.035em] sm:text-4xl">
@@ -261,10 +228,10 @@ export default function Home() {
                 "학생 이름·학교명·진단·성적 등 식별 정보는 입력 전에 안내하고 전송 전에 다시 검사합니다.",
                 "“집중력이 낮은 학생” 대신 “짧은 단계 안내가 필요한 상황”처럼 수업 지원의 언어로 바꿉니다.",
                 "브라우저 기록은 기본적으로 현재 탭에만 남고, 언제든 한 번에 지울 수 있습니다.",
-                "완성 문서의 데이터 기여는 별도 동의가 있을 때만 365일 동안 보관됩니다.",
+                `완성 문서의 데이터 기여는 별도 동의가 있을 때만 최대 ${retentionDays}일 보관되며, 매일 자동 정리됩니다.`,
               ].map((item) => (
                 <div
-                  className="flex gap-3 rounded-xl border border-white/15 p-4 text-sm leading-6 text-primary-foreground/80"
+                  className="text-primary-foreground/80 flex gap-3 rounded-xl border border-white/15 p-4 text-sm leading-6"
                   key={item}
                 >
                   <ShieldCheck
@@ -312,10 +279,12 @@ export default function Home() {
                   className="grid gap-3 py-7 sm:grid-cols-[4rem_1fr] sm:gap-6"
                   key={number}
                 >
-                  <span className="font-mono text-sm text-primary">{number}</span>
+                  <span className="text-primary font-mono text-sm">
+                    {number}
+                  </span>
                   <div>
                     <h3 className="text-lg font-semibold">{title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    <p className="text-muted-foreground mt-2 text-sm leading-6">
                       {description}
                     </p>
                   </div>
@@ -325,17 +294,16 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-t bg-secondary/60">
+        <section className="bg-secondary/60 border-t">
           <div className="mx-auto flex max-w-4xl flex-col items-center px-5 py-20 text-center sm:px-8 lg:py-28">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <span className="bg-primary text-primary-foreground flex size-12 items-center justify-center rounded-2xl">
               <FileText className="size-6" aria-hidden="true" />
             </span>
-            <h2 className="mt-7 text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-5xl">
+            <h2 className="mt-7 text-3xl font-semibold tracking-[-0.04em] text-balance sm:text-5xl">
               더 나은 AI 답변은,
-              <br />
-              더 분명한 교사 맥락에서 시작됩니다.
+              <br />더 분명한 교사 맥락에서 시작됩니다.
             </h2>
-            <p className="mt-6 max-w-xl text-pretty leading-7 text-muted-foreground">
+            <p className="text-muted-foreground mt-6 max-w-xl leading-7 text-pretty">
               저장하거나 가입할 필요 없습니다. 지금 내 수업의 언어로 첫 질문에
               답해 보세요.
             </p>
@@ -347,24 +315,7 @@ export default function Home() {
             </Button>
           </div>
         </section>
-      </main>
-
-      <footer className="border-t">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <p>© 2026 TContext · 교사의 판단을 돕는 컨텍스트 도구</p>
-          <nav className="flex flex-wrap gap-5" aria-label="하단 메뉴">
-            <Link className="hover:text-foreground" href="/examples">
-              가상 예시
-            </Link>
-            <Link className="hover:text-foreground" href="/privacy">
-              개인정보 안내
-            </Link>
-            <Link className="hover:text-foreground" href="/delete">
-              기여 데이터 삭제
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { AppShell } from "@/components/layout/app-shell";
+import { InterviewSessionProvider } from "@/components/layout/interview-session-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://tcontext.vercel.app";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://tcontext.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     siteName: "TContext",
     title: "TContext — 교사 컨텍스트 인터뷰",
     description:
-      "나의 교육관과 학급 맥락을 정리해, 더 나은 수업 설계를 준비합니다.",
+      "나의 교육관과 학급 맥락을 정리해, 더 나다운 수업 설계를 준비합니다.",
     images: [
       {
         url: "/og.png",
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TContext — 교사 컨텍스트 인터뷰",
     description:
-      "나의 교육관과 학급 맥락을 정리해, 더 나은 수업 설계를 준비합니다.",
+      "나의 교육관과 학급 맥락을 정리해, 더 나다운 수업 설계를 준비합니다.",
     images: ["/og.png"],
   },
   robots: {
@@ -67,10 +68,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <a className="skip-link" href="#main-content">
-          본문으로 바로가기
-        </a>
-        <TooltipProvider>{children}</TooltipProvider>
+        <InterviewSessionProvider>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
+        </InterviewSessionProvider>
       </body>
     </html>
   );

@@ -1,0 +1,105 @@
+import { describe, expect, it } from "vitest";
+
+import { createInterviewState, setInterviewAnswer } from "@/lib/interview";
+import {
+  LOCAL_PROGRESS_KEY,
+  LOCAL_RESUME_PREFERENCE_KEY,
+  loadLocalProgress,
+  saveLocalProgress,
+  setLocalResumeEnabled,
+} from "./local";
+import {
+  SESSION_PROGRESS_KEY,
+  loadSessionProgress,
+  saveSessionProgress,
+} from "./session";
+
+class MemoryStorage implements Storage {
+  private readonly values = new Map<string, string>();
+
+  get length(): number {
+    return this.values.size;
+  }
+
+  clear(): void {
+    this.values.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return [...this.values.keys()][index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+}
+
+const stateWithPrivateAnswer = () => {
+  const initial = createInterviewState({
+    schoolLevel: "elementary",
+    role: "homeroom_teacher",
+    privacyNoticeAccepted: true,
+    now: "2026-07-30T00:00:00.000Z",
+  });
+  const questionId = initial.questions[0]?.id;
+  if (!questionId) throw new Error("Expected an interview question");
+  return setInterviewAnswer(
+    initial,
+    questionId,
+    "절대로 저장되면 안 되는 원문 답변",
+    "answered",
+    "2026-07-30T00:01:00.000Z",
+  );
+};
+
+describe("session progress", () => {
+  it("is the default and never serializes raw interview answers", () => {
+    const storage = new MemoryStorage();
+    expect(saveSessionProgress(stateWithPrivateAnswer(), storage)).toBe(true);
+    const serialized = storage.getItem(SESSION_PROGRESS_KEY) ?? "";
+    expect(serialized).not.toContain("절대로 저장되면 안 되는 원문 답변");
+    expect(serialized).not.toContain('"answers"');
+    expect(loadSessionProgress(storage)?.completedQuestionCount).toBe(1);
+  });
+
+  it("removes malformed stored progress", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(SESSION_PROGRESS_KEY, '{"answers":{"secret":"raw"}}');
+    expect(loadSessionProgress(storage)).toBeNull();
+    expect(storage.getItem(SESSION_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("optional local progress", () => {
+  it("is off by default and only writes after explicit opt-in", () => {
+    const storage = new MemoryStorage();
+    const state = stateWithPrivateAnswer();
+    expect(saveLocalProgress(state, storage)).toBe(false);
+    expect(storage.getItem(LOCAL_PROGRESS_KEY)).toBeNull();
+
+    setLocalResumeEnabled(true, storage);
+    expect(storage.getItem(LOCAL_RESUME_PREFERENCE_KEY)).toBe("true");
+    expect(saveLocalProgress(state, storage)).toBe(true);
+    expect(loadLocalProgress(storage)?.schoolLevel).toBe("elementary");
+    expect(storage.getItem(LOCAL_PROGRESS_KEY)).not.toContain(
+      "절대로 저장되면 안 되는 원문 답변",
+    );
+  });
+
+  it("deletes progress when opt-in is turned off", () => {
+    const storage = new MemoryStorage();
+    setLocalResumeEnabled(true, storage);
+    saveLocalProgress(stateWithPrivateAnswer(), storage);
+    setLocalResumeEnabled(false, storage);
+    expect(storage.getItem(LOCAL_PROGRESS_KEY)).toBeNull();
+    expect(storage.getItem(LOCAL_RESUME_PREFERENCE_KEY)).toBeNull();
+  });
+});

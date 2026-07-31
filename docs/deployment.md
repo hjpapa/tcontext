@@ -42,6 +42,7 @@ supabase db push
 
 1. `202607300001_create_teacher_context_submissions.sql`
 2. `202607300002_create_analytics_views.sql`
+3. `202607310001_allow_immediate_retention_eligibility.sql`
 
 적용 후 확인:
 
@@ -52,23 +53,26 @@ supabase db push
 
 ## 환경 변수
 
-| 이름 | Preview | Production | 비고 |
-| --- | --- | --- | --- |
-| `OPENAI_API_KEY` | 필수 | 필수 | 서버 전용 |
-| `OPENAI_INTERVIEW_MODEL` | `gpt-5-nano` | `gpt-5-nano` | 환경별 교체 가능 |
-| `OPENAI_PROFILE_MODEL` | `gpt-5.4-nano` | `gpt-5.4-nano` | 환경별 교체 가능 |
-| `OPENAI_PRIVACY_MODEL` | `gpt-5-nano` | `gpt-5-nano` | 환경별 교체 가능 |
-| `SUPABASE_URL` | 필수 | 필수 | 프로젝트 URL |
-| `SUPABASE_SECRET_KEY` | 필수 | 필수 | 서버 전용, `NEXT_PUBLIC_` 금지 |
-| `DATA_RETENTION_DAYS` | `365` | `365` | 정책 변경 시 동의 문안도 갱신 |
-| `CONSENT_VERSION` | `1.0` | `1.0` | 동의 문안 버전 |
-| `PROFILE_SCHEMA_VERSION` | `1.0` | `1.0` | canonical schema |
-| `PROMPT_VERSION` | `1.0` | `1.0` | 프롬프트 버전 |
-| `DELETE_TOKEN_PEPPER` | 필수 | 필수 | 환경별 다른 긴 무작위 값 |
-| `CRON_SECRET` | 필수 | 필수 | Vercel Cron 보호 |
-| `NEXT_PUBLIC_APP_NAME` | `TContext` | `TContext` | 공개 값 |
+| 이름                     | Preview        | Production     | 비고                           |
+| ------------------------ | -------------- | -------------- | ------------------------------ |
+| `OPENAI_API_KEY`         | 필수           | 필수           | 서버 전용                      |
+| `OPENAI_INTERVIEW_MODEL` | `gpt-5-nano`   | `gpt-5-nano`   | 환경별 교체 가능               |
+| `OPENAI_PROFILE_MODEL`   | `gpt-5.4-nano` | `gpt-5.4-nano` | 환경별 교체 가능               |
+| `OPENAI_PRIVACY_MODEL`   | `gpt-5-nano`   | `gpt-5-nano`   | 환경별 교체 가능               |
+| `SUPABASE_URL`           | 필수           | 필수           | 프로젝트 URL                   |
+| `SUPABASE_SECRET_KEY`    | 필수           | 필수           | 서버 전용, `NEXT_PUBLIC_` 금지 |
+| `DATA_RETENTION_DAYS`    | `365`          | `365`          | 정리 간격 포함 실제 최장 일수  |
+| `CONSENT_VERSION`        | `1.0`          | `1.0`          | 동의 문안 버전                 |
+| `PROFILE_SCHEMA_VERSION` | `1.0`          | `1.0`          | canonical schema               |
+| `PROMPT_VERSION`         | `1.0`          | `1.0`          | 프롬프트 버전                  |
+| `DELETE_TOKEN_PEPPER`    | 필수           | 필수           | 환경별 다른 긴 무작위 값       |
+| `CRON_SECRET`            | 필수           | 필수           | Vercel Cron 보호               |
+| `NEXT_PUBLIC_APP_NAME`   | `TContext`     | `TContext`     | 공개 값                        |
+| `NEXT_PUBLIC_APP_URL`    | Preview URL    | Production URL | 영수증·절대 URL 기준 공개 값   |
 
 Preview와 Production에는 서로 독립된 비밀값을 설정한다. 운영 Secret Key를 로컬이나 Preview에 복사하지 않는 구성이 권장된다.
+
+`DATA_RETENTION_DAYS`는 일일 Cron 지연까지 포함한 실제 최장 보유 일수다. 서버는 `retention_until = consented_at + max(DATA_RETENTION_DAYS - 1, 0)일`로 삭제 대상 전환 시각을 계산한다. 기본값 365에서는 364일째 대상이 되어 다음 일일 정리까지 포함해 365일을 넘지 않는다. 값이 1이면 즉시 대상이 되어 다음 정리 주기 안에 삭제된다. 데이터베이스 제약은 어떤 경로로 삽입하더라도 동의 시점부터 365일을 넘는 `retention_until`을 거부한다.
 
 ## Vercel
 
@@ -78,7 +82,7 @@ Preview와 Production에는 서로 독립된 비밀값을 설정한다. 운영 S
 4. Preview를 배포해 랜딩, 개인정보 안내, 학교급·역할 선택, 인터뷰, 생성·검토, 다운로드, 저장 거부, 선택 저장·삭제를 스모크 테스트한다.
 5. 통과한 커밋을 Production에 배포한다.
 
-`vercel.json`은 매일 한국 시간 오전 3시 17분에 만료 삭제 API를 호출한다. API는 `CRON_SECRET` 또는 Vercel Cron 인증을 검증해야 한다.
+`vercel.json`은 매일 한국 시간 오전 3시 17분에 삭제 대상 정리 API를 호출한다. API는 `CRON_SECRET` 또는 Vercel Cron 인증을 검증해야 한다. 일일 실행 실패가 발생하면 최대 보유기간을 넘길 수 있으므로 즉시 수동 정리를 수행하고 스케줄을 복구한다.
 
 ## 운영 확인
 
@@ -98,4 +102,3 @@ where retention_until < now();
 ```
 
 삭제 전에 대상 행 본문을 조회하거나 내보내지 않는다. 실행 기록에는 시각과 삭제 건수만 남긴다.
-

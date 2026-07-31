@@ -1,0 +1,4 @@
+export {
+  FICTIONAL_PROFILE_BY_SCHOOL_LEVEL,
+  FICTIONAL_PROFILES,
+} from "./profiles";

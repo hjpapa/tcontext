@@ -14,7 +14,7 @@
 
 ## 후속 질문
 
-기본 모델은 `OPENAI_INTERVIEW_MODEL=gpt-5-nano`, reasoning effort는 `none`이다.
+기본 모델은 `OPENAI_INTERVIEW_MODEL=gpt-5-nano`, reasoning effort는 `minimal`이다. GPT-5 nano는 `none`을 지원하지 않으므로 지원되는 가장 낮은 단계를 사용한다.
 
 입력:
 
@@ -66,7 +66,7 @@
 
 ## 개인정보 검토
 
-기본 모델은 `OPENAI_PRIVACY_MODEL=gpt-5-nano`, reasoning effort는 `none`이다.
+기본 모델은 `OPENAI_PRIVACY_MODEL=gpt-5-nano`, reasoning effort는 `minimal`이다. GPT-5 nano는 `none`을 지원하지 않으므로 지원되는 가장 낮은 단계를 사용한다.
 
 - 로컬 규칙 검사를 통과한 최종 프로필만 입력한다.
 - 개인·학교·학급을 특정하거나 학생의 건강·상담·진단·가정환경을 드러낼 가능성을 찾는다.
@@ -83,4 +83,3 @@
 - 환경 변수 누락: 비밀값 없는 서비스 구성 오류 메시지
 
 CI에서는 OpenAI 클라이언트를 모킹하며 실 API를 호출하지 않는다.
-

@@ -4,18 +4,15 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <main
-      id="main-content"
-      className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-5 py-16 text-center"
-    >
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-primary">
+    <section className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-5 py-16 text-center">
+      <span className="bg-secondary text-primary flex size-12 items-center justify-center rounded-2xl">
         <FileQuestion aria-hidden="true" />
       </span>
-      <p className="mt-6 font-mono text-sm text-primary">404</p>
+      <p className="text-primary mt-6 font-mono text-sm">404</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
         찾을 수 없는 페이지입니다
       </h1>
-      <p className="mt-4 leading-7 text-muted-foreground">
+      <p className="text-muted-foreground mt-4 leading-7">
         주소를 다시 확인하거나 홈에서 교사 컨텍스트 인터뷰를 시작해 주세요.
       </p>
       <Button asChild className="mt-8">
@@ -24,7 +21,6 @@ export default function NotFound() {
           홈으로 돌아가기
         </Link>
       </Button>
-    </main>
+    </section>
   );
 }
-
