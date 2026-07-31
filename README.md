@@ -12,7 +12,7 @@ TContext는 교사를 점수화하거나 MBTI처럼 유형화하지 않습니다
 - 직접 진술, AI 추론, 확인 필요 근거 구분
 - 7개 모듈의 Zod 검증 구조화 프로필
 - 교사가 모든 문장과 controlled tag를 검토하는 편집 화면
-- 입력 전 규칙 기반 탐지와 최종 OpenAI 개인정보 이중 검토
+- 입력 전 규칙 기반 탐지와 최종 OpenAI 개인정보 이중 검토, 경고 확인 후 로컬 내보내기
 - YAML front matter를 포함한 범용 Markdown 다운로드·복사·인쇄
 - 저장 없이 전체 기능 사용
 - 별도 동의가 있을 때만 최종 결과를 Supabase에 선택 저장
@@ -28,9 +28,9 @@ TContext는 교사를 점수화하거나 MBTI처럼 유형화하지 않습니다
 5. 구조화 프로필 초안 생성
 6. 근거 상태별 문장과 AI 작성 제목·요약·원칙·지침 수정·삭제·확인
 7. 분석 태그 확인
-8. 개인정보 최종 검토
+8. 개인정보 최종 검토(수정 또는 명시적 경고 확인)
 9. Markdown 다운로드·복사·인쇄
-10. 원하는 경우에만 최종 결과 기여
+10. 개인정보 검토가 `clear`인 경우에만 원하는 최종 결과 기여
 11. 저장 영수증과 삭제 코드 보관
 
 원본 답변은 React 메모리에만 남으며 Web Storage, 쿠키, IndexedDB에 기록하지 않습니다. `sessionStorage`에는 학교급·역할·현재 질문 위치 같은 비민감 진행 메타데이터만 남고, 언제든 모든 브라우저 기록을 지울 수 있습니다. 새로고침하거나 탭을 닫으면 답변을 복구할 수 없습니다.
@@ -115,7 +115,7 @@ SUPABASE_SECRET_KEY=
 DATA_RETENTION_DAYS=365
 CONSENT_VERSION=1.0
 PROFILE_SCHEMA_VERSION=1.0
-PROMPT_VERSION=1.0
+PROMPT_VERSION=1.1
 
 DELETE_TOKEN_PEPPER=
 CRON_SECRET=

@@ -77,6 +77,13 @@ export function profileToMarkdown(input: TeacherContextProfile): string {
     "교과, 단원, 성취기준과 같은 정보는 작업할 때 별도로 추가한다.",
   ];
 
+  if (profile.privacyReview.status === "needs_review") {
+    sections.push(
+      "",
+      "> **개인정보 경고:** 자동 검사에서 확인이 필요한 표현이 남아 있습니다. 이 문서는 사용자가 경고를 확인하고 서버에 저장하지 않은 상태로 만든 결과입니다. 공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지 직접 다시 확인해 주세요.",
+    );
+  }
+
   if (hasUnresolvedClaims(profile)) {
     sections.push(
       "",

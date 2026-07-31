@@ -106,6 +106,30 @@ export function ContributionPanel({
     URL.revokeObjectURL(objectUrl);
   };
 
+  if (profile.privacyReview.status !== "clear") {
+    return (
+      <section
+        aria-labelledby="contribution-disabled-title"
+        className="border-t border-[#cfd8d0] pt-10"
+      >
+        <div className="border-l-4 border-[#b66a2c] bg-[#fff8ec] p-5">
+          <p className="text-sm font-bold text-[#8a4d1d]">선택적 기여 꺼짐</p>
+          <h2
+            id="contribution-disabled-title"
+            className="mt-1 text-xl font-bold"
+          >
+            개인정보 경고가 남아 있어 이 문서는 서버에 기여할 수 없습니다.
+          </h2>
+          <p className="mt-2 leading-7 text-[#653f20]">
+            다운로드와 복사는 그대로 사용할 수 있습니다. 기여하려면 검토
+            화면으로 돌아가 해당 표현을 수정한 뒤 개인정보 검사를 다시 진행해
+            주세요.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   if (contributionReceipt) {
     return (
       <section

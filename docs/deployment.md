@@ -64,7 +64,7 @@ supabase db push
 | `DATA_RETENTION_DAYS`    | `365`          | `365`          | 정리 간격 포함 실제 최장 일수  |
 | `CONSENT_VERSION`        | `1.0`          | `1.0`          | 동의 문안 버전                 |
 | `PROFILE_SCHEMA_VERSION` | `1.0`          | `1.0`          | canonical schema               |
-| `PROMPT_VERSION`         | `1.0`          | `1.0`          | 프롬프트 버전                  |
+| `PROMPT_VERSION`         | `1.1`          | `1.1`          | 프롬프트 버전                  |
 | `DELETE_TOKEN_PEPPER`    | 필수           | 필수           | 환경별 다른 긴 무작위 값       |
 | `CRON_SECRET`            | 필수           | 필수           | Vercel Cron 보호               |
 | `NEXT_PUBLIC_APP_NAME`   | `TContext`     | `TContext`     | 공개 값                        |

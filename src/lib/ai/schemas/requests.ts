@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { teacherRoleSchema } from "@/types/interview";
 import {
+  machineIdentifierSchema,
   profileModuleIdSchema,
   schoolLevelSchema,
   teacherContextProfileSchema,
@@ -13,7 +14,7 @@ const answerText = z.string().trim().min(1).max(4_000);
 
 export const interviewExchangeSchema = z
   .object({
-    questionId: nonBlank.max(120),
+    questionId: machineIdentifierSchema,
     moduleId: profileModuleIdSchema,
     question: nonBlank.max(1_000),
     answer: answerText,
@@ -43,7 +44,7 @@ export const profileRefineRequestSchema = z
     profile: teacherContextProfileSchema,
     instruction: nonBlank.max(2_000),
     moduleId: profileModuleIdSchema.optional(),
-    editableClaimIds: z.array(nonBlank.max(120)).max(100).default([]),
+    editableClaimIds: z.array(machineIdentifierSchema).max(100).default([]),
   })
   .strict();
 

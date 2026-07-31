@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RotateCcw, ShieldCheck } from "lucide-react";
+import { RotateCcw, ShieldAlert, ShieldCheck } from "lucide-react";
 
 import { ContributionPanel } from "@/components/consent/contribution-panel";
 import { ResultActions } from "@/components/export/result-actions";
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
-import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 
 export function ResultView({
   consentVersion,
@@ -21,12 +19,8 @@ export function ResultView({
 }) {
   const router = useRouter();
   const { profile, markdown, clearBrowserRecords } = useInterviewSession();
-  const finalMarkdown = useMemo(() => {
-    if (!profile) return "";
-    return markdown || profileToMarkdown(profile);
-  }, [markdown, profile]);
 
-  if (!profile) {
+  if (!profile || !markdown) {
     return (
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">완성된 문서가 없습니다.</h1>
@@ -45,12 +39,24 @@ export function ResultView({
     );
   }
 
+  const privacyReviewClear = profile.privacyReview.status === "clear";
+
   return (
     <section aria-labelledby="result-title" className="space-y-12">
       <header className="max-w-4xl space-y-4">
-        <p className="inline-flex items-center gap-2 text-sm font-bold text-[#28684c]">
-          <ShieldCheck aria-hidden="true" className="size-5" />
-          교사 검토·개인정보 검사 완료
+        <p
+          className={`inline-flex items-center gap-2 text-sm font-bold ${
+            privacyReviewClear ? "text-[#28684c]" : "text-[#8a4d1d]"
+          }`}
+        >
+          {privacyReviewClear ? (
+            <ShieldCheck aria-hidden="true" className="size-5" />
+          ) : (
+            <ShieldAlert aria-hidden="true" className="size-5" />
+          )}
+          {privacyReviewClear
+            ? "교사 검토·개인정보 검사 완료"
+            : "개인정보 경고를 확인하고 만든 문서"}
         </p>
         <h1
           id="result-title"
@@ -63,7 +69,20 @@ export function ResultView({
         </p>
       </header>
 
-      <ResultActions profile={profile} markdown={finalMarkdown} />
+      {!privacyReviewClear ? (
+        <div
+          role="status"
+          className="border-l-4 border-[#b66a2c] bg-[#fff8ec] p-5 text-[#653f20]"
+        >
+          <p className="font-bold">자동 검사 경고가 남아 있는 문서입니다.</p>
+          <p className="mt-1 text-sm leading-6">
+            공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지 직접
+            확인해 주세요. 이 문서는 선택적 데이터 기여를 할 수 없습니다.
+          </p>
+        </div>
+      ) : null}
+
+      <ResultActions profile={profile} markdown={markdown} />
 
       <article
         className="space-y-10 border-y border-[#cfd8d0] py-10 print:border-0"
@@ -132,7 +151,7 @@ export function ResultView({
 
       <ContributionPanel
         profile={profile}
-        markdown={finalMarkdown}
+        markdown={markdown}
         consentVersion={consentVersion}
         retentionDays={retentionDays}
       />

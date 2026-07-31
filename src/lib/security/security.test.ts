@@ -23,6 +23,7 @@ import {
 } from "@/lib/security/rate-limit";
 import {
   PROFILE_MODULE_IDS,
+  teacherContextProfileSchema,
   type TeacherContextProfile,
 } from "@/types/profile";
 import { FICTIONAL_PROFILES } from "@/content/examples";
@@ -35,7 +36,7 @@ function storedProfile(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.0",
+      promptVersion: "1.1",
     },
     profileTitle: "Teacher context",
     shortSummary: "A safe class-level summary.",
@@ -176,6 +177,24 @@ describe("security boundaries", () => {
 
     expect(review.status).toBe("needs_review");
     expect(review.items).toHaveLength(4);
+  });
+
+  it("rejects names in machine identifiers before they can be persisted", () => {
+    const claimIdProfile = storedProfile();
+    const evidenceIdProfile = storedProfile();
+    const claim = claimIdProfile.modules[0]?.claims[0];
+    const evidenceClaim = evidenceIdProfile.modules[0]?.claims[0];
+    if (!claim || !evidenceClaim) throw new Error("Missing profile claim");
+
+    claim.id = "김소영";
+    evidenceClaim.evidenceQuestionIds = ["박은영"];
+
+    expect(teacherContextProfileSchema.safeParse(claimIdProfile).success).toBe(
+      false,
+    );
+    expect(
+      teacherContextProfileSchema.safeParse(evidenceIdProfile).success,
+    ).toBe(false);
   });
 
   it("creates a 32-byte deletion token and verifies only its HMAC", () => {

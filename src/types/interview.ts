@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  machineIdentifierSchema,
   profileModuleIdSchema,
   schoolLevelSchema,
   type ProfileModuleId,
@@ -42,7 +43,7 @@ export type QuestionSource = z.infer<typeof questionSourceSchema>;
 
 export const interviewQuestionSchema = z
   .object({
-    id: z.string().trim().min(1),
+    id: machineIdentifierSchema,
     moduleId: profileModuleIdSchema,
     source: questionSourceSchema,
     prompt: z.string().trim().min(1),
@@ -75,7 +76,7 @@ export type InterviewAnswer = {
 
 export const followUpQuestionSchema = interviewQuestionSchema.extend({
   source: z.literal("follow_up"),
-  basedOnQuestionId: z.string().trim().min(1),
+  basedOnQuestionId: machineIdentifierSchema,
 });
 export type FollowUpQuestion = z.infer<typeof followUpQuestionSchema>;
 

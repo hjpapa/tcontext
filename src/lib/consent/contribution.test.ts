@@ -36,7 +36,7 @@ function profile(
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.0",
+      promptVersion: "1.1",
     },
     profileTitle: "수업 설계를 위한 교사 컨텍스트",
     shortSummary: "질문과 수정 기회를 중시하는 수업 맥락입니다.",
@@ -170,7 +170,7 @@ describe("optional profile contribution", () => {
     const unsafe = profile();
     const claim = unsafe.modules[0]?.claims[0];
     if (!claim) throw new Error("profile fixture claim is missing");
-    claim.evidenceQuestionIds = ["teacher@example.com"];
+    claim.text = "teacher@example.com";
 
     let thrown: unknown;
     try {

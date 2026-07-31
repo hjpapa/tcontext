@@ -12,6 +12,7 @@ import {
 } from "@/lib/ai/client";
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { generateProfile, refineProfile } from "@/lib/ai/profile";
+import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
 import { profileGenerationOutputSchema } from "@/lib/ai/schemas/profile";
 import {
   PROFILE_MODULE_IDS,
@@ -26,7 +27,7 @@ function teacherProfileFixture(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.0",
+      promptVersion: "1.1",
     },
     profileTitle: "Teacher context",
     shortSummary: "Supports discussion and revision.",
@@ -206,6 +207,15 @@ describe("OpenAI structured boundary", () => {
       zodTextFormat(
         profileGenerationOutputSchema,
         "tcontext_profile_generation",
+      ),
+    ).not.toThrow();
+  });
+
+  it("keeps the privacy candidate schema JSON-Schema compatible", () => {
+    expect(() =>
+      zodTextFormat(
+        privacyReviewCandidatesOutputSchema,
+        "tcontext_privacy_review_candidates",
       ),
     ).not.toThrow();
   });
@@ -433,20 +443,157 @@ describe("OpenAI structured boundary", () => {
     ]);
   });
 
-  it("does not send a locally unsafe stored ID to OpenAI for review", async () => {
+  it("sends only authored fields to the final AI privacy review", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { items: [] },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+    const profile = teacherProfileFixture();
+    const firstClaim = profile.modules[0]?.claims[0];
+    if (!firstClaim) throw new Error("fixture claim is missing");
+    profile.metadata.modelName = "teacher@example.com";
+    firstClaim.id = "010-1234-5678";
+    firstClaim.evidenceQuestionIds = ["evidence@example.com"];
+    profile.privacyReview = {
+      status: "needs_review",
+      items: [
+        {
+          text: "stale@example.com",
+          reason: "stale prior review",
+          suggestedRewrite: "remove the stale item",
+        },
+      ],
+    };
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+    const request = parse.mock.calls[0]?.[0] as { input?: string } | undefined;
+    expect(request?.input).toBeTypeOf("string");
+    const input = JSON.parse(request?.input ?? "{}") as {
+      fields?: Array<{ path: string; text: string }>;
+    };
+    expect(Object.keys(input)).toEqual(["fields"]);
+    expect(input.fields).toContainEqual({
+      path: "profile.shortSummary",
+      text: "Supports discussion and revision.",
+    });
+    expect(input.fields?.some((field) => field.path.includes("metadata"))).toBe(
+      false,
+    );
+    expect(input.fields?.some((field) => field.path.endsWith(".id"))).toBe(
+      false,
+    );
+    expect(
+      input.fields?.some((field) => field.path.includes("evidenceQuestionIds")),
+    ).toBe(false);
+    expect(
+      input.fields?.some((field) => field.path.includes("confirmedTags")),
+    ).toBe(false);
+    expect(
+      input.fields?.some((field) => field.path.includes("privacyReview")),
+    ).toBe(false);
+    expect(request?.input).not.toContain("teacher@example.com");
+    expect(request?.input).not.toContain("010-1234-5678");
+    expect(request?.input).not.toContain("stale@example.com");
+  });
+
+  it("stops locally detected authored personal data before OpenAI", async () => {
     const parse = vi.fn();
     setOpenAIClientForTests({
       responses: { parse },
     } as unknown as OpenAI);
-    const unsafe = teacherProfileFixture();
-    const unsafeClaim = unsafe.modules[0]?.claims[0];
-    if (!unsafeClaim) throw new Error("fixture claim is missing");
-    unsafeClaim.id = "010-1234-5678";
+    const profile = teacherProfileFixture();
+    const firstClaim = profile.modules[0]?.claims[0];
+    if (!firstClaim) throw new Error("fixture claim is missing");
+    firstClaim.text = "김민수 학생의 연락처는 010-1234-5678이다.";
 
-    const result = await reviewProfileWithAI(unsafe);
+    const result = await reviewProfileWithAI(profile);
 
     expect(result.source).toBe("local");
     expect(result.review.status).toBe("needs_review");
     expect(parse).not.toHaveBeenCalled();
+  });
+
+  it("discards AI candidates whose path or text is not an exact input field", async () => {
+    const profile = teacherProfileFixture();
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.metadata.modelName",
+                category: "contact",
+                text: profile.metadata.modelName,
+                reason: "hallucinated metadata finding",
+                suggestedRewrite: "remove it",
+              },
+              {
+                path: "profile.shortSummary",
+                category: "combination_risk",
+                text: "AI changed the original text.",
+                reason: "altered text finding",
+                suggestedRewrite: "rewrite it",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+  });
+
+  it("computes needs_review from an exact validated AI candidate", async () => {
+    const profile = teacherProfileFixture();
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.shortSummary",
+                category: "combination_risk",
+                text: profile.shortSummary,
+                reason: "구체적인 단서의 조합으로 개인을 추정할 수 있습니다.",
+                suggestedRewrite: "개인을 특정하지 않는 학급 수준 설명",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toEqual({
+      source: "openai",
+      review: {
+        status: "needs_review",
+        items: [
+          {
+            text: profile.shortSummary,
+            reason: "구체적인 단서의 조합으로 개인을 추정할 수 있습니다.",
+            suggestedRewrite: "개인을 특정하지 않는 학급 수준 설명",
+          },
+        ],
+      },
+    });
+    expect(result.review.items[0]).not.toHaveProperty("path");
+    expect(result.review.items[0]).not.toHaveProperty("category");
   });
 });

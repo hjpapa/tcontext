@@ -125,6 +125,26 @@ const TAG_LABELS: Record<string, string> = {
   disclose_ai_use: "AI 사용 알림",
 };
 
+const PENDING_PRIVACY_REVIEW: PrivacyReview = {
+  status: "needs_review",
+  items: [
+    {
+      text: "최종 개인정보 검사를 완료하지 않은 초안",
+      reason: "현재 내용은 최종 개인정보 검사를 다시 받아야 합니다.",
+      suggestedRewrite: "검토를 마친 뒤 최종 개인정보 검사를 실행해 주세요.",
+    },
+  ],
+};
+
+function markPrivacyReviewPending(
+  profile: TeacherContextProfile,
+): TeacherContextProfile {
+  return {
+    ...profile,
+    privacyReview: PENDING_PRIVACY_REVIEW,
+  };
+}
+
 function updateModule(
   profile: TeacherContextProfile,
   moduleId: ProfileModule["id"],
@@ -158,6 +178,7 @@ export function ProfileReview() {
   >({});
   const [refiningModule, setRefiningModule] = useState<string | null>(null);
   const [synthesisConfirmed, setSynthesisConfirmed] = useState(false);
+  const [privacyWarningAccepted, setPrivacyWarningAccepted] = useState(false);
 
   const unresolvedCount = useMemo(
     () =>
@@ -192,9 +213,19 @@ export function ProfileReview() {
     );
   }
 
-  const updateSynthesis = (nextProfile: TeacherContextProfile) => {
-    setProfile(nextProfile);
+  const resetPrivacyReview = () => {
     setPrivacyReview(null);
+    setPrivacyWarningAccepted(false);
+    setMarkdown("");
+  };
+
+  const updateDraftProfile = (nextProfile: TeacherContextProfile) => {
+    setProfile(markPrivacyReviewPending(nextProfile));
+    resetPrivacyReview();
+  };
+
+  const updateSynthesis = (nextProfile: TeacherContextProfile) => {
+    updateDraftProfile(nextProfile);
     setSynthesisConfirmed(false);
   };
 
@@ -235,7 +266,7 @@ export function ProfileReview() {
     claimId: string,
     updater: (claim: ProfileClaim) => ProfileClaim,
   ) => {
-    setProfile(
+    updateDraftProfile(
       updateModule(profile, moduleId, (module) => ({
         ...module,
         claims: module.claims.map((claim) =>
@@ -243,17 +274,15 @@ export function ProfileReview() {
         ),
       })),
     );
-    setPrivacyReview(null);
   };
 
   const removeClaim = (moduleId: ProfileModule["id"], claimId: string) => {
-    setProfile(
+    updateDraftProfile(
       updateModule(profile, moduleId, (module) => ({
         ...module,
         claims: module.claims.filter((claim) => claim.id !== claimId),
       })),
     );
-    setPrivacyReview(null);
   };
 
   const moveClaim = (
@@ -261,7 +290,7 @@ export function ProfileReview() {
     claimId: string,
     direction: -1 | 1,
   ) => {
-    setProfile(
+    updateDraftProfile(
       updateModule(profile, moduleId, (module) => {
         const index = module.claims.findIndex((claim) => claim.id === claimId);
         const nextIndex = index + direction;
@@ -325,6 +354,8 @@ export function ProfileReview() {
 
     setBusy(true);
     setError("");
+    setPrivacyWarningAccepted(false);
+    setMarkdown("");
     try {
       const confirmedTags = confirmedTagsFromCandidates(
         suggestedTags.map((tag) => ({
@@ -333,7 +364,7 @@ export function ProfileReview() {
         })),
       );
       const withTags: TeacherContextProfile = {
-        ...profile,
+        ...markPrivacyReviewPending(profile),
         confirmedTags,
       };
       const response = await fetch("/api/privacy/review", {
@@ -377,12 +408,13 @@ export function ProfileReview() {
     if (!instruction || refiningModule) return;
     setRefiningModule(module.id);
     setError("");
+    resetPrivacyReview();
     try {
       const response = await fetch("/api/profile/refine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile,
+          profile: markPrivacyReviewPending(profile),
           instruction,
           moduleId: module.id,
           editableClaimIds: module.claims.map((claim) => claim.id),
@@ -396,8 +428,8 @@ export function ProfileReview() {
       const result = (await response.json()) as {
         profile: TeacherContextProfile;
       };
-      setProfile(result.profile);
-      setPrivacyReview(null);
+      setProfile(markPrivacyReviewPending(result.profile));
+      resetPrivacyReview();
       setSynthesisConfirmed(false);
       setRefineInstructions((current) => ({ ...current, [module.id]: "" }));
     } catch (caught) {
@@ -412,7 +444,7 @@ export function ProfileReview() {
   const downloadDraft = () => {
     try {
       downloadMarkdown(
-        profileToMarkdown(profile),
+        profileToMarkdown(markPrivacyReviewPending(profile)),
         `tcontext-review-draft-${profile.metadata.schoolLevel}.md`,
       );
     } catch {
@@ -420,6 +452,18 @@ export function ProfileReview() {
         "빈 문장이 있어 초안을 만들 수 없습니다. 빈 문장을 작성하거나 삭제해 주세요.",
       );
     }
+  };
+
+  const continueWithPrivacyWarning = () => {
+    if (
+      !privacyWarningAccepted ||
+      privacyReview?.status !== "needs_review" ||
+      profile.privacyReview.status !== "needs_review"
+    ) {
+      return;
+    }
+    setMarkdown(profileToMarkdown(profile));
+    router.push("/result");
   };
 
   return (
@@ -939,6 +983,7 @@ export function ProfileReview() {
                             <Checkbox
                               checked={checked}
                               onCheckedChange={(value) => {
+                                resetPrivacyReview();
                                 setSelectedTags((current) => {
                                   const next = new Set(current);
                                   if (value === true) next.add(key);
@@ -962,6 +1007,51 @@ export function ProfileReview() {
       </section>
 
       <PrivacyReviewPanel review={privacyReview} />
+
+      {privacyReview?.status === "needs_review" ? (
+        <section
+          aria-labelledby="privacy-warning-override-title"
+          className="space-y-4 border-l-4 border-[#b66a2c] bg-[#fff8ec] p-5"
+        >
+          <div>
+            <h2 id="privacy-warning-override-title" className="font-bold">
+              꼭 필요한 내용이라면 경고를 확인하고 계속할 수 있습니다.
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-[#653f20]">
+              이 선택은 검사 결과를 통과로 바꾸지 않습니다. 결과와 Markdown에는
+              경고가 표시되며, 서버로 보내는 선택적 데이터 기여는
+              비활성화됩니다.
+            </p>
+          </div>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="privacy-warning-accepted"
+              checked={privacyWarningAccepted}
+              onCheckedChange={(value) =>
+                setPrivacyWarningAccepted(value === true)
+              }
+              className="mt-1 size-5"
+            />
+            <Label
+              htmlFor="privacy-warning-accepted"
+              className="cursor-pointer text-base leading-7"
+            >
+              식별 가능한 정보가 남아 있을 수 있음을 이해했습니다. 공유하거나
+              다른 AI에 입력하기 전에 내용을 직접 다시 확인하겠습니다.
+            </Label>
+          </div>
+          <Button
+            type="button"
+            size="lg"
+            disabled={!privacyWarningAccepted}
+            onClick={continueWithPrivacyWarning}
+            className="min-h-12 bg-[#653f20] text-white hover:bg-[#7a4b25]"
+          >
+            경고 확인하고 결과 보기
+            <ArrowRight aria-hidden="true" />
+          </Button>
+        </section>
+      ) : null}
 
       {error ? (
         <Alert variant="destructive" role="alert">
@@ -1011,6 +1101,9 @@ export function ProfileReview() {
         className="text-sm text-[#536159] underline underline-offset-4"
         onClick={() => {
           clearBrowserRecords();
+          setPrivacyReview(null);
+          setPrivacyWarningAccepted(false);
+          setError("");
           router.push("/interview");
         }}
       >

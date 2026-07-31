@@ -47,6 +47,22 @@ describe("question routing", () => {
     ).toBe(false);
     expect(questions.some((item) => item.id === "role-counselor")).toBe(true);
   });
+
+  it("asks about interests, observable strengths, and support-centered difficulties", () => {
+    const questions = buildInterviewQuestions({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+    });
+    const promptFor = (id: string) =>
+      questions.find((item) => item.id === id)?.prompt ?? "";
+
+    expect(promptFor("common-role-focus")).toContain("관심");
+    expect(promptFor("common-teacher-role")).toContain("비교적 잘한다");
+    expect(promptFor("common-teacher-role")).toContain("실제로 무엇을 했나요");
+    expect(promptFor("common-mistakes-growth")).toContain("에너지가 많이");
+    expect(promptFor("common-mistakes-growth")).toContain("어떤 지원");
+    expect(promptFor("common-environment")).toContain("교실 현실");
+  });
 });
 
 describe("interview runtime state", () => {

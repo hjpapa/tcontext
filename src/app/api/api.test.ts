@@ -52,7 +52,7 @@ function submissionProfile(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.0",
+      promptVersion: "1.1",
     },
     profileTitle: "Teacher context",
     shortSummary: "Discussion and revision support.",

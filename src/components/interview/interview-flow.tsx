@@ -135,6 +135,7 @@ export function InterviewFlow() {
     setInterview(next);
     setAnswer("");
     setError("");
+    setPrivacyRisks(null);
     setStep("questions");
   };
 
@@ -229,6 +230,8 @@ export function InterviewFlow() {
 
   const commitAndContinue = async (disposition: AnswerDisposition) => {
     if (!interview || !currentQuestion || busy) return;
+    setError("");
+    setPrivacyRisks(null);
     if (disposition === "answered" && !answer.trim()) {
       setError(
         "답변을 적거나 ‘잘 모르겠어요’ 또는 ‘건너뛰기’를 선택해 주세요.",
@@ -239,16 +242,11 @@ export function InterviewFlow() {
       const scan = detectPrivacyRisks(answer.trim());
       if (scan.status === "blocked") {
         setPrivacyRisks(scan);
-        setError(
-          "개인정보 또는 개인을 규정하는 표현이 감지되어 전송을 멈췄습니다. 답변을 지원 중심 표현으로 고쳐 주세요.",
-        );
         return;
       }
     }
 
     setBusy(true);
-    setError("");
-    setPrivacyRisks(null);
     try {
       let next = setInterviewAnswer(
         interview,
@@ -461,9 +459,6 @@ export function InterviewFlow() {
               </p>
             </div>
           </div>
-          <p className="border-l-4 border-[#b66a2c] bg-[#fff8ec] px-4 py-3 text-sm leading-6 text-[#653f20]">
-            <strong>개인정보 주의:</strong> {currentQuestion.privacyHint}
-          </p>
         </div>
 
         <div className="space-y-3">
@@ -475,21 +470,31 @@ export function InterviewFlow() {
             value={answer}
             onChange={(event) => {
               setAnswer(event.target.value);
+              setError("");
               setPrivacyRisks(null);
             }}
             disabled={busy}
             autoFocus
             rows={8}
             maxLength={4000}
-            aria-describedby="answer-help"
+            aria-describedby="answer-privacy-help question-privacy-guidance"
             className="min-h-48 resize-y border-[#aebbb0] bg-white p-4 text-lg leading-8 focus-visible:ring-[#28684c]"
             placeholder="예: 먼저 짧은 질문으로 생각을 꺼내고, 개인 메모 뒤 모둠에서 나누도록 합니다…"
           />
-          <div
-            id="answer-help"
-            className="flex flex-col justify-between gap-2 text-sm text-[#536159] sm:flex-row"
-          >
-            <span>이름·학교명·반·연락처·성적·진단명은 적지 마세요.</span>
+          <div className="flex flex-col justify-between gap-2 text-sm text-[#536159] sm:flex-row">
+            <div className="space-y-1">
+              <p id="answer-privacy-help">
+                이름·학교명·반·연락처·성적·진단명은 적지 마세요.
+              </p>
+              <details className="text-[#653f20]">
+                <summary className="min-h-8 cursor-pointer py-1 font-semibold underline underline-offset-4">
+                  개인정보 없이 답하는 방법
+                </summary>
+                <p id="question-privacy-guidance" className="pb-1 leading-6">
+                  {currentQuestion.privacyHint}
+                </p>
+              </details>
+            </div>
             <span aria-live="polite">{answer.length} / 4,000자</span>
           </div>
         </div>
@@ -540,6 +545,8 @@ export function InterviewFlow() {
             disabled={busy || interview.currentQuestionIndex === 0}
             className="min-h-12"
             onClick={() => {
+              setError("");
+              setPrivacyRisks(null);
               const previous = goToPreviousQuestion(interview);
               const previousQuestion =
                 previous.questions[previous.currentQuestionIndex];
@@ -551,7 +558,6 @@ export function InterviewFlow() {
               }
               setInterview(previous);
               setAnswer(previous.answers[previousQuestion.id]?.text ?? "");
-              setError("");
             }}
           >
             <ArrowLeft aria-hidden="true" />
@@ -617,6 +623,8 @@ export function InterviewFlow() {
             setStep("privacy");
             setPrivacyAccepted(false);
             setAnswer("");
+            setError("");
+            setPrivacyRisks(null);
           }}
         >
           <RotateCcw aria-hidden="true" className="size-4" />이 탭의 인터뷰를

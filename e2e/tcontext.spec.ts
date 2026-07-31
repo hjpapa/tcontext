@@ -98,7 +98,7 @@ const generatedProfile = {
     generatedAt: "2026-07-31T00:00:00.000Z",
     schemaVersion: "1.0",
     modelName: "gpt-5.4-nano",
-    promptVersion: "1.0",
+    promptVersion: "1.1",
   },
   profileTitle: "질문과 작은 성공을 연결하는 교사 컨텍스트",
   shortSummary:
@@ -147,8 +147,12 @@ async function startElementaryInterview(page: Page) {
   const privacyConfirmation = page.getByRole("checkbox", {
     name: /개인정보를 입력하지 않으며/,
   });
-  await privacyConfirmation.click();
-  await expect(privacyConfirmation).toBeChecked();
+  await expect(async () => {
+    if ((await privacyConfirmation.getAttribute("aria-checked")) !== "true") {
+      await privacyConfirmation.click();
+    }
+    await expect(privacyConfirmation).toBeChecked();
+  }).toPass();
   await page.getByRole("button", { name: "확인하고 학교급 선택하기" }).click();
 
   await expect(
@@ -161,12 +165,19 @@ async function startElementaryInterview(page: Page) {
   await page.getByRole("button", { name: "14개 질문 시작하기" }).click();
 
   await expect(page.getByText("질문 1 / 14")).toBeVisible();
+  await expect(
+    page.getByText("개인정보 없이 답하는 방법", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("개인정보 주의:")).toHaveCount(0);
+  await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
 }
 
 async function answerFirstQuestionAndFinishInterview(page: Page) {
   await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
   await page.getByRole("button", { name: "다음 질문" }).click();
   await expect(page.getByText("질문 2 / 14")).toBeVisible();
+  await expect(page.getByText("개인정보 주의:")).toHaveCount(0);
+  await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
 
   for (let questionNumber = 2; questionNumber <= 14; questionNumber += 1) {
     await page.getByRole("button", { name: "건너뛰기" }).click();
@@ -253,8 +264,11 @@ test.describe("anonymous teacher-context flow", () => {
     await page.getByRole("button", { name: "다음 질문" }).click();
 
     await expect(
-      page.getByText(/개인정보 또는 개인을 규정하는 표현이 감지되어/),
+      page.getByRole("heading", {
+        name: "전송 전에 이 표현을 바꿔 주세요.",
+      }),
     ).toBeVisible();
+    await expect(page.locator("main").getByRole("alert")).toHaveCount(1);
     await expect(
       page.locator("mark").filter({ hasText: "김민수 학생" }),
     ).toBeVisible();
@@ -282,6 +296,17 @@ test.describe("anonymous teacher-context flow", () => {
     await expect(
       page.getByText("확인 필요", { exact: true }).first(),
     ).toBeVisible();
+
+    const draftDownloadPromise = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "검토 중 초안 Markdown 다운로드" })
+      .click();
+    const draftDownload = await draftDownloadPromise;
+    const draftPath = await draftDownload.path();
+    expect(draftPath).not.toBeNull();
+    const draftMarkdown = await readFile(draftPath!, "utf8");
+    expect(draftMarkdown).toContain('privacy_review: "needs_review"');
+    expect(draftMarkdown).toContain("**개인정보 경고:**");
 
     await page.getByRole("button", { name: "이 추론 승인" }).click();
     await page.getByRole("button", { name: "내용 확인" }).click();
@@ -358,6 +383,148 @@ test.describe("anonymous teacher-context flow", () => {
     );
     expect(browserStorage).not.toContain(privateAnswer);
     expect(browserStorage).not.toContain(safeAnswer);
+  });
+
+  test("resets a stale privacy warning and allows an explicit local-only result", async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+
+    const privacyRequests: Array<Record<string, unknown>> = [];
+    let contributionRequestCount = 0;
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [],
+      });
+    });
+    await page.route("**/api/privacy/review", async (route) => {
+      const request = route.request().postDataJSON() as {
+        profile?: { shortSummary?: string };
+      };
+      privacyRequests.push(request);
+      await fulfillJson(route, {
+        source: "openai",
+        review: {
+          status: "needs_review",
+          items: [
+            {
+              text: request.profile?.shortSummary ?? "확인이 필요한 문장",
+              reason: "자동 검사에서 확인이 필요한 표현입니다.",
+              suggestedRewrite:
+                "개인을 특정하지 않는 수업 지원으로 바꿔 주세요.",
+            },
+          ],
+        },
+      });
+    });
+    await page.route("**/api/submissions/create", async (route) => {
+      contributionRequestCount += 1;
+      await fulfillJson(route, { unexpected: true });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    await page.getByRole("button", { name: "이 추론 승인" }).click();
+    await page.getByRole("button", { name: "내용 확인" }).click();
+    await page
+      .getByRole("checkbox", {
+        name: /문서 제목, 전체·모듈 요약/,
+      })
+      .click();
+    await page
+      .getByRole("button", { name: "검토 마치고 개인정보 검사" })
+      .click();
+
+    await expect(page).toHaveURL(/\/review$/);
+    await expect(
+      page.getByText("개인정보 또는 확인이 필요한 표현이 있습니다.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    const continueButton = page.getByRole("button", {
+      name: "경고 확인하고 결과 보기",
+    });
+    await expect(continueButton).toBeDisabled();
+
+    await page.getByLabel("전체 요약 직접 수정").fill(teacherEditedSummary);
+    await expect(
+      page.getByText("개인정보 또는 확인이 필요한 표현이 있습니다.", {
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(continueButton).toHaveCount(0);
+
+    await page
+      .getByRole("checkbox", {
+        name: /문서 제목, 전체·모듈 요약/,
+      })
+      .click();
+    await page
+      .getByRole("button", { name: "검토 마치고 개인정보 검사" })
+      .click();
+
+    expect(privacyRequests).toHaveLength(2);
+    const secondPrivacyPayload = privacyRequests[1] as {
+      profile?: { privacyReview?: unknown; shortSummary?: string };
+    };
+    expect(secondPrivacyPayload.profile?.privacyReview).toEqual({
+      status: "needs_review",
+      items: [
+        {
+          text: "최종 개인정보 검사를 완료하지 않은 초안",
+          reason: "현재 내용은 최종 개인정보 검사를 다시 받아야 합니다.",
+          suggestedRewrite:
+            "검토를 마친 뒤 최종 개인정보 검사를 실행해 주세요.",
+        },
+      ],
+    });
+    expect(secondPrivacyPayload.profile?.shortSummary).toBe(
+      teacherEditedSummary,
+    );
+
+    const warningConfirmation = page.getByRole("checkbox", {
+      name: /식별 가능한 정보가 남아 있을 수 있음을 이해했습니다/,
+    });
+    const secondContinueButton = page.getByRole("button", {
+      name: "경고 확인하고 결과 보기",
+    });
+    await expect(warningConfirmation).not.toBeChecked();
+    await expect(secondContinueButton).toBeDisabled();
+    await warningConfirmation.click();
+    await expect(secondContinueButton).toBeEnabled();
+    await secondContinueButton.click();
+
+    await expect(page).toHaveURL(/\/result$/);
+    await expect(
+      page.getByText("개인정보 경고를 확인하고 만든 문서", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: "개인정보 경고가 남아 있어 이 문서는 서버에 기여할 수 없습니다.",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "동의하고 데이터 기여" }),
+    ).toHaveCount(0);
+    expect(contributionRequestCount).toBe(0);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Markdown 다운로드" }).click();
+    const download = await downloadPromise;
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const markdown = await readFile(downloadPath!, "utf8");
+    expect(markdown).toContain('privacy_review: "needs_review"');
+    expect(markdown).toContain("**개인정보 경고:**");
+    expect(markdown).toContain(teacherEditedSummary);
+    expect(contributionRequestCount).toBe(0);
   });
 
   test("contributes only the reviewed profile, downloads its receipt, and deletes it", async ({
@@ -454,7 +621,13 @@ test.describe("anonymous teacher-context flow", () => {
     );
     expect(contributionPayload.consentAccepted).toBe(true);
     expect(contributionPayload.consentVersion).toBe("1.0");
-    expect(contributionPayload.profile).toEqual(privacyPayload.profile);
+    const { privacyReview: pendingReview, ...privacyRequestProfile } =
+      privacyPayload.profile ?? {};
+    const { privacyReview: contributedReview, ...contributedProfile } =
+      contributionPayload.profile ?? {};
+    expect(contributedProfile).toEqual(privacyRequestProfile);
+    expect(pendingReview).toMatchObject({ status: "needs_review" });
+    expect(contributedReview).toEqual({ status: "clear", items: [] });
     expect(contributionPayload.confirmedTags).toEqual(
       contributionPayload.profile?.confirmedTags,
     );

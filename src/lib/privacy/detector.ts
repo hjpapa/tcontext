@@ -17,18 +17,32 @@ type PatternDefinition = {
   ignore?: (match: string) => boolean;
 };
 
-const SAFE_COLLECTIVE_PREFIXES = new Set([
+const KOREAN_SURNAMES =
+  "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구민류나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용";
+
+const LIKELY_KOREAN_FULL_NAME_PATTERN = `[${KOREAN_SURNAMES}][가-힣]{1,3}`;
+const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
+const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
+const NAME_TRAILING_CONTEXT_PATTERN =
+  "(?=$|[은이는의에게을를과와도가로,.;:!?])";
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN}|(?:제|내|본인(?:의)?)\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const INDIVIDUAL_PERSON_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|(?:해당|그|이|특정|개별)\\s*${STUDENT_ROLE_PATTERN}(?!들))`;
+const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
   "모든",
   "전체",
   "우리",
   "해당",
+  "특정",
+  "개별",
   "몇몇",
   "대부분",
+  "어떤",
   "이런",
   "저런",
-  "어떤",
+  "많은",
   "하는",
   "있는",
   "없는",
@@ -37,11 +51,100 @@ const SAFE_COLLECTIVE_PREFIXES = new Set([
   "어려운",
   "산만한",
   "느린",
-  "안내와",
+  "국어",
+  "수학",
+  "영어",
+  "과학",
+  "사회",
+  "도덕",
+  "음악",
+  "미술",
+  "체육",
+  "정보",
+  "한문",
+  "진로",
+  "상담",
+  "보건",
+  "사서",
+  "특수",
+  "영양",
+  "담임",
+  "교과",
+  "전담",
+  "보조",
+  "협력",
+  "지원",
+  "담당",
+  "원어민",
+  "기간제",
+  "계약직",
+  "신규",
+  "초임",
+  "현직",
+  "동료",
+  "수석",
+  "파견",
+  "대체",
+  "유치원",
+  "어린이집",
+  "초등",
+  "중등",
+  "고등",
+  "중학교",
+  "고등학교",
+  "원아",
 ]);
+const MEDICAL_TERM_PATTERN =
+  "(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단받|치료\\s*중|약(?:을|을\\s*)?\\s*복용|상담을\\s*받)";
 
-const KOREAN_SURNAMES =
-  "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구민류나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용";
+function isValidCalendarDate(year: number, month: number, day: number) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function isStructurallyValidResidentNumber(match: string) {
+  const digits = match.replace(/[-\s]/gu, "");
+  if (!/^\d{13}$/u.test(digits)) return false;
+
+  const yearPart = Number(digits.slice(0, 2));
+  const month = Number(digits.slice(2, 4));
+  const day = Number(digits.slice(4, 6));
+  const centuryCode = Number(digits[6]);
+  const century = [1, 2, 5, 6].includes(centuryCode) ? 1900 : 2000;
+
+  return isValidCalendarDate(century + yearPart, month, day);
+}
+
+function containsValidLabeledDate(match: string) {
+  const date = match.match(
+    /((?:19|20)\d{2})(?:년|[-/.])\s*(0?[1-9]|1[0-2])(?:월|[-/.])\s*(0?[1-9]|[12]\d|3[01])/u,
+  );
+  if (!date) return false;
+
+  return isValidCalendarDate(Number(date[1]), Number(date[2]), Number(date[3]));
+}
+
+function isGenericPrivacyPolicyStatement(match: string) {
+  return /(?:없이|없음|없다|입력하지|공유하지|저장하지|남기지|기록하지|수집하지|포함하지|제공하지)/u.test(
+    match,
+  );
+}
+
+function isGenericRoleDescription(match: string) {
+  const descriptor = match.match(
+    /^([가-힣]{2,4})\s*(?:학생|유아|아동|교사|선생님|보호자)/u,
+  )?.[1];
+  return descriptor
+    ? SAFE_ROLE_DESCRIPTORS.has(descriptor) ||
+        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과)$/u.test(
+          descriptor,
+        )
+    : false;
+}
 
 const PATTERNS: PatternDefinition[] = [
   {
@@ -60,15 +163,17 @@ const PATTERNS: PatternDefinition[] = [
   {
     type: "resident_registration_number",
     severity: "high",
-    regex: /(?<!\d)\d{6}[-\s]?[1-4]\d{6}(?!\d)/gu,
+    regex: /(?<!\d)\d{6}[-\s]?[1-8]\d{6}(?!\d)/gu,
     reason: "주민등록번호 형식의 민감한 식별정보가 포함되어 있습니다.",
+    ignore: (match) => !isStructurallyValidResidentNumber(match),
   },
   {
     type: "birth_date",
     severity: "high",
     regex:
-      /(?:생년월일(?:은|이|:)?\s*)?(?:19|20)\d{2}(?:년|[-/.])\s*(?:0?[1-9]|1[0-2])(?:월|[-/.])\s*(?:0?[1-9]|[12]\d|3[01])일?/gu,
+      /(?:생년월일|생일|출생(?:일자)?)(?:은|이|:|：)?\s*(?:19|20)\d{2}(?:년|[-/.])\s*(?:0?[1-9]|1[0-2])(?:월|[-/.])\s*(?:0?[1-9]|[12]\d|3[01])일?/gu,
     reason: "구체적인 생년월일은 개인 식별 가능성을 높입니다.",
+    ignore: (match) => !containsValidLabeledDate(match),
   },
   {
     type: "address",
@@ -80,43 +185,45 @@ const PATTERNS: PatternDefinition[] = [
   {
     type: "student_name",
     severity: "high",
-    regex: new RegExp(
-      `(?<![가-힣])(?:[${KOREAN_SURNAMES}][가-힣]{1,2}|[○◯O]{2,4})\\s*학생`,
-      "gu",
-    ),
+    regex: new RegExp(`(?<![가-힣])${NAMED_STUDENT_CONTEXT_PATTERN}`, "gu"),
     reason: "학생 이름으로 보이는 표현이 포함되어 있습니다.",
-    ignore: (match) =>
-      SAFE_COLLECTIVE_PREFIXES.has(match.replace(/\s*학생$/u, "")),
+    ignore: isGenericRoleDescription,
   },
   {
     type: "person_name",
     severity: "high",
-    regex: new RegExp(
-      `(?:이름(?:은|이|:|：)\\s*(?:[${KOREAN_SURNAMES}][가-힣]{1,2}|[○◯O]{2,4})|(?:교사|선생님)\\s*(?:이름(?:은|이|:|：)|[:：])\\s*(?:[${KOREAN_SURNAMES}][가-힣]{2}|[○◯O]{2,4}))(?![가-힣])`,
-      "gu",
-    ),
+    regex: new RegExp(`(?<![가-힣])${NAMED_ADULT_CONTEXT_PATTERN}`, "gu"),
     reason: "교사 또는 개인의 실명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericRoleDescription,
   },
   {
     type: "individual_score",
     severity: "high",
-    regex:
-      /(?:[가-힣]{2,4}|[○◯O]{2,4}|그\s*학생|해당\s*학생)?\s*(?:점수(?:는|가|:)?\s*)?\d{1,3}(?:\.\d+)?\s*점(?!검)/gu,
+    regex: new RegExp(
+      `(?<![가-힣])${INDIVIDUAL_PERSON_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:개별\\s*)?점수(?:는|가|:|：)?\\s*)?\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)`,
+      "gu",
+    ),
     reason: "개별 점수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "rank",
     severity: "high",
-    regex: /(?:석차(?:는|가|:)?\s*\d+|\d+\s*(?:등|위))(?:\s*\/\s*\d+)?/gu,
+    regex: new RegExp(
+      `(?<![가-힣])${INDIVIDUAL_PERSON_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)`,
+      "gu",
+    ),
     reason: "개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "medical_or_counseling",
     severity: "high",
-    regex:
-      /(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단명|진단받|상담\s*기록|상담\s*내용|치료\s*중|약\s*복용|건강\s*정보|병력)/giu,
+    regex: new RegExp(
+      `(?:${INDIVIDUAL_PERSON_CONTEXT_PATTERN})[^.!?\\n]{0,50}${MEDICAL_TERM_PATTERN}|${MEDICAL_TERM_PATTERN}[^.!?\\n]{0,30}(?:${INDIVIDUAL_PERSON_CONTEXT_PATTERN})|(?:진단명|상담\\s*(?:기록|내용)|건강\\s*정보|병력)\\s*(?:은|이|:|：)\\s*(?!없이|없음|없다|기록하지|수집하지)[^.!?\\n]{1,80}`,
+      "giu",
+    ),
     reason:
       "의료·진단·상담 정보는 매우 민감하며 수업 지원 설명에 필요하지 않습니다.",
+    ignore: isGenericPrivacyPolicyStatement,
   },
   {
     type: "school_name",

@@ -38,10 +38,13 @@ export function PrivacyReviewPanel({
           className="mt-0.5 size-6 shrink-0 text-[#8d352f]"
         />
         <div className="min-w-0">
-          <p className="font-bold">수정이 필요한 표현이 있습니다.</p>
+          <p className="font-bold">
+            개인정보 또는 확인이 필요한 표현이 있습니다.
+          </p>
           <p className="mt-1 text-sm leading-6 text-[#653c38]">
-            아래 제안을 참고해 해당 문장을 직접 수정하거나 삭제한 뒤 다시 검사해
-            주세요.
+            가능하면 아래 문장을 직접 수정하거나 삭제한 뒤 다시 검사해 주세요.
+            꼭 포함해야 하는 내용이라면 경고를 확인하고 서버에 저장하지 않는
+            결과로 이동할 수 있지만, 선택적 데이터 기여는 사용할 수 없습니다.
           </p>
         </div>
       </div>

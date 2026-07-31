@@ -42,13 +42,19 @@ export type ProfileModuleId = z.infer<typeof profileModuleIdSchema>;
 
 const nonBlankText = z.string().trim().min(1);
 const editableText = z.string().trim();
+export const machineIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u);
 
 export const profileClaimOutputSchema = z
   .object({
-    id: nonBlankText,
+    id: machineIdentifierSchema,
     text: nonBlankText,
     basis: evidenceBasisSchema,
-    evidenceQuestionIds: z.array(nonBlankText).min(1),
+    evidenceQuestionIds: z.array(machineIdentifierSchema).min(1),
     confirmedByUser: z.boolean(),
   })
   .strict();

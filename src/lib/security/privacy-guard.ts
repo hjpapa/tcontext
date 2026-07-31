@@ -61,6 +61,50 @@ export function collectProfilePrivacyTextFields(
 }
 
 /**
+ * Collects only natural-language profile fields that a teacher can review.
+ * Machine metadata, identifiers, controlled tags, and a prior privacy review
+ * are deliberately excluded from the final AI review input.
+ */
+export function collectProfileAuthoredTextFields(
+  profile: TeacherContextProfile,
+): TextField[] {
+  return [
+    { path: "profile.profileTitle", value: profile.profileTitle },
+    { path: "profile.shortSummary", value: profile.shortSummary },
+    ...profile.modules.flatMap((module, moduleIndex) => [
+      {
+        path: `profile.modules.${moduleIndex}.title`,
+        value: module.title,
+      },
+      {
+        path: `profile.modules.${moduleIndex}.summary`,
+        value: module.summary,
+      },
+      ...module.claims.map((claim, claimIndex) => ({
+        path: `profile.modules.${moduleIndex}.claims.${claimIndex}.text`,
+        value: claim.text,
+      })),
+    ]),
+    ...profile.teachingDesignPrinciples.map((value, index) => ({
+      path: `profile.teachingDesignPrinciples.${index}`,
+      value,
+    })),
+    ...profile.classSupportConsiderations.map((value, index) => ({
+      path: `profile.classSupportConsiderations.${index}`,
+      value,
+    })),
+    ...profile.realisticConstraints.map((value, index) => ({
+      path: `profile.realisticConstraints.${index}`,
+      value,
+    })),
+    ...profile.aiCollaborationInstructions.map((value, index) => ({
+      path: `profile.aiCollaborationInstructions.${index}`,
+      value,
+    })),
+  ].filter((field) => field.value.trim().length > 0);
+}
+
+/**
  * Stops sensitive text before it reaches OpenAI. The response contains only
  * offsets and remediation guidance; the matched personal text is not echoed.
  */
@@ -76,25 +120,35 @@ export function assertSafeForAI(fields: readonly TextField[]): void {
   }
 }
 
-export function localProfilePrivacyReview(profile: TeacherContextProfile) {
-  const items = collectProfilePrivacyTextFields(profile).flatMap(
-    (field): PrivacyReview["items"] => {
-      const matches = privacyMatchesForField(field);
-      if (matches.length === 0) return [];
+function localPrivacyReviewForFields(fields: readonly TextField[]) {
+  const items = fields.flatMap((field): PrivacyReview["items"] => {
+    const matches = privacyMatchesForField(field);
+    if (matches.length === 0) return [];
 
-      return [
-        {
-          text: field.value,
-          reason: [...new Set(matches.map((match) => match.reason))].join(" "),
-          suggestedRewrite:
-            matches[0]?.suggestedRewrite ??
-            "개인을 특정하지 않는 지원 중심 표현으로 수정해 주세요.",
-        },
-      ];
-    },
-  );
+    return [
+      {
+        text: field.value,
+        reason: [...new Set(matches.map((match) => match.reason))].join(" "),
+        suggestedRewrite:
+          matches[0]?.suggestedRewrite ??
+          "개인을 특정하지 않는 지원 중심 표현으로 수정해 주세요.",
+      },
+    ];
+  });
 
   return items.length > 0
     ? { status: "needs_review" as const, items }
     : { status: "clear" as const, items: [] };
+}
+
+/** Full persisted-profile defense used before optional contribution storage. */
+export function localProfilePrivacyReview(profile: TeacherContextProfile) {
+  return localPrivacyReviewForFields(collectProfilePrivacyTextFields(profile));
+}
+
+/** Teacher-visible final review that excludes machine-only profile fields. */
+export function localAuthoredProfilePrivacyReview(
+  profile: TeacherContextProfile,
+) {
+  return localPrivacyReviewForFields(collectProfileAuthoredTextFields(profile));
 }

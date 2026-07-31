@@ -39,6 +39,44 @@ describe("profile export", () => {
     expect(markdown).toContain("검토 필요");
   });
 
+  it("keeps a visible warning when the user continues after privacy review", () => {
+    const profile = fictionalProfile(0);
+    profile.privacyReview = {
+      status: "needs_review",
+      items: [
+        {
+          text: "확인이 필요한 문장",
+          reason: "식별 가능성을 직접 확인해야 합니다.",
+          suggestedRewrite: "역할과 지원 원칙 중심으로 바꿔 주세요.",
+        },
+      ],
+    };
+
+    const markdown = profileToMarkdown(profile);
+    expect(markdown).toContain('privacy_review: "needs_review"');
+    expect(markdown).toContain("**개인정보 경고:**");
+    expect(markdown).toContain("서버에 저장하지 않은 상태로 만든 결과");
+  });
+
+  it("preserves a privacy warning in every text export", () => {
+    const profile = fictionalProfile(0);
+    profile.privacyReview = {
+      status: "needs_review",
+      items: [
+        {
+          text: "검토 대상 문장",
+          reason: "식별 가능성이 있습니다.",
+          suggestedRewrite: "집단 수준으로 바꿔 주세요.",
+        },
+      ],
+    };
+
+    expect(profileToMarkdown(profile)).toContain("needs_review");
+    expect(profileToPlainText(profile)).toContain("개인정보 상태: 경고");
+    expect(profileToCompactText(profile)).toContain("[개인정보 경고]");
+    expect(profileToPrintableHtml(profile)).toContain("개인정보 경고");
+  });
+
   it("neutralizes HTML and script content in Markdown and printable HTML", () => {
     const profile = fictionalProfile(0);
     profile.shortSummary = '<script>alert("x")</script>';
