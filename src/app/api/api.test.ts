@@ -172,7 +172,7 @@ describe("API route boundaries", () => {
     expect(decideFollowUp).not.toHaveBeenCalled();
   });
 
-  it("accepts a 4,000-character answer and rejects anything longer", async () => {
+  it("accepts a 2,000-character answer and rejects anything longer", async () => {
     vi.mocked(decideFollowUp).mockResolvedValue({
       needed: false,
       question: null,
@@ -182,7 +182,7 @@ describe("API route boundaries", () => {
       jsonRequest("/api/interview/follow-up", {
         schoolLevel: "elementary",
         role: "homeroom_teacher",
-        current: { ...safeExchange, answer: "가".repeat(4_000) },
+        current: { ...safeExchange, answer: "가".repeat(2_000) },
         previousAnswers: [],
         followUpCount: 0,
       }),
@@ -196,7 +196,7 @@ describe("API route boundaries", () => {
       jsonRequest("/api/interview/follow-up", {
         schoolLevel: "elementary",
         role: "homeroom_teacher",
-        current: { ...safeExchange, answer: "가".repeat(4_001) },
+        current: { ...safeExchange, answer: "가".repeat(2_001) },
         previousAnswers: [],
         followUpCount: 0,
       }),

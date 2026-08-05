@@ -95,6 +95,7 @@ export type InterviewState = {
   updatedAt: string;
 };
 
+export const MAX_INTERVIEW_ANSWER_LENGTH = 2_000;
 export const MAX_FOLLOW_UPS = 4;
 
 export type InterviewProgress = {

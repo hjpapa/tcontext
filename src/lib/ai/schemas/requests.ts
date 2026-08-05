@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { teacherRoleSchema } from "@/types/interview";
+import {
+  MAX_INTERVIEW_ANSWER_LENGTH,
+  teacherRoleSchema,
+} from "@/types/interview";
 import {
   machineIdentifierSchema,
   profileModuleIdSchema,
@@ -10,7 +13,7 @@ import {
 import { profileContributionSchema } from "@/types/submission";
 
 const nonBlank = z.string().trim().min(1);
-const answerText = z.string().trim().min(1).max(4_000);
+const answerText = z.string().trim().min(1).max(MAX_INTERVIEW_ANSWER_LENGTH);
 
 export const interviewExchangeSchema = z
   .object({

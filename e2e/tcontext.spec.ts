@@ -238,7 +238,10 @@ test.describe("anonymous teacher-context flow", () => {
     });
 
     await startElementaryInterview(page);
-    await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
+    const answerBox = page.getByRole("textbox", { name: "답변" });
+    await expect(answerBox).toHaveAttribute("maxlength", "2000");
+    await expect(page.getByText("권장 200~800자 · 0 / 2,000자")).toBeVisible();
+    await answerBox.fill(safeAnswer);
     await page.getByRole("button", { name: "다음 질문" }).click();
 
     await expect(page.getByText(/^질문 2 \/ \d+$/)).toBeVisible();

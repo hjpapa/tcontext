@@ -25,6 +25,7 @@ import {
   setInterviewAnswer,
 } from "@/lib/interview/state";
 import { detectPrivacyRisks } from "@/lib/privacy/detector";
+import { MAX_INTERVIEW_ANSWER_LENGTH } from "@/types/interview";
 import type {
   AnswerDisposition,
   FollowUpQuestion,
@@ -473,8 +474,8 @@ export function InterviewFlow() {
             {questionText(currentQuestion)}
           </h1>
           <p className="text-base leading-7 text-[#536159]">
-            정답은 없습니다. 떠오르는 장면부터 편하게 적어 주세요. 한두 문장도,
-            더 긴 답도 괜찮습니다.
+            정답은 없습니다. 떠오르는 장면부터 편하게 적어 주세요. 구체적인
+            경험을 2~5문장으로 적으면 충분합니다.
           </p>
           <div className="grid gap-3 pt-2 sm:grid-cols-2">
             <div className="rounded-lg bg-[#eef3ed] p-4">
@@ -507,8 +508,8 @@ export function InterviewFlow() {
             disabled={busy}
             autoFocus
             rows={8}
-            maxLength={4000}
-            aria-describedby="answer-privacy-help question-privacy-guidance"
+            maxLength={MAX_INTERVIEW_ANSWER_LENGTH}
+            aria-describedby="answer-length-help answer-privacy-help question-privacy-guidance"
             className="min-h-48 resize-y border-[#aebbb0] bg-white p-4 text-lg leading-8 focus-visible:ring-[#28684c]"
             placeholder="예: 먼저 짧은 질문으로 생각을 꺼내고, 개인 메모 뒤 모둠에서 나누도록 합니다…"
           />
@@ -526,7 +527,10 @@ export function InterviewFlow() {
                 </p>
               </details>
             </div>
-            <span aria-live="polite">{answer.length} / 4,000자</span>
+            <span id="answer-length-help" aria-live="polite">
+              권장 200~800자 · {answer.length} /{" "}
+              {MAX_INTERVIEW_ANSWER_LENGTH.toLocaleString("ko-KR")}자
+            </span>
           </div>
         </div>
 
