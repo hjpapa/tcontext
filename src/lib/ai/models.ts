@@ -5,7 +5,7 @@ export const OPENAI_MODELS = {
 } as const;
 
 export const OPENAI_REASONING_EFFORT = {
-  interview: "low",
+  interview: "none",
   profile: "low",
   privacy: "low",
 } as const;
@@ -19,6 +19,6 @@ export const OPENAI_TIMEOUT_MS = {
 export const PROFILE_SCHEMA_VERSION =
   process.env.PROFILE_SCHEMA_VERSION?.trim() || "1.0";
 
-export const PROMPT_VERSION = process.env.PROMPT_VERSION?.trim() || "1.1";
+export const PROMPT_VERSION = process.env.PROMPT_VERSION?.trim() || "1.2";
 
 export const APP_VERSION = process.env.APP_VERSION?.trim() || "0.1.0";

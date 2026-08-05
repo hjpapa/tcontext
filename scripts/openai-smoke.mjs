@@ -28,7 +28,7 @@ const checks = [
   {
     operation: "interview",
     model: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5.6-luna",
-    effort: "low",
+    effort: "none",
   },
   {
     operation: "profile",

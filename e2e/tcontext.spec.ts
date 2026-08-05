@@ -98,7 +98,7 @@ const generatedProfile = {
     generatedAt: "2026-07-31T00:00:00.000Z",
     schemaVersion: "1.0",
     modelName: "gpt-5.4-nano",
-    promptVersion: "1.1",
+    promptVersion: "1.2",
   },
   profileTitle: "질문과 작은 성공을 연결하는 교사 컨텍스트",
   shortSummary:
@@ -130,6 +130,7 @@ const generatedProfile = {
 
 const safeAnswer =
   "짧은 안내 뒤 개인 생각과 짝 대화를 연결하고, 수정할 시간을 제공합니다.";
+const fixedQuestionCount = 10;
 const teacherEditedSummary =
   "교사가 직접 확인한 요약으로, 짧은 안내와 수정 기회를 우선합니다.";
 
@@ -162,9 +163,9 @@ async function startElementaryInterview(page: Page) {
   ).toBeVisible();
   await expect(page.getByRole("radio", { name: "초등학교" })).toBeChecked();
   await expect(page.getByRole("radio", { name: "담임교사" })).toBeChecked();
-  await page.getByRole("button", { name: "14개 질문 시작하기" }).click();
+  await page.getByRole("button", { name: "인터뷰 시작하기" }).click();
 
-  await expect(page.getByText("질문 1 / 14")).toBeVisible();
+  await expect(page.getByText(`질문 1 / ${fixedQuestionCount}`)).toBeVisible();
   await expect(
     page.getByText("개인정보 없이 답하는 방법", { exact: true }),
   ).toBeVisible();
@@ -175,15 +176,19 @@ async function startElementaryInterview(page: Page) {
 async function answerFirstQuestionAndFinishInterview(page: Page) {
   await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
   await page.getByRole("button", { name: "다음 질문" }).click();
-  await expect(page.getByText("질문 2 / 14")).toBeVisible();
+  await expect(page.getByText(`질문 2 / ${fixedQuestionCount}`)).toBeVisible();
   await expect(page.getByText("개인정보 주의:")).toHaveCount(0);
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
 
-  for (let questionNumber = 2; questionNumber <= 14; questionNumber += 1) {
+  for (
+    let questionNumber = 2;
+    questionNumber <= fixedQuestionCount;
+    questionNumber += 1
+  ) {
     await page.getByRole("button", { name: "건너뛰기" }).click();
-    if (questionNumber < 14) {
+    if (questionNumber < fixedQuestionCount) {
       await expect(
-        page.getByText(`질문 ${questionNumber + 1} / 14`),
+        page.getByText(`질문 ${questionNumber + 1} / ${fixedQuestionCount}`),
       ).toBeVisible();
     }
   }
@@ -216,6 +221,56 @@ async function approveDraftAndFinishReview(page: Page) {
 }
 
 test.describe("anonymous teacher-context flow", () => {
+  test("continues when the optional AI follow-up service is unavailable", async ({
+    page,
+  }) => {
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await route.fulfill({
+        status: 502,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            code: "ai_invalid_response",
+            message: "AI가 검증 가능한 응답을 생성하지 못했습니다.",
+          },
+        }),
+      });
+    });
+
+    await startElementaryInterview(page);
+    await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
+    await page.getByRole("button", { name: "다음 질문" }).click();
+
+    await expect(page.getByText(/^질문 2 \/ \d+$/)).toBeVisible();
+    await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
+  });
+
+  test("keeps actionable client errors visible on the current question", async ({
+    page,
+  }) => {
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            code: "privacy_risk_detected",
+            message: "개인정보로 보이는 표현을 바꿔 주세요.",
+          },
+        }),
+      });
+    });
+
+    await startElementaryInterview(page);
+    await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
+    await page.getByRole("button", { name: "다음 질문" }).click();
+
+    await expect(page.getByText(/^질문 1 \/ \d+$/)).toBeVisible();
+    await expect(page.locator("main").getByRole("alert")).toContainText(
+      "개인정보로 보이는 표현을 바꿔 주세요.",
+    );
+  });
+
   test("blocks PII locally, completes review, and exports without contribution", async ({
     page,
   }) => {
@@ -275,7 +330,9 @@ test.describe("anonymous teacher-context flow", () => {
     await expect(
       page.locator("mark").filter({ hasText: "010-1234-5678" }),
     ).toBeVisible();
-    await expect(page.getByText("질문 1 / 14")).toBeVisible();
+    await expect(
+      page.getByText(`질문 1 / ${fixedQuestionCount}`),
+    ).toBeVisible();
     expect(followUpRequests).toHaveLength(0);
 
     await answerFirstQuestionAndFinishInterview(page);

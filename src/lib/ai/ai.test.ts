@@ -10,6 +10,7 @@ import {
   runStructuredResponse,
   setOpenAIClientForTests,
 } from "@/lib/ai/client";
+import { decideFollowUp } from "@/lib/ai/follow-up";
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { generateProfile, refineProfile } from "@/lib/ai/profile";
 import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
@@ -27,7 +28,7 @@ function teacherProfileFixture(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.1",
+      promptVersion: "1.2",
     },
     profileTitle: "Teacher context",
     shortSummary: "Supports discussion and revision.",
@@ -129,6 +130,162 @@ describe("OpenAI structured boundary", () => {
     expect(serializedLogs).not.toContain("김민수");
     expect(serializedLogs).not.toContain("비밀 응답");
     expect(serializedLogs).toContain("gpt-5-nano");
+  });
+
+  it("retries max-output incompletes exactly once with a larger token budget", async () => {
+    const retryLog = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const successLog = vi
+      .spyOn(console, "info")
+      .mockImplementation(() => undefined);
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_parsed: null,
+        usage: { input_tokens: 7, output_tokens: 2_000, total_tokens: 2_007 },
+      })
+      .mockResolvedValueOnce({
+        status: "completed",
+        incomplete_details: null,
+        output_parsed: { answer: "재시도에서 검증된 응답" },
+        usage: { input_tokens: 7, output_tokens: 501, total_tokens: 508 },
+      });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await runStructuredResponse({
+      operation: "follow_up",
+      model: "gpt-5.6-luna",
+      effort: "none",
+      instructions: "테스트",
+      input: "로그에 남으면 안 되는 입력 본문",
+      schema: z.object({ answer: z.string() }).strict(),
+      schemaName: "test_retry_schema",
+      maxOutputTokens: 2_000,
+      retryMaxOutputTokens: 4_000,
+      timeoutMs: 1_000,
+    });
+
+    expect(result).toEqual({ answer: "재시도에서 검증된 응답" });
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(parse.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        reasoning: { effort: "none" },
+        max_output_tokens: 2_000,
+      }),
+    );
+    expect(parse.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        reasoning: { effort: "none" },
+        max_output_tokens: 4_000,
+      }),
+    );
+
+    const serializedLogs = JSON.stringify([
+      ...retryLog.mock.calls,
+      ...successLog.mock.calls,
+    ]);
+    expect(serializedLogs).toContain("incomplete");
+    expect(serializedLogs).toContain("max_output_tokens");
+    expect(serializedLogs).toContain("inputTokens");
+    expect(serializedLogs).not.toContain("로그에 남으면 안 되는 입력 본문");
+    expect(serializedLogs).not.toContain("재시도에서 검증된 응답");
+  });
+
+  it("falls back to no follow-up after the single max-output retry", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const parse = vi.fn().mockResolvedValue({
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output_parsed: null,
+      usage: { input_tokens: 10, output_tokens: 4_000, total_tokens: 4_010 },
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await decideFollowUp({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+      current: {
+        questionId: "q-1",
+        moduleId: "identity_and_role",
+        question: "최근 수업 장면을 알려 주세요.",
+        answer: "디지털 기기를 활용하는 수업을 잘하는 것 같습니다.",
+      },
+      previousAnswers: [],
+      followUpCount: 0,
+    });
+
+    expect(result).toEqual({ needed: false, question: null });
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(parse.mock.calls.map((call) => call[0].max_output_tokens)).toEqual([
+      2_000, 4_000,
+    ]);
+    expect(parse.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({ reasoning: { effort: "none" } }),
+    );
+  });
+
+  it("does not retry a non-token incomplete follow-up response", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const parse = vi.fn().mockResolvedValue({
+      status: "incomplete",
+      incomplete_details: { reason: "content_filter" },
+      output_parsed: null,
+      usage: { input_tokens: 10, output_tokens: 0, total_tokens: 10 },
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await decideFollowUp({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+      current: {
+        questionId: "q-1",
+        moduleId: "identity_and_role",
+        question: "최근 수업 장면을 알려 주세요.",
+        answer: "디지털 기기를 활용하는 수업을 잘하는 것 같습니다.",
+      },
+      previousAnswers: [],
+      followUpCount: 0,
+    });
+
+    expect(result).toEqual({ needed: false, question: null });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps missing structured profile and privacy responses as errors", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const parse = vi.fn().mockResolvedValue({
+      status: "incomplete",
+      incomplete_details: { reason: "max_output_tokens" },
+      output_parsed: null,
+      usage: { input_tokens: 3, output_tokens: 100, total_tokens: 103 },
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    await expect(
+      runStructuredResponse({
+        operation: "privacy_review",
+        model: "gpt-5.6-terra",
+        effort: "low",
+        instructions: "테스트",
+        input: "입력",
+        schema: z.object({ items: z.array(z.string()) }).strict(),
+        schemaName: "test_privacy_schema",
+        maxOutputTokens: 100,
+        timeoutMs: 1_000,
+      }),
+    ).rejects.toMatchObject({ code: "ai_invalid_response", status: 502 });
+    expect(parse).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an invalid parsed response", async () => {

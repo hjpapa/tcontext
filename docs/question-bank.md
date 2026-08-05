@@ -2,7 +2,7 @@
 
 ## 구성 원칙
 
-각 인터뷰는 공통 질문 10개, 학교급 질문 3개, 역할 질문 1개로 총 14개다. 공통 질문 비율은 약 71%이며 학교급·역할 맥락 질문은 약 29%다. AI 후속 질문은 별도이며 전체 인터뷰에서 최대 4개만 추가된다.
+각 인터뷰는 공통 질문 7개, 학교급 질문 2개, 역할 질문 1개로 총 10개다. 모든 경로가 7개 프로필 모듈을 빠짐없이 다루되, 비슷한 의도의 질문은 합치거나 덜어 냈다. AI 후속 질문은 별도이며 구체화가 꼭 필요할 때만 전체 인터뷰에서 최대 4개까지 추가된다.
 
 모든 질문은 한 화면에 하나씩 보여 주고 다음 요소를 함께 제공한다.
 
@@ -18,12 +18,9 @@
 | ID                           | 모듈             | 요지                                      |
 | ---------------------------- | ---------------- | ----------------------------------------- |
 | `common-role-focus`          | 기본 프로필·역할 | 현재 교육 역할과 최근 관심 과제           |
-| `common-teacher-role`        | 기본 프로필·역할 | 교사로서 중요한 역할과 실제 행동          |
-| `common-good-lesson`         | 교육관·학생관    | 좋은 수업이라고 느낀 구체적 순간          |
-| `common-mistakes-growth`     | 교육관·학생관    | 실수·오답을 다루고 성장을 확인하는 방식   |
+| `common-good-lesson`         | 교육관·학생관    | 배움이 움직인 장면과 교사의 실제 행동     |
 | `common-lesson-flow`         | 선호 수업        | 설명·활동·선택권을 배치하는 수업 흐름     |
 | `common-class-support`       | 학급 맥락        | 참여·집중 조건과 필요한 집단 수준 지원    |
-| `common-safe-participation`  | 참여·정서        | 발표·실패 부담을 낮추는 선택지와 지원     |
 | `common-assessment-feedback` | 평가·피드백      | 학습 과정과 결과를 확인·피드백하는 방식   |
 | `common-environment`         | 환경·AI          | 시간·인원·공간·기기·준비 시간 제약        |
 | `common-ai-boundaries`       | 환경·AI          | AI에게 맡길 일, 맡기지 않을 일, 검토 기준 |
@@ -34,11 +31,9 @@
 
 - `kindergarten-play-intervention`: 놀이 선택과 교사 개입·확장의 기준
 - `kindergarten-transition`: 놀이·일과 전환을 돕는 신호와 지원
-- `kindergarten-observation-family`: 관찰·기록과 보호자 소통 원칙
 
 ### 초등학교
 
-- `elementary-class-culture`: 담임 중심 생활과 교과를 잇는 학급 문화
 - `elementary-foundation-support`: 기초학습 차이에 대응하는 과제·안내 조정
 - `elementary-group-sharing`: 모둠·발표 기회를 고르게 만드는 참여 구조
 
@@ -46,12 +41,10 @@
 
 - `middle-role-across-classes`: 여러 학급과 담임·교과 역할 속 관계 유지
 - `middle-autonomy-participation`: 자율성을 보장하며 참여 격차를 줄이는 방식
-- `middle-performance-assessment`: 제한된 교과 시간의 과정 중심 수행평가
 
 ### 고등학교
 
 - `high-depth-pace`: 교과의 깊이와 진도 운영의 균형
-- `high-level-choice`: 선택과목·준비도 차이와 자기주도성 지원
 - `high-assessment-pressure`: 시험·진로 부담 속 질문·수정·탐구 환경
 
 ## 역할 질문

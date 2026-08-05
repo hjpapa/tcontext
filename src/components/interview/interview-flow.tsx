@@ -123,7 +123,11 @@ export function InterviewFlow() {
   );
 
   const currentQuestion = interview?.questions[interview.currentQuestionIndex];
-  const answeredCount = interview ? Object.keys(interview.answers).length : 0;
+  const answeredCount = interview
+    ? Object.values(interview.answers).filter(
+        (stored) => stored.disposition === "answered",
+      ).length
+    : 0;
 
   const startInterview = () => {
     const next = createInterviewState({
@@ -162,41 +166,66 @@ export function InterviewFlow() {
       return state;
     }
 
-    const response = await fetch("/api/interview/follow-up", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schoolLevel: state.schoolLevel,
-        role: state.role,
-        current: exchangeFrom(state, question, answerText),
-        previousAnswers: previousExchanges(state).filter(
-          (item) => item.questionId !== question.id,
-        ),
-        followUpCount: state.followUpCount,
-      }),
-    });
-    if (!response.ok) throw new Error(await responseMessage(response));
+    let response: Response;
+    try {
+      response = await fetch("/api/interview/follow-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolLevel: state.schoolLevel,
+          role: state.role,
+          current: exchangeFrom(state, question, answerText),
+          previousAnswers: previousExchanges(state).filter(
+            (item) => item.questionId !== question.id,
+          ),
+          followUpCount: state.followUpCount,
+        }),
+      });
+    } catch {
+      return state;
+    }
 
-    const decision = (await response.json()) as {
-      needed: boolean;
-      question: null | {
-        prompt: string;
-        intent: string;
-        example: string;
-        privacyHint: string;
+    if (!response.ok) {
+      if (response.status === 429 || response.status >= 500) return state;
+      throw new Error(await responseMessage(response));
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      return state;
+    }
+    const decision = body as {
+      needed?: unknown;
+      question?: null | {
+        prompt?: unknown;
+        intent?: unknown;
+        example?: unknown;
+        privacyHint?: unknown;
       };
     };
-    if (!decision.needed || !decision.question) return state;
+    if (decision.needed !== true || !decision.question) return state;
+
+    const { prompt, intent, example, privacyHint } = decision.question;
+    if (
+      typeof prompt !== "string" ||
+      typeof intent !== "string" ||
+      typeof example !== "string" ||
+      typeof privacyHint !== "string"
+    ) {
+      return state;
+    }
 
     const followUp: FollowUpQuestion = {
       id: `follow-up-${state.followUpCount + 1}-${question.id}`,
       moduleId: question.moduleId,
       source: "follow_up",
       basedOnQuestionId: question.id,
-      prompt: decision.question.prompt,
-      intent: decision.question.intent,
-      example: decision.question.example,
-      privacyHint: decision.question.privacyHint,
+      prompt,
+      intent,
+      example,
+      privacyHint,
       required: false,
     };
     return addFollowUpQuestion(state, followUp);
@@ -306,7 +335,8 @@ export function InterviewFlow() {
             지금의 학교급과 역할을 알려주세요.
           </h1>
           <p className="text-lg text-[#536159]">
-            일부 질문만 맥락에 맞게 달라집니다. 결과는 유형이나 점수가 아닙니다.
+            기본 질문은 10개입니다. 답을 더 이해할 필요가 있을 때만 짧은 AI 후속
+            질문이 최대 4개 추가되며, 결과는 유형이나 점수가 아닙니다.
           </p>
         </div>
 
@@ -375,7 +405,7 @@ export function InterviewFlow() {
             className="min-h-12 bg-[#153f2e] px-6 text-base text-white hover:bg-[#235b43]"
             onClick={startInterview}
           >
-            14개 질문 시작하기
+            인터뷰 시작하기
             <ArrowRight aria-hidden="true" />
           </Button>
         </div>
@@ -443,7 +473,8 @@ export function InterviewFlow() {
             {questionText(currentQuestion)}
           </h1>
           <p className="text-base leading-7 text-[#536159]">
-            평가하려는 질문이 아닙니다. 실제 경험을 2~5문장으로 적어 주세요.
+            정답은 없습니다. 떠오르는 장면부터 편하게 적어 주세요. 한두 문장도,
+            더 긴 답도 괜찮습니다.
           </p>
           <div className="grid gap-3 pt-2 sm:grid-cols-2">
             <div className="rounded-lg bg-[#eef3ed] p-4">

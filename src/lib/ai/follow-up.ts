@@ -32,7 +32,9 @@ export async function decideFollowUp(input: FollowUpInput): Promise<{
     }),
     schema: followUpDecisionSchema,
     schemaName: "tcontext_follow_up",
-    maxOutputTokens: 500,
+    maxOutputTokens: 2_000,
+    retryMaxOutputTokens: 4_000,
+    missingParsedFallback: { needed: false, question: null },
     timeoutMs: OPENAI_TIMEOUT_MS.interview,
   });
 

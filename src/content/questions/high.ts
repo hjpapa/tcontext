@@ -10,23 +10,10 @@ export const HIGH_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["high"],
     prompt:
-      "진도를 유지하면서도 깊이 탐구할 내용을 고르는 기준은 무엇인가요? 최근 단원에서 선택한 예시 한 가지를 알려 주세요.",
-    intent: "교과 전문성과 시간 제약을 함께 반영한 수업 원칙을 확인합니다.",
+      "진도표가 앞에 있어도 ‘여기는 깊게 파볼 만하다’고 멈추는 기준은 무엇인가요? 최근 단원에서 고른 장면 하나를 알려 주세요.",
+    intent: "교과의 깊이와 시간 제약을 함께 반영하는 수업 판단을 확인합니다.",
     example:
-      "핵심 개념은 공통으로 확실히 다루고, 한 단원의 대표 쟁점은 자료 분석과 토론으로 깊게 탐구합니다.",
-    privacyHint: PRIVACY_HINT,
-    required: true,
-  },
-  {
-    id: "high-level-choice",
-    moduleId: "class_context",
-    source: "school_level",
-    schoolLevels: ["high"],
-    prompt:
-      "학습 준비도의 차이가 있는 수업에서 모두가 하는 과제와 필요에 따라 고르는 과제를 어떻게 나누나요? 최근 예시 한 가지를 알려 주세요.",
-    intent: "다양한 준비도에 대응하는 과제 설계와 학습 지원을 파악합니다.",
-    example:
-      "필수 문제와 선택 도전 문제를 구분하고, 계획표와 중간 점검 질문으로 스스로 속도를 조절하게 합니다.",
+      "핵심 개념은 공통으로 다룬 뒤 대표 쟁점 하나에서 멈춰 자료를 비교하고 서로 다른 해석을 토론했습니다.",
     privacyHint: PRIVACY_HINT,
     required: true,
   },
@@ -36,10 +23,11 @@ export const HIGH_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["high"],
     prompt:
-      "시험과 진로·진학 부담이 큰 시기에도 질문하거나 답을 고쳐 볼 수 있게 만드는 수업 루틴 한 가지를 알려 주세요.",
-    intent: "평가 부담 속 심리적 안전과 학습 주도성 지원 원칙을 확인합니다.",
+      "시험과 진로 부담이 큰 시기에도 ‘틀려도 고쳐 볼 수 있다’는 여유를 만드는 수업 장치가 있나요? 자주 쓰는 것 하나를 알려 주세요.",
+    intent:
+      "평가 부담 속 심리적 안전과 학습 주도성을 지원하는 원칙을 확인합니다.",
     example:
-      "정답 확인 전 익명 질문을 받고 초안 수정 기회를 주며, 평가와 무관한 짧은 탐구 시간을 확보합니다.",
+      "정답 확인 전에 익명 질문을 받고 초안을 한 번 수정하게 합니다. 평가와 바로 연결하지 않는 짧은 탐구 시간도 둡니다.",
     privacyHint: PRIVACY_HINT,
     required: false,
   },

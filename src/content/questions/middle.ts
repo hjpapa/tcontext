@@ -10,10 +10,11 @@ export const MIDDLE_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["middle"],
     prompt:
-      "짧은 시간에 여러 학급을 만나도 꾸준히 유지하는 관계 형성 루틴은 무엇인가요? 최근 수업에서 사용한 예시 한 가지를 알려 주세요.",
-    intent: "중학교의 분업 구조 속 관계 형성과 역할 범위를 파악합니다.",
+      "짧게 만나거나 여러 집단을 오가도 ‘여기는 안전하게 배울 수 있다’고 느끼게 하는 관계 루틴은 무엇인가요? 최근에 쓴 방법 하나를 알려 주세요.",
+    intent:
+      "중학교의 분업 구조에서 이어지는 관계 형성과 예측 가능한 지원을 파악합니다.",
     example:
-      "매 차시 짧은 안부 질문과 예측 가능한 수업 루틴을 유지하고, 필요한 사항은 담임과 사실 중심으로 공유합니다.",
+      "시작할 때 짧은 안부 질문과 오늘의 순서를 같은 방식으로 보여 줍니다. 필요한 협업은 개인을 평가하지 않고 관찰한 사실 중심으로 나눕니다.",
     privacyHint: PRIVACY_HINT,
     required: true,
   },
@@ -23,24 +24,12 @@ export const MIDDLE_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["middle"],
     prompt:
-      "학생이 선택할 수 있는 것과 교사가 공통으로 정하는 것은 각각 무엇인가요? 참여 기회를 넓히는 방법도 한 가지 알려 주세요.",
-    intent: "사춘기 학생의 자율성과 안전한 참여 지원을 확인합니다.",
+      "중학생에게 건네는 선택권 한 가지와 함께 지키는 경계 한 가지는 무엇인가요? 공개 발표 말고 참여할 통로도 알려 주세요.",
+    intent:
+      "사춘기 학습자의 자율성과 안전한 참여를 함께 지원하는 원칙을 확인합니다.",
     example:
-      "과제의 핵심 목표는 같게 두되 주제와 표현 방식을 고르게 하고, 공개 발표 전 소규모 공유 기회를 줍니다.",
+      "핵심 목표와 존중 규칙은 함께 지키고 주제와 표현 방식은 고르게 합니다. 전체 공유 전 메모나 소규모 대화로 참여할 수 있습니다.",
     privacyHint: PRIVACY_HINT,
     required: false,
-  },
-  {
-    id: "middle-performance-assessment",
-    moduleId: "materials_assessment_feedback",
-    source: "school_level",
-    schoolLevels: ["middle"],
-    prompt:
-      "제한된 교과 시간 안에서 수행 과정을 확인할 때 가장 먼저 보는 증거는 무엇인가요? 짧게 피드백하는 방법도 알려 주세요.",
-    intent: "실행 가능한 수행평가와 피드백 방식을 파악합니다.",
-    example:
-      "한 번의 결과보다 계획 메모, 중간 점검, 수정 이유를 짧게 남기게 하고 수업 중 관찰 기록을 함께 봅니다.",
-    privacyHint: PRIVACY_HINT,
-    required: true,
   },
 ];

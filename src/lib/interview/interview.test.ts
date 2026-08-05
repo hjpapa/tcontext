@@ -12,24 +12,31 @@ import {
   TEACHER_ROLES,
   type FollowUpQuestion,
 } from "@/types/interview";
-import { SCHOOL_LEVELS } from "@/types/profile";
+import { PROFILE_MODULE_IDS, SCHOOL_LEVELS } from "@/types/profile";
 
 describe("question routing", () => {
-  it("builds a fixed 14-question interview for every level and role", () => {
+  it("builds a concise 10-question interview for every level and role", () => {
     for (const schoolLevel of SCHOOL_LEVELS) {
       for (const role of TEACHER_ROLES) {
         const questions = buildInterviewQuestions({ schoolLevel, role });
-        expect(questions).toHaveLength(14);
+        expect(questions).toHaveLength(10);
         expect(
           questions.filter((item) => item.source === "common"),
-        ).toHaveLength(10);
+        ).toHaveLength(7);
         expect(
           questions.filter((item) => item.source === "school_level"),
-        ).toHaveLength(3);
+        ).toHaveLength(2);
         expect(questions.filter((item) => item.source === "role")).toHaveLength(
           1,
         );
-        expect(new Set(questions.map((item) => item.id)).size).toBe(14);
+        expect(new Set(questions.map((item) => item.id)).size).toBe(10);
+
+        for (const moduleId of PROFILE_MODULE_IDS) {
+          expect(
+            questions.some((question) => question.moduleId === moduleId),
+            `${schoolLevel}/${role} is missing ${moduleId}`,
+          ).toBe(true);
+        }
       }
     }
   });
@@ -48,7 +55,7 @@ describe("question routing", () => {
     expect(questions.some((item) => item.id === "role-counselor")).toBe(true);
   });
 
-  it("asks about interests, observable strengths, and support-centered difficulties", () => {
+  it("asks varied, observable, and support-centered questions", () => {
     const questions = buildInterviewQuestions({
       schoolLevel: "elementary",
       role: "homeroom_teacher",
@@ -56,12 +63,11 @@ describe("question routing", () => {
     const promptFor = (id: string) =>
       questions.find((item) => item.id === id)?.prompt ?? "";
 
-    expect(promptFor("common-role-focus")).toContain("관심");
-    expect(promptFor("common-teacher-role")).toContain("비교적 잘한다");
-    expect(promptFor("common-teacher-role")).toContain("실제로 무엇을 했나요");
-    expect(promptFor("common-mistakes-growth")).toContain("에너지가 많이");
-    expect(promptFor("common-mistakes-growth")).toContain("어떤 지원");
-    expect(promptFor("common-environment")).toContain("교실 현실");
+    expect(promptFor("common-role-focus")).toContain("교실 검색창");
+    expect(promptFor("common-good-lesson")).toContain("어떤 행동");
+    expect(promptFor("common-class-support")).toContain("집단 전체");
+    expect(promptFor("common-environment")).toContain("우회로");
+    expect(promptFor("common-ai-boundaries")).toContain("직접 판단");
   });
 });
 
@@ -125,7 +131,7 @@ describe("interview runtime state", () => {
     expect(answered.answers[questionId]?.text).toContain("자료");
     expect(calculateInterviewProgress(answered)).toMatchObject({
       current: 1,
-      total: 14,
+      total: 10,
     });
   });
 });

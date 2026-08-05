@@ -35,6 +35,8 @@ type StructuredResponseOptions<Schema extends z.ZodType> = {
   schema: Schema;
   schemaName: string;
   maxOutputTokens: number;
+  retryMaxOutputTokens?: number;
+  missingParsedFallback?: z.input<Schema>;
   timeoutMs: number;
 };
 
@@ -42,6 +44,12 @@ type SafeUsage = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+};
+
+type SafeResponseDetails = {
+  status: string | null;
+  reason: string | null;
+  usage: SafeUsage;
 };
 
 function usageOf(response: {
@@ -58,17 +66,65 @@ function usageOf(response: {
   };
 }
 
+function responseDetailsOf(response: {
+  status?: string | null;
+  incomplete_details?: { reason?: string | null } | null;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  } | null;
+}): SafeResponseDetails {
+  return {
+    status: response.status ?? null,
+    reason: response.incomplete_details?.reason ?? null,
+    usage: usageOf(response),
+  };
+}
+
 function logSuccess(
   options: StructuredResponseOptions<z.ZodType>,
   startedAt: number,
-  usage: SafeUsage,
+  response: SafeResponseDetails,
+  attempt: number,
 ) {
   console.info("openai_request", {
     operation: options.operation,
     model: options.model,
     durationMs: Date.now() - startedAt,
-    usage,
+    attempt,
+    response,
     success: true,
+  });
+}
+
+function logRetry(
+  options: StructuredResponseOptions<z.ZodType>,
+  startedAt: number,
+  response: SafeResponseDetails,
+) {
+  console.warn("openai_request_retry", {
+    operation: options.operation,
+    model: options.model,
+    durationMs: Date.now() - startedAt,
+    attempt: 1,
+    nextMaxOutputTokens: options.retryMaxOutputTokens,
+    response,
+  });
+}
+
+function logFallback(
+  options: StructuredResponseOptions<z.ZodType>,
+  startedAt: number,
+  response: SafeResponseDetails,
+  attempt: number,
+) {
+  console.warn("openai_request_fallback", {
+    operation: options.operation,
+    model: options.model,
+    durationMs: Date.now() - startedAt,
+    attempt,
+    response,
   });
 }
 
@@ -76,12 +132,14 @@ function logFailure(
   options: StructuredResponseOptions<z.ZodType>,
   startedAt: number,
   error: unknown,
+  response?: SafeResponseDetails,
 ) {
   console.warn("openai_request", {
     operation: options.operation,
     model: options.model,
     durationMs: Date.now() - startedAt,
     errorType: error instanceof Error ? error.constructor.name : "UnknownError",
+    ...(response ? { response } : {}),
     success: false,
   });
 }
@@ -163,27 +221,60 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
   options: StructuredResponseOptions<Schema>,
 ): Promise<z.output<Schema>> {
   const startedAt = Date.now();
+  let lastResponseDetails: SafeResponseDetails | undefined;
 
   try {
-    const response = await getOpenAIClient().responses.parse(
-      {
-        model: options.model,
-        instructions: options.instructions,
-        input: options.input,
-        text: {
-          format: zodTextFormat(options.schema, options.schemaName),
-        },
-        reasoning: { effort: options.effort },
-        max_output_tokens: options.maxOutputTokens,
-        store: false,
-      },
-      {
-        maxRetries: 0,
-        timeout: options.timeoutMs,
-      },
-    );
+    const outputTokenLimits = [
+      options.maxOutputTokens,
+      ...(options.retryMaxOutputTokens === undefined
+        ? []
+        : [options.retryMaxOutputTokens]),
+    ];
 
-    if (response.output_parsed === null) {
+    for (const [attemptIndex, maxOutputTokens] of outputTokenLimits.entries()) {
+      lastResponseDetails = undefined;
+      const response = await getOpenAIClient().responses.parse(
+        {
+          model: options.model,
+          instructions: options.instructions,
+          input: options.input,
+          text: {
+            format: zodTextFormat(options.schema, options.schemaName),
+          },
+          reasoning: { effort: options.effort },
+          max_output_tokens: maxOutputTokens,
+          store: false,
+        },
+        {
+          maxRetries: 0,
+          timeout: options.timeoutMs,
+        },
+      );
+
+      lastResponseDetails = responseDetailsOf(response);
+      if (response.output_parsed !== null) {
+        // Structured Outputs constrains generation; this second parse protects
+        // the application boundary even if a provider or SDK regression occurs.
+        const parsed = options.schema.parse(response.output_parsed);
+        logSuccess(options, startedAt, lastResponseDetails, attemptIndex + 1);
+        return parsed;
+      }
+
+      const shouldRetry =
+        attemptIndex === 0 &&
+        options.retryMaxOutputTokens !== undefined &&
+        lastResponseDetails.reason === "max_output_tokens";
+      if (shouldRetry) {
+        logRetry(options, startedAt, lastResponseDetails);
+        continue;
+      }
+
+      if (options.missingParsedFallback !== undefined) {
+        const fallback = options.schema.parse(options.missingParsedFallback);
+        logFallback(options, startedAt, lastResponseDetails, attemptIndex + 1);
+        return fallback;
+      }
+
       throw new ApiError(
         "ai_invalid_response",
         502,
@@ -191,13 +282,13 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
       );
     }
 
-    // Structured Outputs constrains generation; this second parse protects the
-    // application boundary even if a provider or SDK regression occurs.
-    const parsed = options.schema.parse(response.output_parsed);
-    logSuccess(options, startedAt, usageOf(response));
-    return parsed;
+    throw new ApiError(
+      "ai_invalid_response",
+      502,
+      "AI가 검증 가능한 응답을 생성하지 못했습니다.",
+    );
   } catch (error) {
-    logFailure(options, startedAt, error);
+    logFailure(options, startedAt, error, lastResponseDetails);
     throw mapOpenAIError(error);
   }
 }

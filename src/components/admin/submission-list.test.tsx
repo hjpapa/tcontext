@@ -23,7 +23,7 @@ describe("AdminSubmissionList", () => {
             teacherRole: "homeroom_teacher",
             modelName: "gpt-5.6-terra",
             schemaVersion: "1.0",
-            promptVersion: "1.1",
+            promptVersion: "1.2",
             profileTitle: "저장된 문서",
             shortSummary: "",
           },

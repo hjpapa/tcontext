@@ -27,7 +27,7 @@ export type InterviewContext = {
 
 /**
  * Returns the deterministic, semi-structured interview. The bank is always
- * 14 fixed questions: 10 common, 3 school-level, and 1 role question.
+ * 10 fixed questions: 7 common, 2 school-level, and 1 role question.
  */
 export function buildInterviewQuestions({
   schoolLevel,
@@ -43,8 +43,8 @@ export function buildInterviewQuestions({
   if (new Set(ids).size !== ids.length) {
     throw new Error("인터뷰 질문 id는 고유해야 합니다.");
   }
-  if (questions.length < 12 || questions.length > 15) {
-    throw new Error("고정 인터뷰는 12~15개 질문으로 구성되어야 합니다.");
+  if (questions.length !== 10) {
+    throw new Error("고정 인터뷰는 10개 질문으로 구성되어야 합니다.");
   }
 
   return questions;

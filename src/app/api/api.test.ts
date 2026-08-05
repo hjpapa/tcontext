@@ -52,7 +52,7 @@ function submissionProfile(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.1",
+      promptVersion: "1.2",
     },
     profileTitle: "Teacher context",
     shortSummary: "Discussion and revision support.",
@@ -169,6 +169,40 @@ describe("API route boundaries", () => {
       question: null,
       reason: "follow_up_limit_reached",
     });
+    expect(decideFollowUp).not.toHaveBeenCalled();
+  });
+
+  it("accepts a 4,000-character answer and rejects anything longer", async () => {
+    vi.mocked(decideFollowUp).mockResolvedValue({
+      needed: false,
+      question: null,
+    });
+
+    const accepted = await followUp(
+      jsonRequest("/api/interview/follow-up", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        current: { ...safeExchange, answer: "가".repeat(4_000) },
+        previousAnswers: [],
+        followUpCount: 0,
+      }),
+    );
+
+    expect(accepted.status).toBe(200);
+    expect(decideFollowUp).toHaveBeenCalledOnce();
+
+    vi.mocked(decideFollowUp).mockClear();
+    const rejected = await followUp(
+      jsonRequest("/api/interview/follow-up", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        current: { ...safeExchange, answer: "가".repeat(4_001) },
+        previousAnswers: [],
+        followUpCount: 0,
+      }),
+    );
+
+    expect(rejected.status).toBe(400);
     expect(decideFollowUp).not.toHaveBeenCalled();
   });
 
