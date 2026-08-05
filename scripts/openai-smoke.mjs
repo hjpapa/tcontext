@@ -27,18 +27,18 @@ const schema = z.object({ ok: z.literal(true) }).strict();
 const checks = [
   {
     operation: "interview",
-    model: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5-nano",
-    effort: "minimal",
+    model: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5.6-luna",
+    effort: "low",
   },
   {
     operation: "profile",
-    model: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.4-nano",
+    model: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.6-terra",
     effort: "low",
   },
   {
     operation: "privacy",
-    model: process.env.OPENAI_PRIVACY_MODEL?.trim() || "gpt-5-nano",
-    effort: "minimal",
+    model: process.env.OPENAI_PRIVACY_MODEL?.trim() || "gpt-5.6-terra",
+    effort: "low",
   },
 ];
 

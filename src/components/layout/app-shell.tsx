@@ -45,7 +45,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-[#536159] sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="flex items-center gap-2">
             <ShieldCheck aria-hidden="true" className="size-5" />
-            로그인 없이 사용하며, 원문 답변은 저장하지 않습니다.
+            공개 문서 생성은 로그인 없이 사용하며, 원문 답변은 저장하지
+            않습니다.
           </p>
           <div className="flex gap-4">
             <Link className="underline underline-offset-4" href="/privacy">

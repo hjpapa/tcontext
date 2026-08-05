@@ -50,11 +50,11 @@ OpenAI와 Supabase Secret Key를 사용하는 코드는 모두 Next.js Route Han
 
 ## OpenAI 모델
 
-| 작업                           | 환경 변수                | 기본값         | reasoning effort |
-| ------------------------------ | ------------------------ | -------------- | ---------------- |
-| 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5-nano`   | `minimal`        |
-| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-5.4-nano` | `low`            |
-| 최종 개인정보 검토             | `OPENAI_PRIVACY_MODEL`   | `gpt-5-nano`   | `minimal`        |
+| 작업                           | 환경 변수                | 기본값          | reasoning effort |
+| ------------------------------ | ------------------------ | --------------- | ---------------- |
+| 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5.6-luna`  | `low`            |
+| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-5.6-terra` | `low`            |
+| 최종 개인정보 검토             | `OPENAI_PRIVACY_MODEL`   | `gpt-5.6-terra` | `low`            |
 
 모델은 환경 변수로 교체할 수 있습니다. 교체 전 Structured Output 호환성, Zod 검증, 충실성, 개인정보 평가를 다시 실행해야 합니다. 비용은 OpenAI 계정의 해당 모델 입력·출력 토큰 단가에 따라 달라지므로 운영 시 실제 사용량과 공식 가격표를 확인하세요. 애플리케이션 로그에는 모델명, 처리 시간, 토큰 사용량, 성공 여부만 남기며 질문·답변·프로필 본문은 남기지 않습니다.
 
@@ -79,6 +79,18 @@ Markdown 다운로드가 가장 중요한 동작이며 데이터 기여는 별�
 저장 시 반환되는 `tcontext-submission-receipt-{submissionId}.txt`에는 제출 ID와 일회성 삭제 코드가 들어 있습니다. 로그인이나 이메일을 수집하지 않으므로 이 코드를 잃으면 제출물을 다시 찾거나 삭제하기 어렵습니다.
 
 삭제는 `/delete`에서 제출 ID와 삭제 코드를 입력해 실행합니다. 서버는 코드 원문을 저장하지 않고 안전한 해시만 비교합니다. 저장된 프로필을 공개 API로 다시 조회하는 기능은 없습니다.
+
+## 관리자 문서 열람
+
+`/admin`은 운영자가 명시적 동의를 받아 저장된 최종 문서를 읽기 전용으로 확인하는 비공개 화면입니다. 목록·학교급 필터·상세 문서·저장된 Markdown 원문과 다운로드를 제공하며, 삭제 코드 해시와 원본 인터뷰 답변은 조회하지 않습니다. 공개 메뉴에는 관리자 링크를 노출하지 않습니다.
+
+로컬 관리자 자격증명은 다음 명령으로 생성합니다. 비밀번호는 한 번만 표시되므로 비밀번호 관리자에 보관하고 개발 서버를 다시 시작하세요.
+
+```bash
+pnpm admin:setup
+```
+
+Vercel에서는 생성된 `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `ADMIN_SESSION_TTL_HOURS`를 Preview와 Production에 각각 설정합니다. 관리자 세션은 서명된 HttpOnly 쿠키를 사용하며 기본 유효시간은 8시간입니다.
 
 ## Markdown
 
@@ -105,9 +117,9 @@ pnpm dev
 
 ```dotenv
 OPENAI_API_KEY=
-OPENAI_INTERVIEW_MODEL=gpt-5-nano
-OPENAI_PROFILE_MODEL=gpt-5.4-nano
-OPENAI_PRIVACY_MODEL=gpt-5-nano
+OPENAI_INTERVIEW_MODEL=gpt-5.6-luna
+OPENAI_PROFILE_MODEL=gpt-5.6-terra
+OPENAI_PRIVACY_MODEL=gpt-5.6-terra
 
 SUPABASE_URL=
 SUPABASE_SECRET_KEY=
@@ -120,11 +132,15 @@ PROMPT_VERSION=1.1
 DELETE_TOKEN_PEPPER=
 CRON_SECRET=
 
+ADMIN_PASSWORD_HASH=
+ADMIN_SESSION_SECRET=
+ADMIN_SESSION_TTL_HOURS=8
+
 NEXT_PUBLIC_APP_NAME=TContext
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `CRON_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
+`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `CRON_SECRET`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
 
 `DATA_RETENTION_DAYS`는 일일 정리 지연까지 포함해 행이 실제로 저장될 수 있는 최장 일수입니다. 삭제 대상 전환 시각은 `consented_at + max(DATA_RETENTION_DAYS - 1, 0)일`로 계산합니다. 값이 `1`이면 기여 즉시 삭제 대상이 되고 다음 일일 정리 주기 안에 삭제됩니다.
 

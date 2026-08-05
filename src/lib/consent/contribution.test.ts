@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/submissions", () => ({
 }));
 
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
+import { OPENAI_MODELS } from "@/lib/ai/models";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import {
   contributeProfile,
@@ -35,7 +36,7 @@ function profile(
       role: "homeroom_teacher",
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
-      modelName: "gpt-5.4-nano",
+      modelName: OPENAI_MODELS.profile,
       promptVersion: "1.1",
     },
     profileTitle: "수업 설계를 위한 교사 컨텍스트",

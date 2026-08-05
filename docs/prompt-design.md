@@ -14,7 +14,7 @@
 
 ## 후속 질문
 
-기본 모델은 `OPENAI_INTERVIEW_MODEL=gpt-5-nano`, reasoning effort는 `minimal`이다. GPT-5 nano는 `none`을 지원하지 않으므로 지원되는 가장 낮은 단계를 사용한다.
+기본 모델은 `OPENAI_INTERVIEW_MODEL=gpt-5.6-luna`, reasoning effort는 `low`다. 짧고 반복 호출되는 판단·생성 작업이므로 비용과 응답 속도를 우선하되 최소한의 추론 여유를 둔다.
 
 입력:
 
@@ -42,7 +42,7 @@
 
 ## 최종 프로필 생성
 
-기본 모델은 `OPENAI_PROFILE_MODEL=gpt-5.4-nano`, reasoning effort는 `low`다.
+기본 모델은 `OPENAI_PROFILE_MODEL=gpt-5.6-terra`, reasoning effort는 `low`다. 전체 답변을 근거와 함께 구조화하는 작업이므로 지능과 비용의 균형을 우선한다.
 
 입력은 학교급, 역할, 질문 ID와 답변으로 제한한다. 서버는 원본을 저장하지 않고 요청 처리 후 폐기한다.
 
@@ -70,7 +70,7 @@
 
 ## 개인정보 검토
 
-기본 모델은 `OPENAI_PRIVACY_MODEL=gpt-5-nano`, reasoning effort는 `minimal`이다. GPT-5 nano는 `none`을 지원하지 않으므로 지원되는 가장 낮은 단계를 사용한다.
+기본 모델은 `OPENAI_PRIVACY_MODEL=gpt-5.6-terra`, reasoning effort는 `low`다. 로컬 규칙 검사를 보완하는 최종 검토이므로 단순 분류보다 의미상 식별 위험을 놓치지 않는 품질을 우선한다.
 
 - 로컬 규칙 검사를 통과한 최종 프로필의 제목·요약·claim·원칙·지침 등 교사가 검토할 수 있는 자연어 필드만 `{path, text}`로 입력한다.
 - 개인·학교·학급을 특정하거나 식별 가능한 개인과 성적·건강·상담 정보가 결합된, 구체적이고 높은 확신의 위험만 후보로 찾는다.

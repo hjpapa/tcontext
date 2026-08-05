@@ -1,13 +1,13 @@
 export const OPENAI_MODELS = {
-  interview: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5-nano",
-  profile: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.4-nano",
-  privacy: process.env.OPENAI_PRIVACY_MODEL?.trim() || "gpt-5-nano",
+  interview: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5.6-luna",
+  profile: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.6-terra",
+  privacy: process.env.OPENAI_PRIVACY_MODEL?.trim() || "gpt-5.6-terra",
 } as const;
 
 export const OPENAI_REASONING_EFFORT = {
-  interview: "minimal",
+  interview: "low",
   profile: "low",
-  privacy: "minimal",
+  privacy: "low",
 } as const;
 
 export const OPENAI_TIMEOUT_MS = {
