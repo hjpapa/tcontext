@@ -328,6 +328,9 @@ test.describe("anonymous teacher-context flow", () => {
     await expect(
       philosophyModule.getByLabel("모듈 요약 직접 수정"),
     ).toHaveValue(refinedSummary);
+    await expect(philosophyModule.getByRole("status")).toContainText(
+      "이 모듈을 다시 작성했습니다.",
+    );
     await expect(instruction).toHaveValue("");
     expect(refineRequests).toHaveLength(1);
     expect(refineRequests[0]).toMatchObject({
@@ -385,9 +388,11 @@ test.describe("anonymous teacher-context flow", () => {
     await instruction.fill(instructionText);
     await refineButton.click();
 
-    const errorAlert = page
+    const errorAlert = philosophyModule
       .getByRole("alert")
-      .filter({ hasText: "검토를 마칠 수 없습니다" });
+      .filter({ hasText: "이 모듈을 다시 작성하지 못했습니다" });
+    await expect(errorAlert).toBeVisible();
+    await expect(errorAlert).toBeFocused();
     await expect(errorAlert).toContainText(safeErrorMessage);
     await expect(summary).toHaveValue(philosophyModuleBeforeRefine!.summary);
     await expect(claim).toHaveValue(
@@ -395,6 +400,62 @@ test.describe("anonymous teacher-context flow", () => {
     );
     await expect(instruction).toHaveValue(instructionText);
     await expect(refineButton).toBeEnabled();
+  });
+
+  test("shows a privacy block next to the module without echoing private text", async ({
+    page,
+  }) => {
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [],
+      });
+    });
+    await page.route("**/api/profile/refine", async (route) => {
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            code: "privacy_risk_detected",
+            message:
+              "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
+            details: {
+              findings: [
+                {
+                  category: "student_name",
+                  path: "profile.modules.1.claims.0.text",
+                },
+              ],
+            },
+          },
+        }),
+      });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    const philosophyModule = page.getByRole("region", {
+      name: "교육관과 학생관",
+    });
+    await philosophyModule
+      .getByLabel("이 모듈만 AI로 다시 작성")
+      .fill("수업 장면이 더 잘 드러나게 작성해 주세요.");
+    await philosophyModule
+      .getByRole("button", { name: "이 모듈만 다시 작성" })
+      .click();
+
+    const errorAlert = philosophyModule.getByRole("alert");
+    await expect(errorAlert).toBeFocused();
+    await expect(errorAlert).toContainText(
+      "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
+    );
+    await expect(errorAlert).toContainText("교육관과 학생관 문장 1");
+    await expect(errorAlert).not.toContainText("홍길동");
   });
 
   test("ignores a late AI refinement after the teacher edits the module", async ({
@@ -471,9 +532,10 @@ test.describe("anonymous teacher-context flow", () => {
     await claim.fill(teacherClaim);
     releaseRefinement?.();
 
-    const raceConditionAlert = page
+    const raceConditionAlert = philosophyModule
       .getByRole("alert")
-      .filter({ hasText: "검토를 마칠 수 없습니다" });
+      .filter({ hasText: "이 모듈을 다시 작성하지 못했습니다" });
+    await expect(raceConditionAlert).toBeFocused();
     await expect(raceConditionAlert).toContainText(
       "AI가 작성하는 동안 문서가 수정되어 새 결과를 적용하지 않았습니다.",
     );
@@ -803,7 +865,7 @@ test.describe("anonymous teacher-context flow", () => {
 
     await expect(page).toHaveURL(/\/review$/);
     await expect(
-      page.getByText("개인정보 또는 확인이 필요한 표현이 있습니다.", {
+      page.getByText("명확한 직접 식별정보로 보이는 내용이 있습니다.", {
         exact: true,
       }),
     ).toBeVisible();
@@ -814,7 +876,7 @@ test.describe("anonymous teacher-context flow", () => {
 
     await page.getByLabel("전체 요약 직접 수정").fill(teacherEditedSummary);
     await expect(
-      page.getByText("개인정보 또는 확인이 필요한 표현이 있습니다.", {
+      page.getByText("명확한 직접 식별정보로 보이는 내용이 있습니다.", {
         exact: true,
       }),
     ).toHaveCount(0);

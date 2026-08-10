@@ -9,8 +9,7 @@ import {
 } from "@/lib/security/api-error";
 import {
   assertSafeForAI,
-  collectProfilePrivacyTextFields,
-  collectTextFields,
+  collectProfileRefinePrivacyTextFields,
 } from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
@@ -25,15 +24,8 @@ export async function POST(request: Request) {
       profileRefineRequestSchema.safeParse(await readJsonRequest(request)),
     );
     assertSafeForAI([
-      ...collectProfilePrivacyTextFields(input.profile),
-      ...collectTextFields(
-        {
-          instruction: input.instruction,
-          moduleId: input.moduleId,
-          editableClaimIds: input.editableClaimIds,
-        },
-        "refine.request",
-      ),
+      ...collectProfileRefinePrivacyTextFields(input.profile, input.moduleId),
+      { path: "refine.request.instruction", value: input.instruction },
     ]);
 
     const profile = await refineProfile(input);

@@ -20,18 +20,21 @@ type PatternDefinition = {
 const KOREAN_SURNAMES =
   "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구민류나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용";
 
-const LIKELY_KOREAN_FULL_NAME_PATTERN = `[${KOREAN_SURNAMES}][가-힣]{1,3}`;
+const LIKELY_KOREAN_FULL_NAME_PATTERN = `[${KOREAN_SURNAMES}][가-힣]{2,3}`;
+const EXPLICIT_KOREAN_NAME_PATTERN = "[가-힣]{2,4}";
+const ENGLISH_FULL_NAME_PATTERN =
+  "[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){1,2}";
 const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
 const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
 const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게을를과와도가로,.;:!?])";
-const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN}|(?:제|내|본인(?:의)?)\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const INDIVIDUAL_PERSON_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|(?:해당|그|이|한|특정|개별)\\s*${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}\\s*(?:한\\s*명|개인))`;
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}))${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})|(?:제|내|본인(?:의)?)\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}))${NAME_TRAILING_CONTEXT_PATTERN}`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
   "모든",
+  "모두",
   "전체",
   "우리",
   "해당",
@@ -81,6 +84,8 @@ const SAFE_ROLE_DESCRIPTORS = new Set([
   "신규",
   "초임",
   "현직",
+  "현재",
+  "전입",
   "동료",
   "수석",
   "파견",
@@ -194,13 +199,17 @@ function isGenericPrivacyPolicyStatement(match: string) {
 }
 
 function isGenericRoleDescription(match: string) {
-  const descriptor = match.match(
-    /^([가-힣]{2,4})\s*(?:학생|유아|아동|교사|선생님|보호자)/u,
-  )?.[1];
+  const descriptor =
+    match.match(
+      /^([가-힣]{2,4})\s*(?:학생|유아|아동|교사|선생님|보호자)/u,
+    )?.[1] ??
+    match.match(
+      /^(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{2,6})/u,
+    )?.[1];
   return descriptor
     ? SAFE_ROLE_DESCRIPTORS.has(descriptor) ||
         GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) ||
-        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|반)$/u.test(
+        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
           descriptor,
         )
     : false;
@@ -279,30 +288,28 @@ const PATTERNS: PatternDefinition[] = [
     type: "individual_score",
     severity: "high",
     regex: new RegExp(
-      `(?<![가-힣])${INDIVIDUAL_PERSON_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:개별\\s*)?점수(?:는|가|:|：)?\\s*)?\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)`,
+      `(?<![가-힣])${NAMED_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:개별\\s*)?점수(?:는|가|:|：)?\\s*)?\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)`,
       "gu",
     ),
-    reason: "개별 점수로 보이는 정보가 포함되어 있습니다.",
+    reason: "실명과 결합된 개별 점수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "rank",
     severity: "high",
     regex: new RegExp(
-      `(?<![가-힣])${INDIVIDUAL_PERSON_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)`,
+      `(?<![가-힣])${NAMED_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)`,
       "gu",
     ),
-    reason: "개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
+    reason: "실명과 결합된 개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "medical_or_counseling",
     severity: "high",
     regex: new RegExp(
-      `(?:${INDIVIDUAL_PERSON_CONTEXT_PATTERN})[^.!?\\n]{0,50}${MEDICAL_TERM_PATTERN}|${MEDICAL_TERM_PATTERN}[^.!?\\n]{0,30}(?:${INDIVIDUAL_PERSON_CONTEXT_PATTERN})|(?:진단명|상담\\s*(?:기록|내용)|건강\\s*정보|병력)\\s*(?:은|이|:|：)\\s*(?!없이|없음|없다|기록하지|수집하지)[^.!?\\n]{1,80}`,
+      `(?:${NAMED_STUDENT_CONTEXT_PATTERN})[^.!?\\n]{0,50}${MEDICAL_TERM_PATTERN}|${MEDICAL_TERM_PATTERN}[^.!?\\n]{0,30}(?:${NAMED_STUDENT_CONTEXT_PATTERN})`,
       "giu",
     ),
-    reason:
-      "의료·진단·상담 정보는 매우 민감하며 수업 지원 설명에 필요하지 않습니다.",
-    ignore: isGenericPrivacyPolicyStatement,
+    reason: "실명과 결합된 의료·진단·상담 정보가 포함되어 있습니다.",
   },
   {
     type: "school_name",
@@ -341,14 +348,6 @@ const PATTERNS: PatternDefinition[] = [
       /(?<![가-힣])([가-힣]{2,12})반(?=$|[\s은는이가의에서을를과와도만로으부터까지처럼,.;:!?])/gu,
     reason: "구체적인 반 또는 학급명으로 보이는 표현이 포함되어 있습니다.",
     ignore: isGenericNamedClassReference,
-  },
-  {
-    type: "stigmatizing_description",
-    severity: "medium",
-    regex:
-      /(?:산만한|문제(?:가\s*많은)?|게으른|말썽(?:꾸러기)?|공부를\s*못하는|수학을\s*못하는|느린)\s*학생/gu,
-    reason:
-      "학생을 고정된 특성으로 규정할 수 있어 관찰 상황과 필요한 지원으로 바꾸어야 합니다.",
   },
 ];
 

@@ -15,7 +15,10 @@ describe("admin Markdown download", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("downloads exact stored Markdown with private response headers", async () => {
-    vi.mocked(getAdminSubmissionMarkdown).mockResolvedValue("# 저장 문서\n");
+    vi.mocked(getAdminSubmissionMarkdown).mockResolvedValue({
+      documentAccess: "full",
+      markdown: "# 저장 문서\n",
+    });
     const response = await GET(new Request(`http://localhost/admin/${id}`), {
       params: Promise.resolve({ id }),
     });
@@ -24,6 +27,19 @@ describe("admin Markdown download", () => {
     expect(await response.text()).toBe("# 저장 문서\n");
     expect(response.headers.get("content-type")).toContain("text/markdown");
     expect(response.headers.get("content-disposition")).toContain(id);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+  });
+
+  it("blocks a direct download for a summary-only document", async () => {
+    vi.mocked(getAdminSubmissionMarkdown).mockResolvedValue({
+      documentAccess: "summary",
+    });
+    const response = await GET(new Request(`http://localhost/admin/${id}`), {
+      params: Promise.resolve({ id }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.text()).toContain("최종 확인과 저장 동의");
     expect(response.headers.get("cache-control")).toContain("no-store");
   });
 

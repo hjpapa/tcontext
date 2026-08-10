@@ -13,11 +13,18 @@ import {
 
 import type { SuggestedTag } from "@/lib/ai/schemas/profile";
 import {
+  clearLocalProgress,
   isLocalResumeEnabled,
+  loadLocalProgress,
   saveLocalProgress,
   setLocalResumeEnabled,
 } from "@/lib/storage/local";
-import { saveSessionProgress } from "@/lib/storage/session";
+import { restoreInterviewProgress } from "@/lib/storage/restore";
+import {
+  clearSessionProgress,
+  loadSessionProgress,
+  saveSessionProgress,
+} from "@/lib/storage/session";
 import type { InterviewState } from "@/types/interview";
 import type { TeacherContextProfile } from "@/types/profile";
 
@@ -28,6 +35,12 @@ export type ContributionReceipt = {
   retentionUntil: string;
 };
 
+export type RestoredProgressNotice = {
+  source: "session" | "device";
+  previousCompletedQuestionCount: number;
+  restoredQuestionNumber: number;
+};
+
 type InterviewSessionValue = {
   interview: InterviewState | null;
   profile: TeacherContextProfile | null;
@@ -35,6 +48,8 @@ type InterviewSessionValue = {
   markdown: string;
   contributionReceipt: ContributionReceipt | null;
   deviceProgressEnabled: boolean;
+  progressHydrated: boolean;
+  restoredProgress: RestoredProgressNotice | null;
   setInterview: (interview: InterviewState | null) => void;
   setProfile: (profile: TeacherContextProfile | null) => void;
   setSuggestedTags: (tags: SuggestedTag[]) => void;
@@ -71,6 +86,67 @@ function readServerDeviceProgressPreference() {
   return false;
 }
 
+function subscribeToHydration() {
+  return () => {};
+}
+
+function readClientHydration() {
+  return true;
+}
+
+function readServerHydration() {
+  return false;
+}
+
+type InitialProgress = {
+  interview: InterviewState;
+  notice: RestoredProgressNotice;
+};
+
+function readInitialProgress(): InitialProgress | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const sessionProgress = loadSessionProgress();
+    if (sessionProgress) {
+      const restored = restoreInterviewProgress(sessionProgress);
+      if (!restored) {
+        clearSessionProgress();
+        clearLocalProgress();
+        return null;
+      }
+      return {
+        interview: restored.interview,
+        notice: {
+          source: "session",
+          previousCompletedQuestionCount:
+            restored.previousCompletedQuestionCount,
+          restoredQuestionNumber: restored.restoredQuestionNumber,
+        },
+      };
+    }
+
+    const localProgress = loadLocalProgress();
+    if (!localProgress) return null;
+    const restored = restoreInterviewProgress(localProgress);
+    if (!restored) {
+      clearLocalProgress();
+      return null;
+    }
+    return {
+      interview: restored.interview,
+      notice: {
+        source: "device",
+        previousCompletedQuestionCount: restored.previousCompletedQuestionCount,
+        restoredQuestionNumber: restored.restoredQuestionNumber,
+      },
+    };
+  } catch {
+    // Web Storage may be unavailable in hardened/private browser modes.
+    return null;
+  }
+}
+
 function notifyDeviceProgressChanged() {
   window.dispatchEvent(new Event(DEVICE_PROGRESS_EVENT));
 }
@@ -80,7 +156,12 @@ export function InterviewSessionProvider({
 }: {
   children: ReactNode;
 }) {
-  const [interview, setInterview] = useState<InterviewState | null>(null);
+  const [initialProgress] = useState(readInitialProgress);
+  const [interview, setInterviewState] = useState<InterviewState | null>(
+    initialProgress?.interview ?? null,
+  );
+  const [restoredProgress, setRestoredProgress] =
+    useState<RestoredProgressNotice | null>(initialProgress?.notice ?? null);
   const [profile, setProfile] = useState<TeacherContextProfile | null>(null);
   const [suggestedTags, setSuggestedTags] = useState<SuggestedTag[]>([]);
   const [markdown, setMarkdown] = useState("");
@@ -91,6 +172,16 @@ export function InterviewSessionProvider({
     readDeviceProgressPreference,
     readServerDeviceProgressPreference,
   );
+  const progressHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    readClientHydration,
+    readServerHydration,
+  );
+
+  const setInterview = useCallback((nextInterview: InterviewState | null) => {
+    setInterviewState(nextInterview);
+    if (!nextInterview) setRestoredProgress(null);
+  }, []);
 
   useEffect(() => {
     if (!interview) return;
@@ -114,7 +205,8 @@ export function InterviewSessionProvider({
   );
 
   const clearBrowserRecords = useCallback(() => {
-    setInterview(null);
+    setInterviewState(null);
+    setRestoredProgress(null);
     setProfile(null);
     setSuggestedTags([]);
     setMarkdown("");
@@ -145,6 +237,8 @@ export function InterviewSessionProvider({
       markdown,
       contributionReceipt,
       deviceProgressEnabled,
+      progressHydrated,
+      restoredProgress,
       setInterview,
       setProfile,
       setSuggestedTags,
@@ -160,7 +254,10 @@ export function InterviewSessionProvider({
       interview,
       markdown,
       profile,
+      progressHydrated,
+      restoredProgress,
       suggestedTags,
+      setInterview,
       setDeviceProgressEnabled,
     ],
   );

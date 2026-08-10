@@ -22,7 +22,16 @@ export async function GET(
         headers: privateHeaders,
       });
     }
-    return new Response(markdown, {
+    if (markdown.documentAccess === "summary") {
+      return new Response(
+        "최종 확인과 저장 동의가 완료된 문서만 다운로드할 수 있습니다.",
+        {
+          status: 403,
+          headers: privateHeaders,
+        },
+      );
+    }
+    return new Response(markdown.markdown, {
       status: 200,
       headers: {
         ...privateHeaders,

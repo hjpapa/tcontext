@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -160,6 +160,50 @@ async function responseMessage(
   }
 }
 
+type RefineFeedback = {
+  kind: "success" | "error";
+  message: string;
+  fieldPaths: string[];
+};
+
+async function refineResponseFeedback(
+  response: Response,
+  fallback: string,
+): Promise<RefineFeedback> {
+  try {
+    const body = (await response.json()) as {
+      message?: string;
+      error?: {
+        message?: string;
+        details?:
+          | {
+              findings?: Array<{ path?: string }>;
+            }
+          | Array<{ path?: string }>;
+      };
+    };
+    const details = body.error?.details;
+    const paths = Array.isArray(details)
+      ? details.map((item) => item.path)
+      : details?.findings?.map((finding) => finding.path);
+
+    return {
+      kind: "error",
+      message: body.error?.message ?? body.message ?? fallback,
+      fieldPaths: [
+        ...new Set(
+          (paths ?? []).filter(
+            (path): path is string =>
+              typeof path === "string" && path.length > 0,
+          ),
+        ),
+      ],
+    };
+  } catch {
+    return { kind: "error", message: fallback, fieldPaths: [] };
+  }
+}
+
 function updateModule(
   profile: TeacherContextProfile,
   moduleId: ProfileModule["id"],
@@ -171,6 +215,35 @@ function updateModule(
       module.id === moduleId ? updater(module) : module,
     ),
   };
+}
+
+function refineFieldLabel(
+  path: string,
+  profile: TeacherContextProfile,
+): string {
+  if (path.endsWith("instruction")) return "재작성 지시";
+  if (path.endsWith("profileTitle")) return "전체 문서 제목";
+  if (path.endsWith("shortSummary")) return "전체 문서 요약";
+
+  const moduleMatch = path.match(
+    /modules\.(\d+)\.(title|summary|claims\.(\d+)\.text)$/u,
+  );
+  if (moduleMatch) {
+    const moduleIndex = Number(moduleMatch[1]);
+    const profileModule = profile.modules[moduleIndex];
+    const moduleTitle = profileModule
+      ? PROFILE_MODULE_TITLES[profileModule.id]
+      : `모듈 ${moduleIndex + 1}`;
+    if (moduleMatch[2] === "title") return `${moduleTitle} 제목`;
+    if (moduleMatch[2] === "summary") return `${moduleTitle} 요약`;
+    return `${moduleTitle} 문장 ${Number(moduleMatch[3]) + 1}`;
+  }
+
+  const synthesisSection = SYNTHESIS_LIST_SECTIONS.find(({ key }) =>
+    path.includes(key),
+  );
+  if (synthesisSection) return synthesisSection.title;
+  return "문서의 다른 항목";
 }
 
 export function ProfileReview() {
@@ -192,9 +265,23 @@ export function ProfileReview() {
     Record<string, string>
   >({});
   const [refiningModule, setRefiningModule] = useState<string | null>(null);
+  const [refineFeedback, setRefineFeedback] = useState<
+    Partial<Record<ProfileModule["id"], RefineFeedback>>
+  >({});
   const [synthesisConfirmed, setSynthesisConfirmed] = useState(false);
   const [privacyWarningAccepted, setPrivacyWarningAccepted] = useState(false);
   const draftRevisionRef = useRef(0);
+  const pendingRefineFocusRef = useRef<ProfileModule["id"] | null>(null);
+
+  useEffect(() => {
+    const moduleId = pendingRefineFocusRef.current;
+    if (!moduleId || refineFeedback[moduleId]?.kind !== "error") return;
+
+    const feedback = document.getElementById(`refine-feedback-${moduleId}`);
+    if (!feedback) return;
+    feedback.focus();
+    pendingRefineFocusRef.current = null;
+  }, [refineFeedback]);
 
   const unresolvedCount = useMemo(
     () =>
@@ -438,6 +525,11 @@ export function ProfileReview() {
     const revisionAtStart = draftRevisionRef.current;
     setRefiningModule(module.id);
     setError("");
+    setRefineFeedback((current) => {
+      const next = { ...current };
+      delete next[module.id];
+      return next;
+    });
     resetPrivacyReview();
     try {
       const response = await fetch("/api/profile/refine", {
@@ -453,30 +545,70 @@ export function ProfileReview() {
         }),
       });
       if (!response.ok) {
-        throw new Error(
-          await responseMessage(
-            response,
-            "이 모듈을 다시 작성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          ),
+        const feedback = await refineResponseFeedback(
+          response,
+          "이 모듈을 다시 작성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         );
+        pendingRefineFocusRef.current = module.id;
+        setRefineFeedback((current) => ({
+          ...current,
+          [module.id]: feedback,
+        }));
+        return;
       }
       const result = (await response.json()) as {
         profile: TeacherContextProfile;
       };
       if (draftRevisionRef.current !== revisionAtStart) {
-        setError(
-          "AI가 작성하는 동안 문서가 수정되어 새 결과를 적용하지 않았습니다. 현재 수정 내용을 확인한 뒤 다시 시도해 주세요.",
-        );
+        pendingRefineFocusRef.current = module.id;
+        setRefineFeedback((current) => ({
+          ...current,
+          [module.id]: {
+            kind: "error",
+            message:
+              "AI가 작성하는 동안 문서가 수정되어 새 결과를 적용하지 않았습니다. 현재 수정 내용을 확인한 뒤 다시 시도해 주세요.",
+            fieldPaths: [],
+          },
+        }));
         return;
       }
+      const nextModule = result.profile.modules.find(
+        (candidate) => candidate.id === module.id,
+      );
+      const moduleChanged = nextModule
+        ? nextModule.summary !== module.summary ||
+          nextModule.claims.length !== module.claims.length ||
+          nextModule.claims.some(
+            (claim, index) => claim.text !== module.claims[index]?.text,
+          )
+        : false;
       setProfile(markPrivacyReviewPending(result.profile));
       resetPrivacyReview();
       setSynthesisConfirmed(false);
       setRefineInstructions((current) => ({ ...current, [module.id]: "" }));
+      setRefineFeedback((current) => ({
+        ...current,
+        [module.id]: {
+          kind: "success",
+          message: moduleChanged
+            ? "이 모듈을 다시 작성했습니다. 새 요약과 미확인 문장을 검토해 주세요."
+            : "AI가 변경할 내용을 찾지 못해 기존 문장을 유지했습니다.",
+          fieldPaths: [],
+        },
+      }));
     } catch (caught) {
-      setError(
-        caught instanceof Error ? caught.message : "다시 작성하지 못했습니다.",
-      );
+      pendingRefineFocusRef.current = module.id;
+      setRefineFeedback((current) => ({
+        ...current,
+        [module.id]: {
+          kind: "error",
+          message:
+            caught instanceof Error
+              ? caught.message
+              : "다시 작성하지 못했습니다.",
+          fieldPaths: [],
+        },
+      }));
     } finally {
       setRefiningModule(null);
     }
@@ -891,21 +1023,34 @@ export function ProfileReview() {
               >
                 이 모듈만 AI로 다시 작성
               </Label>
-              <p className="mt-1 text-sm leading-6 text-[#66542e]">
+              <p
+                id={`refine-help-${module.id}`}
+                className="mt-1 text-sm leading-6 text-[#66542e]"
+              >
                 확인하지 않은 문장과 모듈 요약만 AI가 다시 작성합니다. 이미
                 확인한 문장은 그대로 유지되며, 새 결과는 반드시 다시 검토해
                 주세요.
               </p>
               <Textarea
                 id={`refine-${module.id}`}
+                aria-describedby={`refine-help-${module.id}${
+                  refineFeedback[module.id]
+                    ? ` refine-feedback-${module.id}`
+                    : ""
+                }`}
                 disabled={busy || refiningModule !== null}
                 value={refineInstructions[module.id] ?? ""}
-                onChange={(event) =>
+                onChange={(event) => {
                   setRefineInstructions((current) => ({
                     ...current,
                     [module.id]: event.target.value,
-                  }))
-                }
+                  }));
+                  setRefineFeedback((current) => {
+                    const next = { ...current };
+                    delete next[module.id];
+                    return next;
+                  });
+                }}
                 rows={3}
                 maxLength={2000}
                 placeholder="예: 추상적인 표현을 줄이고 실제 수업에서 활용할 수 있는 문장으로 다듬어 주세요."
@@ -931,6 +1076,44 @@ export function ProfileReview() {
                   ? "이 모듈 다시 작성 중"
                   : "이 모듈만 다시 작성"}
               </Button>
+              {refineFeedback[module.id] ? (
+                <Alert
+                  id={`refine-feedback-${module.id}`}
+                  tabIndex={-1}
+                  role={
+                    refineFeedback[module.id]?.kind === "error"
+                      ? "alert"
+                      : "status"
+                  }
+                  variant={
+                    refineFeedback[module.id]?.kind === "error"
+                      ? "destructive"
+                      : "default"
+                  }
+                  className="mt-4 bg-white"
+                >
+                  <AlertTitle>
+                    {refineFeedback[module.id]?.kind === "error"
+                      ? "이 모듈을 다시 작성하지 못했습니다"
+                      : "모듈 재작성 완료"}
+                  </AlertTitle>
+                  <AlertDescription>
+                    <p>{refineFeedback[module.id]?.message}</p>
+                    {(refineFeedback[module.id]?.fieldPaths.length ?? 0) > 0 ? (
+                      <div className="mt-2">
+                        <p className="font-semibold">먼저 확인할 위치</p>
+                        <ul className="mt-1 list-disc pl-5">
+                          {refineFeedback[module.id]?.fieldPaths.map((path) => (
+                            <li key={path}>
+                              {refineFieldLabel(path, profile)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
             </div>
           </section>
         ))}

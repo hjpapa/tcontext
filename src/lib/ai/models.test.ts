@@ -12,6 +12,6 @@ describe("AI model metadata", () => {
 
     const { PROMPT_VERSION } = await import("@/lib/ai/models");
 
-    expect(PROMPT_VERSION).toBe("1.3");
+    expect(PROMPT_VERSION).toBe("1.4");
   });
 });

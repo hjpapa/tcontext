@@ -36,7 +36,7 @@ function storedProfile(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.3",
+      promptVersion: "1.4",
     },
     profileTitle: "Teacher context",
     shortSummary: "A safe class-level summary.",
@@ -99,6 +99,12 @@ describe("security boundaries", () => {
     expect(thrown).toMatchObject({
       code: "privacy_risk_detected",
       status: 422,
+      details: {
+        findings: expect.arrayContaining([
+          { category: "student_name", path: "answers.0" },
+          { category: "medical_or_counseling", path: "answers.0" },
+        ]),
+      },
     });
     expect(JSON.stringify(thrown)).not.toContain("김민수");
   });
@@ -150,16 +156,34 @@ describe("security boundaries", () => {
     "햇살반 학생들에게 활동 순서를 안내합니다.",
     "햇살반에서 토론합니다.",
     "김민수 학생의 점수는 43점입니다.",
+    "학생 김민수는 토론을 선호합니다.",
+    "Alex Kim 학생은 토론을 선호합니다.",
+  ])("blocks identifiable context before an OpenAI boundary: %s", (text) => {
+    expect(() =>
+      assertSafeForAI([{ path: "answers.0", value: text }]),
+    ).toThrowError(expect.objectContaining({ code: "privacy_risk_detected" }));
+  });
+
+  it.each([
     "한 학생의 점수는 85점입니다.",
     "한 학생이 ADHD 진단을 받았습니다.",
     "학생 한 명의 석차는 3등입니다.",
     "학생 한 명의 상담 내용은 외부에 공유되었습니다.",
     "그 학생의 상담 내용: 최근 불안으로 치료 중입니다.",
     "상담 내용은 보호자에게 제공하거나 교내에 기록합니다.",
-  ])("blocks identifiable context before an OpenAI boundary: %s", (text) => {
+    "산만한 학생에게 짧은 활동 순서를 안내합니다.",
+    "현재 교사는 토론 수업을 준비합니다.",
+    "전입 학생은 새 환경을 익히는 중입니다.",
+    "조용한 학생에게 생각할 시간을 줍니다.",
+    "이상한 학생이라는 표현은 사용하지 않습니다.",
+    "이러한 교사는 질문을 기다려 줍니다.",
+    "최대한 학생 참여를 지원합니다.",
+    "이전의 학생 반응을 다음 수업에 반영합니다.",
+    "성적별 학생 지원 자료를 준비합니다.",
+  ])("allows non-identifying context before an OpenAI boundary: %s", (text) => {
     expect(() =>
       assertSafeForAI([{ path: "answers.0", value: text }]),
-    ).toThrowError(expect.objectContaining({ code: "privacy_risk_detected" }));
+    ).not.toThrow();
   });
 
   it("scans every persisted authored string, including role, titles, and IDs", () => {

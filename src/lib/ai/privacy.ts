@@ -23,7 +23,7 @@ import {
 const KOREAN_SURNAMES =
   "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구민류나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용";
 const LIKELY_KOREAN_NAME = new RegExp(
-  `^[${KOREAN_SURNAMES}][가-힣]{1,3}$`,
+  `^[${KOREAN_SURNAMES}][가-힣]{2,3}$`,
   "u",
 );
 const GENERIC_EDUCATIONAL_MODIFIER =
@@ -41,6 +41,7 @@ const GENERIC_PERSON_DESCRIPTORS = new Set([
   "일부",
   "여러",
   "모든",
+  "모두",
   "전체",
   "어떤",
   "많은",
@@ -79,6 +80,8 @@ const GENERIC_PERSON_DESCRIPTORS = new Set([
   "신규",
   "초임",
   "현직",
+  "현재",
+  "전입",
   "동료",
 ]);
 const GENERIC_SCHOOL_OR_INSTITUTION_PREFIXES = new Set([
@@ -138,21 +141,33 @@ function hasPotentialPersonName(text: string) {
     ) ||
     /[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+\s*(?:학생|교사|선생님|보호자)/u.test(
       text,
+    ) ||
+    /(?:학생|유아|아동|교사|선생님|보호자)\s+[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+(?:$|[은이는의에게을를과와도가로,.;:!?])/u.test(
+      text,
     )
   ) {
     return true;
   }
 
-  for (const match of text.matchAll(
-    /([가-힣]{2,4})\s+(?:학생|유아|아동|교사|선생님|보호자)/gu,
-  )) {
+  const implicitNameMatches = [
+    ...text.matchAll(
+      /([가-힣]{3,4})\s+(?:학생|유아|아동|교사|선생님|보호자)/gu,
+    ),
+    ...text.matchAll(
+      /(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{3,4}?)(?=[은는이가의])/gu,
+    ),
+    ...text.matchAll(
+      /(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{3,4})(?=$|[,.;:!?])/gu,
+    ),
+  ];
+  for (const match of implicitNameMatches) {
     const descriptor = match[1];
     if (
       descriptor &&
       LIKELY_KOREAN_NAME.test(descriptor) &&
       !GENERIC_PERSON_DESCRIPTORS.has(descriptor) &&
       !GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) &&
-      !/(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|인|내|중|별|반)$/u.test(
+      !/(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
         descriptor,
       )
     ) {
@@ -223,32 +238,35 @@ function hasSpecificSchoolOrClass(text: string) {
   return false;
 }
 
+function hasDirectPersonalIdentifier(text: string) {
+  return (
+    hasPotentialPersonName(text) ||
+    hasGovernmentIdentifier(text) ||
+    hasContactDetail(text) ||
+    hasPreciseLocation(text)
+  );
+}
+
 function hasIdentifiableSensitiveContext(text: string) {
   const hasSensitiveDetail =
     /(?:개별\s*)?(?:점수|성적|석차|등수|순위)|ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단(?:명|받)|치료\s*중|약\s*복용|상담\s*(?:기록|내용)|건강\s*정보|병력|가정환경|생활기록부/iu.test(
       text,
     );
-  const hasIndividualReference =
-    hasPotentialPersonName(text) ||
-    /(?:그|이|해당|특정|개별|한)\s*(?:학생|유아|아동)(?!들)|(?:학생|유아|아동)\s*(?:한\s*명|개인)/u.test(
-      text,
-    );
-
-  return hasSensitiveDetail && hasIndividualReference;
+  return hasSensitiveDetail && hasDirectPersonalIdentifier(text);
 }
 
 function hasCombinationRisk(text: string) {
-  const clues = [
-    hasPotentialPersonName(text),
+  if (!hasDirectPersonalIdentifier(text)) return false;
+
+  const contextualClues = [
     hasSpecificSchoolOrClass(text),
-    hasPreciseLocation(text),
     hasIdentifiableSensitiveContext(text),
     /(?:20\d{2}[년./-]\s*)?\d{1,2}(?:월|[./-])\s*\d{1,2}일?/u.test(text),
     /(?<!\d)\d{1,2}\s*(?:학년|세)(?!\d)/u.test(text),
     /(?:단독|유일|수상|대회|전학|입학|졸업|사고|징계)/u.test(text),
   ].filter(Boolean).length;
 
-  return clues >= 3;
+  return contextualClues >= 2;
 }
 
 /**

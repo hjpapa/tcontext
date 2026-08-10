@@ -37,7 +37,7 @@ function profile(
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: OPENAI_MODELS.profile,
-      promptVersion: "1.3",
+      promptVersion: "1.4",
     },
     profileTitle: "수업 설계를 위한 교사 컨텍스트",
     shortSummary: "질문과 수정 기회를 중시하는 수업 맥락입니다.",

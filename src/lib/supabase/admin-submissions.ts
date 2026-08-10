@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/admin/auth";
+import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import { ApiError } from "@/lib/security/api-error";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { teacherRoleSchema, type TeacherRole } from "@/types/interview";
@@ -17,7 +18,8 @@ const TABLE = "teacher_context_submissions";
 export const ADMIN_SUBMISSIONS_PAGE_SIZE = 20;
 export const adminSubmissionIdSchema = z.uuid();
 
-const timestampSchema = z.string().trim().min(1);
+const timestampSchema = z.iso.datetime({ offset: true });
+const nullableTextSchema = z.string().nullable();
 
 const summaryRowSchema = z
   .object({
@@ -31,6 +33,9 @@ const summaryRowSchema = z
     prompt_version: z.string().trim().min(1),
     profile_title: z.string().trim().min(1),
     short_summary: z.string(),
+    privacy_status: nullableTextSchema,
+    consent_version: nullableTextSchema,
+    consented_at: nullableTextSchema,
   })
   .strict();
 
@@ -43,22 +48,38 @@ const detailRowSchema = z
     app_version: z.string().trim().min(1),
     school_level: schoolLevelSchema,
     teacher_role: teacherRoleSchema,
-    profile_json: teacherContextProfileSchema,
-    profile_markdown: z.string().min(1),
+    profile_title: z.string().trim().min(1),
+    short_summary: z.string(),
+    profile_json: z.unknown(),
+    profile_markdown: z.unknown(),
     model_name: z.string().trim().min(1),
-    consent_version: z.string().trim().min(1),
-    consented_at: timestampSchema,
+    consent_version: z.unknown(),
+    consented_at: z.unknown(),
     retention_until: timestampSchema,
-    source: z.literal("web"),
+    source: z.string().trim().min(1),
   })
   .strict();
 
 const markdownRowSchema = z
   .object({
     id: adminSubmissionIdSchema,
-    profile_markdown: z.string().min(1),
+    profile_json: z.unknown(),
+    profile_markdown: z.unknown(),
+    consent_version: z.unknown(),
+    consented_at: z.unknown(),
   })
   .strict();
+
+const idRowSchema = z.object({ id: adminSubmissionIdSchema }).strict();
+
+export type AdminDocumentAccess = "full" | "summary";
+
+export type AdminSubmissionAccessReason =
+  | "consent_missing"
+  | "privacy_not_clear"
+  | "claims_unconfirmed"
+  | "profile_incomplete"
+  | "markdown_unavailable";
 
 export type AdminSubmissionSummary = {
   id: string;
@@ -71,16 +92,32 @@ export type AdminSubmissionSummary = {
   promptVersion: string;
   profileTitle: string;
   shortSummary: string;
+  documentAccess: AdminDocumentAccess;
 };
 
-export type AdminSubmissionDetail = AdminSubmissionSummary & {
+type AdminSubmissionDetailBase = AdminSubmissionSummary & {
   appVersion: string;
+  source: string;
+};
+
+export type AdminSubmissionFullDetail = AdminSubmissionDetailBase & {
+  documentAccess: "full";
   consentVersion: string;
   consentedAt: string;
-  source: "web";
   profile: TeacherContextProfile;
   profileMarkdown: string;
 };
+
+export type AdminSubmissionSummaryDetail = AdminSubmissionDetailBase & {
+  documentAccess: "summary";
+  accessReason: AdminSubmissionAccessReason;
+};
+
+export type AdminSubmissionDetail =
+  AdminSubmissionFullDetail | AdminSubmissionSummaryDetail;
+
+export type AdminSubmissionMarkdownResult =
+  { documentAccess: "full"; markdown: string } | { documentAccess: "summary" };
 
 type AdminSubmissionPage = {
   items: AdminSubmissionSummary[];
@@ -89,6 +126,19 @@ type AdminSubmissionPage = {
   total: number;
   totalPages: number;
 };
+
+type FullDocumentEvaluation =
+  | {
+      documentAccess: "full";
+      profile: TeacherContextProfile;
+      profileMarkdown: string;
+      consentVersion: string;
+      consentedAt: string;
+    }
+  | {
+      documentAccess: "summary";
+      accessReason: AdminSubmissionAccessReason;
+    };
 
 function databaseError(cause: unknown): ApiError {
   return new ApiError(
@@ -105,9 +155,80 @@ function normalizedPage(page: number): number {
     : 1;
 }
 
+function hasText(value: string | null): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasValidConsent(
+  consentVersion: unknown,
+  consentedAt: unknown,
+): consentVersion is string {
+  return (
+    z.string().trim().min(1).safeParse(consentVersion).success &&
+    timestampSchema.safeParse(consentedAt).success
+  );
+}
+
+function evaluateFullDocument(input: {
+  profileJson: unknown;
+  profileMarkdown: unknown;
+  consentVersion: unknown;
+  consentedAt: unknown;
+}): FullDocumentEvaluation {
+  if (!hasValidConsent(input.consentVersion, input.consentedAt)) {
+    return { documentAccess: "summary", accessReason: "consent_missing" };
+  }
+
+  const parsedProfile = teacherContextProfileSchema.safeParse(
+    input.profileJson,
+  );
+  if (!parsedProfile.success) {
+    return { documentAccess: "summary", accessReason: "profile_incomplete" };
+  }
+
+  if (parsedProfile.data.privacyReview.status !== "clear") {
+    return { documentAccess: "summary", accessReason: "privacy_not_clear" };
+  }
+
+  const allClaimsConfirmed = parsedProfile.data.modules.every((module) =>
+    module.claims.every((claim) => claim.confirmedByUser),
+  );
+  if (!allClaimsConfirmed) {
+    return { documentAccess: "summary", accessReason: "claims_unconfirmed" };
+  }
+
+  const parsedMarkdown = z.string().safeParse(input.profileMarkdown);
+  if (
+    !parsedMarkdown.success ||
+    parsedMarkdown.data !== profileToMarkdown(parsedProfile.data)
+  ) {
+    return {
+      documentAccess: "summary",
+      accessReason: "markdown_unavailable",
+    };
+  }
+
+  return {
+    documentAccess: "full",
+    profile: parsedProfile.data,
+    profileMarkdown: parsedMarkdown.data,
+    consentVersion: input.consentVersion,
+    consentedAt: input.consentedAt as string,
+  };
+}
+
 function summaryFromRow(
   row: z.output<typeof summaryRowSchema>,
+  unconfirmedSubmissionIds: ReadonlySet<string>,
 ): AdminSubmissionSummary {
+  const documentAccess =
+    row.privacy_status === "clear" &&
+    hasText(row.consent_version) &&
+    timestampSchema.safeParse(row.consented_at).success &&
+    !unconfirmedSubmissionIds.has(row.id)
+      ? "full"
+      : "summary";
+
   return {
     id: row.id,
     createdAt: row.created_at,
@@ -119,7 +240,36 @@ function summaryFromRow(
     promptVersion: row.prompt_version,
     profileTitle: row.profile_title,
     shortSummary: row.short_summary,
+    documentAccess,
   };
+}
+
+async function getUnconfirmedSubmissionIds(
+  submissionIds: readonly string[],
+): Promise<Set<string>> {
+  if (submissionIds.length === 0) return new Set();
+
+  // JSONB containment is evaluated by Postgres. Only matching IDs cross the
+  // server boundary; the list view never retrieves profile JSON or Markdown.
+  const { data, error } = await getSupabaseAdmin()
+    .from(TABLE)
+    .select("id")
+    .in("id", submissionIds)
+    .contains("profile_json", {
+      modules: [{ claims: [{ confirmedByUser: false }] }],
+    });
+
+  if (error) throw databaseError(error);
+  try {
+    return new Set(
+      z
+        .array(idRowSchema)
+        .parse(data ?? [])
+        .map((row) => row.id),
+    );
+  } catch (error) {
+    throw databaseError(error);
+  }
 }
 
 export async function listAdminSubmissions(options: {
@@ -132,7 +282,7 @@ export async function listAdminSubmissions(options: {
   let query = getSupabaseAdmin()
     .from(TABLE)
     .select(
-      "id,created_at,retention_until,school_level,teacher_role,model_name,schema_version,prompt_version,profile_title:profile_json->>profileTitle,short_summary:profile_json->>shortSummary",
+      "id,created_at,retention_until,school_level,teacher_role,model_name,schema_version,prompt_version,consent_version,consented_at,profile_title:profile_json->>profileTitle,short_summary:profile_json->>shortSummary,privacy_status:profile_json->privacyReview->>status",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -146,15 +296,19 @@ export async function listAdminSubmissions(options: {
   if (error) throw databaseError(error);
   try {
     const rows = z.array(summaryRowSchema).parse(data ?? []);
+    const unconfirmedSubmissionIds = await getUnconfirmedSubmissionIds(
+      rows.map((row) => row.id),
+    );
     const total = count ?? rows.length;
     return {
-      items: rows.map(summaryFromRow),
+      items: rows.map((row) => summaryFromRow(row, unconfirmedSubmissionIds)),
       page,
       pageSize: ADMIN_SUBMISSIONS_PAGE_SIZE,
       total,
       totalPages: Math.max(1, Math.ceil(total / ADMIN_SUBMISSIONS_PAGE_SIZE)),
     };
   } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw databaseError(error);
   }
 }
@@ -169,7 +323,7 @@ export async function getAdminSubmission(
   const { data, error } = await getSupabaseAdmin()
     .from(TABLE)
     .select(
-      "id,created_at,schema_version,prompt_version,app_version,school_level,teacher_role,profile_json,profile_markdown,model_name,consent_version,consented_at,retention_until,source",
+      "id,created_at,schema_version,prompt_version,app_version,school_level,teacher_role,profile_title:profile_json->>profileTitle,short_summary:profile_json->>shortSummary,profile_json,profile_markdown,model_name,consent_version,consented_at,retention_until,source",
     )
     .eq("id", parsedId.data)
     .maybeSingle();
@@ -178,47 +332,78 @@ export async function getAdminSubmission(
   if (!data) return null;
   try {
     const row = detailRowSchema.parse(data);
-    return {
-      ...summaryFromRow({
-        id: row.id,
-        created_at: row.created_at,
-        retention_until: row.retention_until,
-        school_level: row.school_level,
-        teacher_role: row.teacher_role,
-        model_name: row.model_name,
-        schema_version: row.schema_version,
-        prompt_version: row.prompt_version,
-        profile_title: row.profile_json.profileTitle,
-        short_summary: row.profile_json.shortSummary,
-      }),
-      appVersion: row.app_version,
+    const evaluation = evaluateFullDocument({
+      profileJson: row.profile_json,
+      profileMarkdown: row.profile_markdown,
       consentVersion: row.consent_version,
       consentedAt: row.consented_at,
+    });
+    const summary: AdminSubmissionSummary = {
+      id: row.id,
+      createdAt: row.created_at,
+      retentionUntil: row.retention_until,
+      schoolLevel: row.school_level,
+      teacherRole: row.teacher_role,
+      modelName: row.model_name,
+      schemaVersion: row.schema_version,
+      promptVersion: row.prompt_version,
+      profileTitle: row.profile_title,
+      shortSummary: row.short_summary,
+      documentAccess: evaluation.documentAccess,
+    };
+    const base = {
+      ...summary,
+      appVersion: row.app_version,
       source: row.source,
-      profile: row.profile_json,
-      profileMarkdown: row.profile_markdown,
+    };
+
+    if (evaluation.documentAccess === "summary") {
+      return {
+        ...base,
+        documentAccess: "summary",
+        accessReason: evaluation.accessReason,
+      };
+    }
+
+    return {
+      ...base,
+      documentAccess: "full",
+      consentVersion: evaluation.consentVersion,
+      consentedAt: evaluation.consentedAt,
+      profile: evaluation.profile,
+      profileMarkdown: evaluation.profileMarkdown,
     };
   } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw databaseError(error);
   }
 }
 
 export async function getAdminSubmissionMarkdown(
   submissionId: string,
-): Promise<string | null> {
+): Promise<AdminSubmissionMarkdownResult | null> {
   await requireAdmin();
   const parsedId = adminSubmissionIdSchema.safeParse(submissionId);
   if (!parsedId.success) return null;
 
   const { data, error } = await getSupabaseAdmin()
     .from(TABLE)
-    .select("id,profile_markdown")
+    .select("id,profile_json,profile_markdown,consent_version,consented_at")
     .eq("id", parsedId.data)
     .maybeSingle();
   if (error) throw databaseError(error);
   if (!data) return null;
   try {
-    return markdownRowSchema.parse(data).profile_markdown;
+    const row = markdownRowSchema.parse(data);
+    const evaluation = evaluateFullDocument({
+      profileJson: row.profile_json,
+      profileMarkdown: row.profile_markdown,
+      consentVersion: row.consent_version,
+      consentedAt: row.consented_at,
+    });
+    return evaluation.documentAccess === "full"
+      ? { documentAccess: "full", markdown: evaluation.profileMarkdown }
+      : { documentAccess: "summary" };
   } catch (error) {
     throw databaseError(error);
   }

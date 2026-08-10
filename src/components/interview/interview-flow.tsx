@@ -103,6 +103,8 @@ export function InterviewFlow() {
     setProfile,
     setSuggestedTags,
     deviceProgressEnabled,
+    progressHydrated,
+    restoredProgress,
     setDeviceProgressEnabled,
     clearBrowserRecords,
   } = useInterviewSession();
@@ -129,6 +131,18 @@ export function InterviewFlow() {
         (stored) => stored.disposition === "answered",
       ).length
     : 0;
+
+  if (!progressHydrated) {
+    return (
+      <div
+        role="status"
+        className="text-muted-foreground flex min-h-48 items-center justify-center gap-3"
+      >
+        <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+        저장된 진행 위치 확인 중
+      </div>
+    );
+  }
 
   const startInterview = () => {
     const next = createInterviewState({
@@ -423,6 +437,27 @@ export function InterviewFlow() {
   return (
     <section aria-labelledby="question-title" className="mx-auto max-w-3xl">
       <div className="mb-10 space-y-3">
+        {restoredProgress ? (
+          <Alert className="mb-6 border-[#9a7a42] bg-[#fff9eb]">
+            <AlertTitle>진행 위치만 복원했어요</AlertTitle>
+            <AlertDescription className="space-y-1 leading-6">
+              <p>
+                {restoredProgress.source === "session"
+                  ? "이 탭에 임시 저장된"
+                  : "이 기기에 저장된"}{" "}
+                질문 {restoredProgress.restoredQuestionNumber} 위치와
+                학교급·역할 설정을 복원했습니다.
+              </p>
+              <p>
+                답변 원문은 저장하지 않으므로
+                {restoredProgress.previousCompletedQuestionCount > 0
+                  ? ` 이전에 처리한 ${restoredProgress.previousCompletedQuestionCount}개 질문의 내용은 복원되지 않았고, 완료된 답변으로 계산하지 않습니다.`
+                  : " 작성 중이던 내용은 복원되지 않았습니다."}{" "}
+                필요한 경우 이전 질문으로 돌아가 다시 입력해 주세요.
+              </p>
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div className="flex items-center justify-between gap-4 text-sm font-semibold">
           <span>
             질문 {interview.currentQuestionIndex + 1} /{" "}
@@ -447,10 +482,12 @@ export function InterviewFlow() {
               }
               className="accent-primary size-5"
             />
-            이 기기에 진행 위치만 임시 저장
+            브라우저를 닫아도 이 기기에서 진행 위치 이어가기
           </label>
           <p className="text-muted-foreground ml-8 text-sm leading-6">
-            선택해도 원문 답변과 생성 문서는 저장하지 않습니다.
+            같은 탭에서는 기본으로 위치를 복원합니다. 이 선택을 켜면 새 탭이나
+            재방문 때도 이어갈 수 있으며, 원문 답변과 생성 문서는 저장하지
+            않습니다.
           </p>
         </div>
       </div>

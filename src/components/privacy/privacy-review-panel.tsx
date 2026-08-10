@@ -22,8 +22,8 @@ export function PrivacyReviewPanel({
         <div>
           <p className="font-bold">개인정보 최종 검사를 통과했습니다.</p>
           <p className="mt-1 text-sm leading-6 text-[#536159]">
-            자동 검사는 보조 수단입니다. 다운로드 전에 이름·학교명·개별 학생
-            정보가 없는지 직접 한 번 더 읽어 주세요.
+            자동 검사는 보조 수단입니다. 다운로드 전에 이름·연락처·구체적인
+            학교·반명 등 직접 식별정보가 없는지 한 번 더 읽어 주세요.
           </p>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function PrivacyReviewPanel({
         />
         <div className="min-w-0">
           <p className="font-bold">
-            개인정보 또는 확인이 필요한 표현이 있습니다.
+            명확한 직접 식별정보로 보이는 내용이 있습니다.
           </p>
           <p className="mt-1 text-sm leading-6 text-[#653c38]">
             가능하면 아래 문장을 직접 수정하거나 삭제한 뒤 다시 검사해 주세요.

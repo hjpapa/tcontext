@@ -13,6 +13,8 @@ import {
   loadSessionProgress,
   saveSessionProgress,
 } from "./session";
+import { restoreInterviewProgress } from "./restore";
+import { toStoredInterviewProgress } from "./schema";
 
 class MemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -75,6 +77,49 @@ describe("session progress", () => {
     storage.setItem(SESSION_PROGRESS_KEY, '{"answers":{"secret":"raw"}}');
     expect(loadSessionProgress(storage)).toBeNull();
     expect(storage.getItem(SESSION_PROGRESS_KEY)).toBeNull();
+  });
+
+  it("maps the saved question id to the current bank without restoring answers", () => {
+    const original = {
+      ...stateWithPrivateAnswer(),
+      currentQuestionIndex: 3,
+      updatedAt: "2026-07-30T00:02:00.000Z",
+    };
+    const restored = restoreInterviewProgress(
+      toStoredInterviewProgress(original),
+      "2026-07-31T00:00:00.000Z",
+    );
+
+    expect(restored?.interview.currentQuestionIndex).toBe(3);
+    expect(restored?.interview.questions[3]?.id).toBe("common-lesson-flow");
+    expect(restored?.interview.answers).toEqual({});
+    expect(restored?.interview.followUps).toEqual([]);
+    expect(restored?.interview.followUpCount).toBe(0);
+    expect(restored?.previousCompletedQuestionCount).toBe(1);
+  });
+
+  it("resets to the first current-bank question when an old id cannot be mapped", () => {
+    const progress = {
+      ...toStoredInterviewProgress(stateWithPrivateAnswer()),
+      currentQuestionId: "removed-question-id",
+      currentQuestionIndex: 8,
+    };
+
+    const restored = restoreInterviewProgress(progress);
+
+    expect(restored?.interview.currentQuestionIndex).toBe(0);
+    expect(restored?.interview.questions[0]?.id).toBe("common-role-focus");
+  });
+
+  it("does not restore a completed interview as an unanswered result", () => {
+    const progress = toStoredInterviewProgress(stateWithPrivateAnswer());
+    expect(
+      restoreInterviewProgress({
+        ...progress,
+        completedQuestionCount:
+          progress.fixedQuestionIds.length + progress.followUpCount,
+      }),
+    ).toBeNull();
   });
 });
 

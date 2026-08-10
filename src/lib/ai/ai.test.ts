@@ -32,7 +32,7 @@ function teacherProfileFixture(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.3",
+      promptVersion: "1.4",
     },
     profileTitle: "Teacher context",
     shortSummary: "Supports discussion and revision.",
@@ -783,6 +783,45 @@ describe("OpenAI structured boundary", () => {
     ).toEqual(target.claims);
   });
 
+  it("does not send a previous privacy finding back during a full refinement", async () => {
+    const original = teacherProfileFixture();
+    original.privacyReview = {
+      status: "needs_review",
+      items: [
+        {
+          text: "stale-person@example.com",
+          reason: "이전 검사에서 발견한 연락처",
+          suggestedRewrite: "연락처를 삭제합니다.",
+        },
+      ],
+    };
+    const generated = structuredClone(original);
+    generated.privacyReview = { status: "clear", items: [] };
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { profile: generated },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    await refineProfile({
+      profile: original,
+      instruction: "문서 전체의 표현을 정돈해 주세요.",
+      editableClaimIds: [],
+    });
+
+    const request = parse.mock.calls[0]?.[0] as { input?: string } | undefined;
+    const requestInput = JSON.parse(request?.input ?? "{}") as {
+      profile?: TeacherContextProfile;
+    };
+    expect(requestInput.profile?.privacyReview).toEqual({
+      status: "clear",
+      items: [],
+    });
+    expect(request?.input).not.toContain("stale-person@example.com");
+  });
+
   it("sends only authored fields to the final AI privacy review", async () => {
     const parse = vi.fn().mockResolvedValue({
       output_parsed: { items: [] },
@@ -979,7 +1018,82 @@ describe("OpenAI structured boundary", () => {
     );
   });
 
-  it("computes needs_review from an exact validated AI candidate", async () => {
+  it("discards AI privacy candidates for anonymous sensitive context and labels", async () => {
+    const profile = teacherProfileFixture();
+    const firstModule = profile.modules[0];
+    const firstClaim = firstModule?.claims[0];
+    if (!firstModule || !firstClaim)
+      throw new Error("fixture claim is missing");
+    profile.shortSummary = "한 학생의 점수는 85점이다.";
+    firstModule.summary = "그 학생이 ADHD 진단을 받았다.";
+    firstClaim.text = "산만한 학생에게 짧은 활동 순서를 안내한다.";
+
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        items: [
+          {
+            path: "profile.shortSummary",
+            category: "identifiable_sensitive_context",
+            text: profile.shortSummary,
+            reason: "개별 점수가 있습니다.",
+            suggestedRewrite: "학급 수준 점수 설명으로 바꿉니다.",
+          },
+          {
+            path: "profile.modules.0.summary",
+            category: "identifiable_sensitive_context",
+            text: firstModule.summary,
+            reason: "진단 정보가 있습니다.",
+            suggestedRewrite: "지원 요구로 바꿉니다.",
+          },
+          {
+            path: "profile.modules.0.claims.0.text",
+            category: "identifiable_sensitive_context",
+            text: firstClaim.text,
+            reason: "낙인 표현이 있습니다.",
+            suggestedRewrite: "관찰 가능한 지원으로 바꿉니다.",
+          },
+        ],
+      },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+    const request = parse.mock.calls[0]?.[0] as
+      { instructions?: string } | undefined;
+    expect(request?.instructions).toContain(
+      '"한 학생", "그 학생", "해당 학생", "학생 한 명"',
+    );
+    expect(request?.instructions).toContain(
+      "그 표현만으로는 개인정보 후보가 아니다",
+    );
+  });
+
+  it("stops an explicit name and sensitive context locally before AI", async () => {
+    const profile = teacherProfileFixture();
+    profile.shortSummary = "학생 Alex Kim은 ADHD 진단을 받았다.";
+    const parse = vi.fn();
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toMatchObject({
+      source: "local",
+      review: { status: "needs_review" },
+    });
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it("discards a combination candidate without a direct personal identifier", async () => {
     const profile = teacherProfileFixture();
     profile.shortSummary =
       "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생의 참여를 지원한다.";
@@ -1006,18 +1120,25 @@ describe("OpenAI structured boundary", () => {
 
     expect(result).toEqual({
       source: "openai",
-      review: {
-        status: "needs_review",
-        items: [
-          {
-            text: profile.shortSummary,
-            reason: "구체적인 단서의 조합으로 개인을 추정할 수 있습니다.",
-            suggestedRewrite: "개인을 특정하지 않는 학급 수준 설명",
-          },
-        ],
-      },
+      review: { status: "clear", items: [] },
     });
-    expect(result.review.items[0]).not.toHaveProperty("path");
-    expect(result.review.items[0]).not.toHaveProperty("category");
+  });
+
+  it("stops a combination with a direct identifier locally before AI", async () => {
+    const profile = teacherProfileFixture();
+    profile.shortSummary =
+      "Alex Kim 학생은 지난 4월 12일 시청 과학대회에서 단독 수상했다.";
+    const parse = vi.fn();
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toMatchObject({
+      source: "local",
+      review: { status: "needs_review" },
+    });
+    expect(parse).not.toHaveBeenCalled();
   });
 });

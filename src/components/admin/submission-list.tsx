@@ -43,6 +43,15 @@ export function AdminSubmissionList({
                 <Badge variant="outline">
                   {teacherRoleLabel(submission.teacherRole)}
                 </Badge>
+                <Badge
+                  variant={
+                    submission.documentAccess === "full" ? "default" : "outline"
+                  }
+                >
+                  {submission.documentAccess === "full"
+                    ? "전문 열람 가능"
+                    : "요약만"}
+                </Badge>
               </div>
               <h2 className="mt-3 text-xl font-bold break-words sm:text-2xl">
                 {submission.profileTitle}
@@ -74,7 +83,7 @@ export function AdminSubmissionList({
               aria-label={`문서 열기: ${submission.profileTitle}`}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#9fb3a5] px-4 text-sm font-bold text-[#18452f] transition hover:bg-[#edf5ef]"
             >
-              문서 열기
+              {submission.documentAccess === "full" ? "전문 보기" : "요약 보기"}
               <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </article>

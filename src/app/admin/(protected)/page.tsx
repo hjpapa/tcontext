@@ -56,10 +56,16 @@ export default async function AdminSubmissionsPage({
           저장된 TContext 문서
         </h1>
         <p className="text-lg leading-8 text-[#536159]">
-          사용자가 최종 확인하고 저장에 동의한 문서입니다. 원본 인터뷰 답변과
-          삭제 코드 원문은 저장되지 않으며 이 화면에서도 조회하지 않습니다.
+          서버에 저장된 문서의 운영용 목록입니다. 원본 인터뷰 답변과 삭제 코드
+          원문은 저장되지 않으며 이 화면에서도 조회하지 않습니다.
         </p>
       </header>
+
+      <aside className="mt-6 max-w-4xl rounded-xl border border-[#cfd8d0] bg-[#f7faf7] p-5 text-sm leading-7 text-[#536159]">
+        저장에 동의하지 않은 인터뷰는 서버에 수집되지 않아 관리자도 볼 수
+        없습니다. 저장된 행 중 최종 확인·동의 조건을 충족한 경우만 전문을
+        표시하고, 그 외에는 제목·요약만 표시합니다.
+      </aside>
 
       <section aria-labelledby="admin-filter-title" className="mt-10">
         <h2 id="admin-filter-title" className="sr-only">

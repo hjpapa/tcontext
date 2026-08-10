@@ -22,7 +22,10 @@ import type {
   profileRefineRequestSchema,
 } from "@/lib/ai/schemas/requests";
 import { ApiError } from "@/lib/security/api-error";
-import { localProfilePrivacyReview } from "@/lib/security/privacy-guard";
+import {
+  localProfilePrivacyReview,
+  prepareProfileForAIRefinement,
+} from "@/lib/security/privacy-guard";
 import {
   teacherContextProfileSchema,
   type ConfirmedTags,
@@ -351,7 +354,7 @@ export async function refineProfile(
     effort: OPENAI_REASONING_EFFORT.profile,
     instructions: PROFILE_REFINE_INSTRUCTIONS,
     input: JSON.stringify({
-      profile: input.profile,
+      profile: prepareProfileForAIRefinement(input.profile),
       instruction: input.instruction,
       moduleId: null,
       editableClaimIds: [...editableIds],
