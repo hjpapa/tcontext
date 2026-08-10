@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -145,6 +145,21 @@ function markPrivacyReviewPending(
   };
 }
 
+async function responseMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const body = (await response.json()) as {
+      message?: string;
+      error?: { message?: string };
+    };
+    return body.error?.message ?? body.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function updateModule(
   profile: TeacherContextProfile,
   moduleId: ProfileModule["id"],
@@ -179,6 +194,7 @@ export function ProfileReview() {
   const [refiningModule, setRefiningModule] = useState<string | null>(null);
   const [synthesisConfirmed, setSynthesisConfirmed] = useState(false);
   const [privacyWarningAccepted, setPrivacyWarningAccepted] = useState(false);
+  const draftRevisionRef = useRef(0);
 
   const unresolvedCount = useMemo(
     () =>
@@ -220,6 +236,7 @@ export function ProfileReview() {
   };
 
   const updateDraftProfile = (nextProfile: TeacherContextProfile) => {
+    draftRevisionRef.current += 1;
     setProfile(markPrivacyReviewPending(nextProfile));
     resetPrivacyReview();
   };
@@ -309,6 +326,9 @@ export function ProfileReview() {
   };
 
   const completeReview = async () => {
+    if (busy || refiningModule) return;
+    const revisionAtStart = draftRevisionRef.current;
+
     if (
       !profile.profileTitle.trim() ||
       profile.modules.some((module) => !module.title.trim())
@@ -374,13 +394,22 @@ export function ProfileReview() {
       });
       if (!response.ok) {
         throw new Error(
-          "개인정보 검사를 완료하지 못했습니다. 다시 시도해 주세요.",
+          await responseMessage(
+            response,
+            "개인정보 검사를 완료하지 못했습니다. 다시 시도해 주세요.",
+          ),
         );
       }
       const result = (await response.json()) as {
         source: "local" | "openai";
         review: PrivacyReview;
       };
+      if (draftRevisionRef.current !== revisionAtStart) {
+        setError(
+          "개인정보 검사 중 문서가 수정되어 이전 검사 결과를 적용하지 않았습니다. 현재 내용을 확인한 뒤 다시 검사해 주세요.",
+        );
+        return;
+      }
       const reviewedProfile: TeacherContextProfile = {
         ...withTags,
         privacyReview: result.review,
@@ -405,7 +434,8 @@ export function ProfileReview() {
 
   const refineModule = async (module: ProfileModule) => {
     const instruction = refineInstructions[module.id]?.trim();
-    if (!instruction || refiningModule) return;
+    if (!instruction || busy || refiningModule) return;
+    const revisionAtStart = draftRevisionRef.current;
     setRefiningModule(module.id);
     setError("");
     resetPrivacyReview();
@@ -417,17 +447,28 @@ export function ProfileReview() {
           profile: markPrivacyReviewPending(profile),
           instruction,
           moduleId: module.id,
-          editableClaimIds: module.claims.map((claim) => claim.id),
+          editableClaimIds: module.claims
+            .filter((claim) => !claim.confirmedByUser)
+            .map((claim) => claim.id),
         }),
       });
       if (!response.ok) {
         throw new Error(
-          "이 모듈을 다시 작성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          await responseMessage(
+            response,
+            "이 모듈을 다시 작성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          ),
         );
       }
       const result = (await response.json()) as {
         profile: TeacherContextProfile;
       };
+      if (draftRevisionRef.current !== revisionAtStart) {
+        setError(
+          "AI가 작성하는 동안 문서가 수정되어 새 결과를 적용하지 않았습니다. 현재 수정 내용을 확인한 뒤 다시 시도해 주세요.",
+        );
+        return;
+      }
       setProfile(markPrivacyReviewPending(result.profile));
       resetPrivacyReview();
       setSynthesisConfirmed(false);
@@ -457,6 +498,7 @@ export function ProfileReview() {
   const continueWithPrivacyWarning = () => {
     if (
       !privacyWarningAccepted ||
+      !synthesisConfirmed ||
       privacyReview?.status !== "needs_review" ||
       profile.privacyReview.status !== "needs_review"
     ) {
@@ -477,8 +519,9 @@ export function ProfileReview() {
           선생님의 말과 AI의 해석을 한 문장씩 확인해 주세요.
         </h1>
         <p className="text-lg leading-8 text-[#536159]">
-          이 문서는 평가 결과가 아닙니다. 맞지 않는 문장은 바로 고치거나
-          삭제하세요. AI 추론은 선생님이 승인하기 전까지 확정되지 않습니다.
+          AI는 답변 전반을 연결해 수업 맥락과 실행 원칙을 풍부하게 제안합니다.
+          이 문서는 평가 결과가 아니며, 맞지 않는 문장은 바로 고치거나 삭제할 수
+          있습니다. AI 추론은 선생님이 승인하기 전까지 확정되지 않습니다.
         </p>
         <EvidenceLegend />
         <p
@@ -800,11 +843,13 @@ export function ProfileReview() {
                 이 모듈만 AI로 다시 작성
               </Label>
               <p className="mt-1 text-sm leading-6 text-[#66542e]">
-                현재 모듈의 문장만 편집 대상으로 보냅니다. 결과는 다시 미확인
-                상태일 수 있으므로 반드시 검토해 주세요.
+                확인하지 않은 문장과 모듈 요약만 AI가 다시 작성합니다. 이미
+                확인한 문장은 그대로 유지되며, 새 결과는 반드시 다시 검토해
+                주세요.
               </p>
               <Textarea
                 id={`refine-${module.id}`}
+                disabled={busy || refiningModule !== null}
                 value={refineInstructions[module.id] ?? ""}
                 onChange={(event) =>
                   setRefineInstructions((current) => ({
@@ -822,6 +867,7 @@ export function ProfileReview() {
                 variant="outline"
                 className="mt-3 min-h-11 bg-white"
                 disabled={
+                  busy ||
                   refiningModule !== null ||
                   !(refineInstructions[module.id] ?? "").trim()
                 }
@@ -929,7 +975,11 @@ export function ProfileReview() {
           <Checkbox
             id="synthesis-confirmed"
             checked={synthesisConfirmed}
-            onCheckedChange={(value) => setSynthesisConfirmed(value === true)}
+            onCheckedChange={(value) => {
+              draftRevisionRef.current += 1;
+              resetPrivacyReview();
+              setSynthesisConfirmed(value === true);
+            }}
             className="mt-1 size-5"
           />
           <Label
@@ -983,6 +1033,7 @@ export function ProfileReview() {
                             <Checkbox
                               checked={checked}
                               onCheckedChange={(value) => {
+                                draftRevisionRef.current += 1;
                                 resetPrivacyReview();
                                 setSelectedTags((current) => {
                                   const next = new Set(current);
@@ -1043,7 +1094,7 @@ export function ProfileReview() {
           <Button
             type="button"
             size="lg"
-            disabled={!privacyWarningAccepted}
+            disabled={!privacyWarningAccepted || !synthesisConfirmed}
             onClick={continueWithPrivacyWarning}
             className="min-h-12 bg-[#653f20] text-white hover:bg-[#7a4b25]"
           >
@@ -1076,7 +1127,7 @@ export function ProfileReview() {
           <Button
             type="button"
             size="lg"
-            disabled={busy}
+            disabled={busy || refiningModule !== null}
             onClick={() => void completeReview()}
             className="min-h-12 bg-[#153f2e] px-6 text-base text-white hover:bg-[#235b43]"
           >
@@ -1100,6 +1151,7 @@ export function ProfileReview() {
         type="button"
         className="text-sm text-[#536159] underline underline-offset-4"
         onClick={() => {
+          draftRevisionRef.current += 1;
           clearBrowserRecords();
           setPrivacyReview(null);
           setPrivacyWarningAccepted(false);

@@ -484,12 +484,17 @@ export function InterviewFlow() {
                 {currentQuestion.intent}
               </p>
             </div>
-            <div className="rounded-lg bg-[#f6f1e6] p-4">
-              <h2 className="text-sm font-bold">짧은 답변 예시</h2>
-              <p className="mt-1 text-sm leading-6 text-[#536159]">
-                {currentQuestion.example}
+            <details
+              key={currentQuestion.id}
+              className="group rounded-lg bg-[#f6f1e6] p-4"
+            >
+              <summary className="min-h-8 cursor-pointer text-sm font-bold underline decoration-[#9c7955] underline-offset-4">
+                답하기 어렵다면 예시 보기
+              </summary>
+              <p className="mt-2 text-sm leading-6 text-[#536159]">
+                정답이 아닌 짧은 참고 예시입니다. {currentQuestion.example}
               </p>
-            </div>
+            </details>
           </div>
         </div>
 

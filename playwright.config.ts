@@ -8,14 +8,14 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 2,
   reporter: [["html", { open: "never" }], ["list"]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3100",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3100",
     trace: "on-first-retry",
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
         command: "pnpm dev --port 3100",
-        url: "http://127.0.0.1:3100/interview",
+        url: "http://localhost:3100/interview",
         reuseExistingServer: false,
       },
   projects: [

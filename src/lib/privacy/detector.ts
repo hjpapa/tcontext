@@ -27,7 +27,7 @@ const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게을를과와도가로,.;:!?])";
 const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN}|(?:제|내|본인(?:의)?)\\s*이름\\s*(?:은|이|:|：)?\\s*${LIKELY_KOREAN_FULL_NAME_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const INDIVIDUAL_PERSON_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|(?:해당|그|이|특정|개별)\\s*${STUDENT_ROLE_PATTERN}(?!들))`;
+const INDIVIDUAL_PERSON_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|(?:해당|그|이|한|특정|개별)\\s*${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}\\s*(?:한\\s*명|개인))`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
@@ -88,14 +88,73 @@ const SAFE_ROLE_DESCRIPTORS = new Set([
   "유치원",
   "어린이집",
   "초등",
+  "초등학교",
   "중등",
   "고등",
   "중학교",
   "고등학교",
+  "특수학교",
   "원아",
+]);
+const GENERIC_SCHOOL_PREFIXES = new Set([
+  "우리",
+  "저희",
+  "해당",
+  "현재",
+  "근무하는",
+  "다니는",
+  "일반",
+  "특성화",
+  "자율형",
+  "공립",
+  "사립",
+]);
+const GENERIC_INSTITUTION_PREFIXES = new Set([
+  "우리",
+  "저희",
+  "해당",
+  "특정",
+  "지역",
+  "관할",
+  "현재",
+  "교육",
+]);
+const GENERIC_CLASS_PREFIXES = new Set([
+  "우리",
+  "저희",
+  "해당",
+  "전체",
+  "개별",
+  "일부",
+  "여러",
+  "모든",
+  "일반",
+  "전반",
+  "후반",
+  "초반",
+  "중반",
+  "절반",
+  "기반",
+  "과반",
+  "특별",
+  "통합",
+  "지원",
+  "기초",
+  "심화",
+  "방과후",
+  "소규모",
+  "대규모",
+  "혼합",
+  "복식",
+  "다문화",
+  "특수",
+  "학습지원",
+  "나침",
 ]);
 const MEDICAL_TERM_PATTERN =
   "(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단받|치료\\s*중|약(?:을|을\\s*)?\\s*복용|상담을\\s*받)";
+const GENERIC_EDUCATIONAL_MODIFIER =
+  /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
 
 function isValidCalendarDate(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
@@ -140,10 +199,30 @@ function isGenericRoleDescription(match: string) {
   )?.[1];
   return descriptor
     ? SAFE_ROLE_DESCRIPTORS.has(descriptor) ||
-        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과)$/u.test(
+        GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) ||
+        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|반)$/u.test(
           descriptor,
         )
     : false;
+}
+
+function isGenericSchoolReference(match: string) {
+  const prefix = match.match(
+    /^([가-힣]+?)(?:초등학교|중학교|고등학교|유치원|특수학교)$/u,
+  )?.[1];
+  return prefix ? GENERIC_SCHOOL_PREFIXES.has(prefix) : false;
+}
+
+function isGenericInstitutionReference(match: string) {
+  const prefix = match.match(
+    /^([가-힣]+?)(?:교육지원청|교육청|교육대학교|대학교)$/u,
+  )?.[1];
+  return prefix ? GENERIC_INSTITUTION_PREFIXES.has(prefix) : false;
+}
+
+function isGenericNamedClassReference(match: string) {
+  const prefix = match.match(/^([가-힣]+)반$/u)?.[1];
+  return prefix ? GENERIC_CLASS_PREFIXES.has(prefix) : false;
 }
 
 const PATTERNS: PatternDefinition[] = [
@@ -230,6 +309,38 @@ const PATTERNS: PatternDefinition[] = [
     severity: "high",
     regex: /[가-힣]{2,20}(?:초등학교|중학교|고등학교|유치원|특수학교)(?!급)/gu,
     reason: "구체적인 학교명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericSchoolReference,
+  },
+  {
+    type: "school_name",
+    severity: "high",
+    regex: /[가-힣A-Za-z0-9·-]{2,30}(?:교육지원청|교육청|교육대학교|대학교)/gu,
+    reason:
+      "구체적인 학교 또는 교육기관명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericInstitutionReference,
+  },
+  {
+    type: "school_name",
+    severity: "high",
+    regex:
+      /(?<![가-힣\d])(?:\d{1,2}\s*학년\s*)?\d{1,2}\s*반(?=$|[\s은는이가의에서을를과와도만로으부터까지처럼,.;:!?])/gu,
+    reason: "구체적인 학년·반 식별정보로 보이는 표현이 포함되어 있습니다.",
+  },
+  {
+    type: "school_name",
+    severity: "high",
+    regex:
+      /(?:반|학급)\s*(?:이름|명|명칭)(?!(?:은|는|이|가|:|：)?\s*["'“”]?(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|없는|익명|표시|밝히|언급))(?:은|는|이|가|:|：)?\s*["'“”]?[가-힣A-Za-z0-9·-]{1,20}(?:반)?/gu,
+    reason: "구체적인 반 또는 학급명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericPrivacyPolicyStatement,
+  },
+  {
+    type: "school_name",
+    severity: "high",
+    regex:
+      /(?<![가-힣])([가-힣]{2,12})반(?=$|[\s은는이가의에서을를과와도만로으부터까지처럼,.;:!?])/gu,
+    reason: "구체적인 반 또는 학급명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericNamedClassReference,
   },
   {
     type: "stigmatizing_description",

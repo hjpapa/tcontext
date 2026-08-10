@@ -22,10 +22,10 @@ describe("question routing", () => {
         expect(questions).toHaveLength(10);
         expect(
           questions.filter((item) => item.source === "common"),
-        ).toHaveLength(7);
+        ).toHaveLength(8);
         expect(
           questions.filter((item) => item.source === "school_level"),
-        ).toHaveLength(2);
+        ).toHaveLength(1);
         expect(questions.filter((item) => item.source === "role")).toHaveLength(
           1,
         );
@@ -50,12 +50,12 @@ describe("question routing", () => {
       questions.some((item) => item.id === "middle-autonomy-participation"),
     ).toBe(true);
     expect(
-      questions.some((item) => item.id === "elementary-class-culture"),
+      questions.some((item) => item.id === "elementary-group-sharing"),
     ).toBe(false);
     expect(questions.some((item) => item.id === "role-counselor")).toBe(true);
   });
 
-  it("asks varied, observable, and support-centered questions", () => {
+  it("covers the approved common themes with one core judgment each", () => {
     const questions = buildInterviewQuestions({
       schoolLevel: "elementary",
       role: "homeroom_teacher",
@@ -63,11 +63,21 @@ describe("question routing", () => {
     const promptFor = (id: string) =>
       questions.find((item) => item.id === id)?.prompt ?? "";
 
-    expect(promptFor("common-role-focus")).toContain("교실 검색창");
-    expect(promptFor("common-good-lesson")).toContain("어떤 행동");
-    expect(promptFor("common-class-support")).toContain("집단 전체");
-    expect(promptFor("common-environment")).toContain("우회로");
+    expect(promptFor("common-role-focus")).toContain("탐구하고 싶은 주제");
+    expect(promptFor("common-good-lesson")).toContain("가장 중요한 행동");
+    expect(promptFor("common-educational-principle")).toContain(
+      "지키려는 원칙",
+    );
+    expect(promptFor("common-lesson-flow")).toContain("가장 먼저 중심");
+    expect(promptFor("common-class-support")).toContain("가장 크게 좌우");
+    expect(promptFor("common-assessment-feedback")).toContain("학습의 근거");
+    expect(promptFor("common-environment")).toContain("현실 조건");
     expect(promptFor("common-ai-boundaries")).toContain("직접 판단");
+
+    for (const question of questions) {
+      expect(question.prompt.match(/\?/gu)).toHaveLength(1);
+      expect(question.example.length).toBeLessThanOrEqual(80);
+    }
   });
 });
 

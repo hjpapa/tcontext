@@ -14,7 +14,7 @@ type ExampleSeed = {
   role: string;
   profileTitle: string;
   shortSummary: string;
-  evidenceQuestionId: string;
+  schoolLevelEvidenceQuestionId: string;
   moduleContent: Record<
     ProfileModuleId,
     { summary: string; claims: [string, ...string[]] }
@@ -24,6 +24,16 @@ type ExampleSeed = {
   realisticConstraints: string[];
   aiCollaborationInstructions: string[];
   confirmedTags: ConfirmedTags;
+};
+
+const COMMON_EVIDENCE_QUESTION_IDS: Record<ProfileModuleId, string> = {
+  identity_and_role: "common-role-focus",
+  educational_philosophy: "common-educational-principle",
+  preferred_teaching: "common-lesson-flow",
+  class_context: "common-class-support",
+  participation_and_emotion: "",
+  materials_assessment_feedback: "common-assessment-feedback",
+  environment_and_ai: "common-ai-boundaries",
 };
 
 const emptyConfirmedTags = (): ConfirmedTags => ({
@@ -43,7 +53,7 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
       generatedAt: "2026-07-30T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "fictional-example",
-      promptVersion: "1.2",
+      promptVersion: "1.3",
     },
     profileTitle: seed.profileTitle,
     shortSummary: seed.shortSummary,
@@ -55,7 +65,11 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
         id: `${seed.schoolLevel}-${moduleIndex + 1}-${claimIndex + 1}`,
         text,
         basis: "direct" as const,
-        evidenceQuestionIds: [seed.evidenceQuestionId],
+        evidenceQuestionIds: [
+          id === "participation_and_emotion"
+            ? seed.schoolLevelEvidenceQuestionId
+            : COMMON_EVIDENCE_QUESTION_IDS[id],
+        ],
         confirmedByUser: true,
       })),
     })),
@@ -148,7 +162,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
     profileTitle: "놀이를 관찰하고 확장하는 유치원 교사 컨텍스트",
     shortSummary:
       "유아의 선택과 충분한 놀이 시간을 존중하고, 관찰에 근거해 환경과 질문으로 놀이를 확장한다.",
-    evidenceQuestionId: "kindergarten-play-intervention",
+    schoolLevelEvidenceQuestionId: "kindergarten-transition",
     moduleContent: {
       identity_and_role: {
         summary: "놀이 관찰과 일과 운영을 함께 맡는다.",
@@ -216,7 +230,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
     profileTitle: "질문과 작은 성공을 연결하는 초등 교사 컨텍스트",
     shortSummary:
       "질문과 실수가 환영받는 학급에서 짧은 안내, 단계별 과제, 다양한 참여 통로로 모든 학생의 시도를 지원한다.",
-    evidenceQuestionId: "elementary-foundation-support",
+    schoolLevelEvidenceQuestionId: "elementary-group-sharing",
     moduleContent: {
       identity_and_role: {
         summary: "학급문화와 교과 학습을 연결하는 담임 역할을 맡는다.",
@@ -286,7 +300,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
     profileTitle: "선택과 근거 있는 대화를 설계하는 중학교 교사 컨텍스트",
     shortSummary:
       "여러 학급에서 예측 가능한 수업 구조를 유지하며, 학생의 선택과 소규모 대화를 통해 참여 격차를 줄인다.",
-    evidenceQuestionId: "middle-autonomy-participation",
+    schoolLevelEvidenceQuestionId: "middle-autonomy-participation",
     moduleContent: {
       identity_and_role: {
         summary: "여러 학급을 만나는 교과교사로서 일관된 루틴을 만든다.",
@@ -356,7 +370,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
       "교과의 깊이와 실행 가능성을 함께 보는 고등학교 교사 컨텍스트",
     shortSummary:
       "핵심 개념의 정확성을 바탕으로 대표 쟁점을 깊게 탐구하고, 평가 부담 속에서도 학생의 판단과 수정을 보장한다.",
-    evidenceQuestionId: "high-depth-pace",
+    schoolLevelEvidenceQuestionId: "high-assessment-pressure",
     moduleContent: {
       identity_and_role: {
         summary: "교과의 깊이와 진도, 평가를 함께 책임진다.",

@@ -60,7 +60,7 @@ describe("admin submission reads", () => {
           teacher_role: "homeroom_teacher",
           model_name: "gpt-5.6-terra",
           schema_version: "1.0",
-          prompt_version: "1.2",
+          prompt_version: "1.3",
           profile_title: "저장된 문서",
           short_summary: "",
         },

@@ -14,9 +14,13 @@ import { decideFollowUp } from "@/lib/ai/follow-up";
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { generateProfile, refineProfile } from "@/lib/ai/profile";
 import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
-import { profileGenerationOutputSchema } from "@/lib/ai/schemas/profile";
+import {
+  profileGenerationOutputSchema,
+  profileModuleRefineOutputSchema,
+} from "@/lib/ai/schemas/profile";
 import {
   PROFILE_MODULE_IDS,
+  type ProfileModule,
   type TeacherContextProfile,
 } from "@/types/profile";
 
@@ -28,7 +32,7 @@ function teacherProfileFixture(): TeacherContextProfile {
       generatedAt: "2026-07-31T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "gpt-5.4-nano",
-      promptVersion: "1.2",
+      promptVersion: "1.3",
     },
     profileTitle: "Teacher context",
     shortSummary: "Supports discussion and revision.",
@@ -60,6 +64,30 @@ function teacherProfileFixture(): TeacherContextProfile {
     },
     privacyReview: { status: "clear", items: [] },
   };
+}
+
+function generatedProfileFixture(): TeacherContextProfile {
+  const profile = teacherProfileFixture();
+  profile.modules = profile.modules.map((module, index) => ({
+    ...module,
+    claims: [
+      {
+        ...module.claims[0]!,
+        confirmedByUser: false,
+      },
+      {
+        id: `${module.id}-inferred-${index + 1}`,
+        text: `Grounded inference ${index + 1}`,
+        basis: "inferred",
+        evidenceQuestionIds: ["q-1"],
+        confirmedByUser: false,
+      },
+    ],
+  }));
+  profile.teachingDesignPrinciples.push("Connect feedback to revision.");
+  profile.classSupportConsiderations.push("Keep participation low risk.");
+  profile.aiCollaborationInstructions.push("Show reasoning for review.");
+  return profile;
 }
 
 describe("OpenAI structured boundary", () => {
@@ -368,6 +396,45 @@ describe("OpenAI structured boundary", () => {
     ).not.toThrow();
   });
 
+  it("keeps the compact module-refine schema JSON-Schema compatible", () => {
+    expect(() =>
+      zodTextFormat(
+        profileModuleRefineOutputSchema,
+        "tcontext_profile_module_refine",
+      ),
+    ).not.toThrow();
+  });
+
+  it("allows one grounded claim for sparse answers and caps modules at four", () => {
+    const generated = generatedProfileFixture();
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: generated,
+        suggestedTags: [],
+      }).success,
+    ).toBe(true);
+
+    generated.modules[0]!.claims = generated.modules[0]!.claims.slice(0, 1);
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: generated,
+        suggestedTags: [],
+      }).success,
+    ).toBe(true);
+
+    const firstClaim = generated.modules[0]!.claims[0]!;
+    generated.modules[0]!.claims = Array.from({ length: 5 }, (_, index) => ({
+      ...firstClaim,
+      id: `identity-claim-${index + 1}`,
+    }));
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: generated,
+        suggestedTags: [],
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps the privacy candidate schema JSON-Schema compatible", () => {
     expect(() =>
       zodTextFormat(
@@ -378,7 +445,7 @@ describe("OpenAI structured boundary", () => {
   });
 
   it("rejects generated evidence IDs that were not supplied as answers", async () => {
-    const generated = teacherProfileFixture();
+    const generated = generatedProfileFixture();
     const generatedClaim = generated.modules[0]?.claims[0];
     if (!generatedClaim) throw new Error("fixture claim is missing");
     generatedClaim.evidenceQuestionIds = ["q-1", "invented-question"];
@@ -411,7 +478,7 @@ describe("OpenAI structured boundary", () => {
   });
 
   it("accepts generated evidence IDs drawn only from supplied answers", async () => {
-    const generated = teacherProfileFixture();
+    const generated = generatedProfileFixture();
     const generatedClaim = generated.modules[0]?.claims[0];
     if (!generatedClaim) throw new Error("fixture claim is missing");
     generatedClaim.evidenceQuestionIds = ["q-1", "q-2"];
@@ -447,9 +514,82 @@ describe("OpenAI structured boundary", () => {
       "q-1",
       "q-2",
     ]);
+    expect(result.profile.modules[0]?.claims.map((claim) => claim.id)).toEqual([
+      "identity_and_role:claim:1",
+      "identity_and_role:claim:2",
+    ]);
   });
 
-  it("preserves everything outside the requested refine scope", async () => {
+  it("maps invalid generated module composition to an AI response error", async () => {
+    const generated = generatedProfileFixture();
+    generated.modules[1] = {
+      ...generated.modules[1]!,
+      id: generated.modules[0]!.id,
+    };
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: { profile: generated, suggestedTags: [] },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(
+      generateProfile({
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        answers: [
+          {
+            questionId: "q-1",
+            moduleId: "identity_and_role",
+            question: "What guides your lesson design?",
+            answer: "Discussion and revision guide my lesson design.",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "ai_invalid_response", status: 502 });
+  });
+
+  it("retries an output-limited rich profile generation with more tokens", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const generated = generatedProfileFixture();
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_parsed: null,
+        usage: { input_tokens: 500, output_tokens: 8_000, total_tokens: 8_500 },
+      })
+      .mockResolvedValueOnce({
+        status: "completed",
+        output_parsed: { profile: generated, suggestedTags: [] },
+        usage: { input_tokens: 500, output_tokens: 5_000, total_tokens: 5_500 },
+      });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    await generateProfile({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+      answers: [
+        {
+          questionId: "q-1",
+          moduleId: "identity_and_role",
+          question: "What guides your lesson design?",
+          answer: "I connect discussion, feedback, and revision.",
+        },
+      ],
+    });
+
+    expect(parse.mock.calls.map((call) => call[0].max_output_tokens)).toEqual([
+      8_000, 16_000,
+    ]);
+  });
+
+  it("refines only unconfirmed claims in the requested module", async () => {
     const original = teacherProfileFixture();
     const target = original.modules.find(
       (profileModule) => profileModule.id === "educational_philosophy",
@@ -473,9 +613,9 @@ describe("OpenAI structured boundary", () => {
       {
         id: "editable-target",
         text: "Original editable statement.",
-        basis: "direct",
+        basis: "inferred",
         evidenceQuestionIds: ["q-1"],
-        confirmedByUser: true,
+        confirmedByUser: false,
       },
     ];
     const lockedUnconfirmedClaim = target.claims[0];
@@ -484,73 +624,55 @@ describe("OpenAI structured boundary", () => {
       throw new Error("locked fixture claims are missing");
     }
 
-    const generated = structuredClone(original);
-    generated.profileTitle = "AI changed the global title";
-    generated.shortSummary = "AI changed the global summary";
-    generated.teachingDesignPrinciples = ["AI changed a principle"];
-    generated.classSupportConsiderations = ["AI changed a support"];
-    generated.realisticConstraints = ["AI changed a constraint"];
-    generated.aiCollaborationInstructions = ["AI changed an instruction"];
-    generated.confirmedTags.preferredTeachingMethods = ["inquiry"];
-    for (const profileModule of generated.modules) {
-      profileModule.title = `AI changed ${profileModule.id} title`;
-      profileModule.summary = `AI changed ${profileModule.id} summary`;
-      profileModule.claims = profileModule.claims.map((claim) => ({
-        ...claim,
-        text: `AI changed ${claim.id}`,
-        confirmedByUser: false,
-      }));
-    }
-    const generatedTarget = generated.modules.find(
-      (profileModule) => profileModule.id === "educational_philosophy",
-    );
-    if (!generatedTarget) throw new Error("generated target module is missing");
-    generatedTarget.claims = [
-      {
-        id: "locked-unconfirmed",
-        text: "AI attempted to change a locked statement.",
-        basis: "direct",
-        evidenceQuestionIds: ["q-1"],
-        confirmedByUser: true,
-      },
-      {
-        id: "locked-confirmed",
-        text: "AI also attempted to change a confirmed locked statement.",
-        basis: "inferred",
-        evidenceQuestionIds: ["q-1"],
-        confirmedByUser: false,
-      },
-      {
-        id: "editable-target",
-        text: "Edited statement.",
-        basis: "inferred",
-        evidenceQuestionIds: ["q-1"],
-        confirmedByUser: true,
-      },
-      {
-        id: "new-target",
-        text: "Unrequested new statement.",
-        basis: "inferred",
-        evidenceQuestionIds: ["q-1"],
-        confirmedByUser: false,
-      },
-    ];
-    generated.modules.reverse();
+    const generatedTarget: (typeof original.modules)[number] = {
+      ...structuredClone(target),
+      title: "AI changed educational_philosophy title",
+      summary: "AI changed educational_philosophy summary",
+      claims: [
+        {
+          id: "locked-unconfirmed",
+          text: "AI attempted to change a locked statement.",
+          basis: "direct",
+          evidenceQuestionIds: ["q-1"],
+          confirmedByUser: true,
+        },
+        {
+          id: "locked-confirmed",
+          text: "AI also attempted to change a confirmed locked statement.",
+          basis: "inferred",
+          evidenceQuestionIds: ["q-1"],
+          confirmedByUser: false,
+        },
+        {
+          id: "editable-target",
+          text: "Edited statement.",
+          basis: "direct",
+          evidenceQuestionIds: ["invented-evidence"],
+          confirmedByUser: true,
+        },
+        {
+          id: "new-target",
+          text: "Unrequested new statement.",
+          basis: "inferred",
+          evidenceQuestionIds: ["q-1"],
+          confirmedByUser: false,
+        },
+      ],
+    };
 
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { module: generatedTarget },
+      usage: null,
+    });
     setOpenAIClientForTests({
-      responses: {
-        parse: vi.fn().mockResolvedValue({
-          output_parsed: { profile: generated },
-          usage: null,
-        }),
-      },
+      responses: { parse },
     } as unknown as OpenAI);
 
     const refined = await refineProfile({
       profile: original,
       instruction: "Revise only the selected statement.",
       moduleId: "educational_philosophy",
-      editableClaimIds: ["editable-target"],
+      editableClaimIds: ["locked-confirmed", "editable-target"],
     });
 
     expect(refined.metadata).toEqual(original.metadata);
@@ -581,9 +703,7 @@ describe("OpenAI structured boundary", () => {
     const refinedTarget = refined.modules.find(
       (profileModule) => profileModule.id === "educational_philosophy",
     );
-    expect(refinedTarget?.title).toBe(
-      "AI changed educational_philosophy title",
-    );
+    expect(refinedTarget?.title).toBe(target.title);
     expect(refinedTarget?.summary).toBe(
       "AI changed educational_philosophy summary",
     );
@@ -598,6 +718,69 @@ describe("OpenAI structured boundary", () => {
         confirmedByUser: false,
       },
     ]);
+
+    const request = parse.mock.calls[0]?.[0] as
+      { input?: string; max_output_tokens?: number } | undefined;
+    expect(request?.max_output_tokens).toBe(3_000);
+    const requestInput = JSON.parse(request?.input ?? "{}") as {
+      editableClaimIds?: string[];
+      protectedClaimIds?: string[];
+      targetModule?: ProfileModule;
+      profile?: unknown;
+    };
+    expect(requestInput.editableClaimIds).toEqual(["editable-target"]);
+    expect(requestInput.protectedClaimIds).toContain("locked-confirmed");
+    expect(requestInput.targetModule?.id).toBe("educational_philosophy");
+    expect(requestInput).not.toHaveProperty("profile");
+  });
+
+  it("retries an incomplete module refinement and preserves a missing edit", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const original = teacherProfileFixture();
+    const target = original.modules.find(
+      (profileModule) => profileModule.id === "educational_philosophy",
+    );
+    if (!target) throw new Error("fixture target module is missing");
+    const editableClaim = target.claims[0];
+    if (!editableClaim) throw new Error("fixture editable claim is missing");
+    editableClaim.confirmedByUser = false;
+
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_parsed: null,
+        usage: { input_tokens: 100, output_tokens: 3_000, total_tokens: 3_100 },
+      })
+      .mockResolvedValueOnce({
+        status: "completed",
+        output_parsed: {
+          module: {
+            ...structuredClone(target),
+            title: "Refined title",
+            claims: [],
+          },
+        },
+        usage: { input_tokens: 100, output_tokens: 400, total_tokens: 500 },
+      });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const refined = await refineProfile({
+      profile: original,
+      instruction: "Make the module more concrete.",
+      moduleId: "educational_philosophy",
+      editableClaimIds: [editableClaim.id],
+    });
+
+    expect(parse.mock.calls.map((call) => call[0].max_output_tokens)).toEqual([
+      3_000, 6_000,
+    ]);
+    expect(
+      refined.modules.find((module) => module.id === target.id)?.claims,
+    ).toEqual(target.claims);
   });
 
   it("sends only authored fields to the final AI privacy review", async () => {
@@ -714,8 +897,92 @@ describe("OpenAI structured boundary", () => {
     });
   });
 
+  it("discards AI false positives based only on generic student and class wording", async () => {
+    const profile = teacherProfileFixture();
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("fixture module is missing");
+    profile.shortSummary =
+      "학급의 학생들은 자신의 생각을 설명하고 수정할 시간이 필요하다.";
+    firstModule.summary = "학급 전체의 참여를 돕는 예측 가능한 흐름을 만든다.";
+    profile.teachingDesignPrinciples[0] =
+      "우리 학급은 토론과 수정 기회를 중요하게 여긴다.";
+    profile.classSupportConsiderations[0] =
+      "우리 반 학생들이 안전하게 질문하도록 지원한다.";
+    profile.aiCollaborationInstructions[0] =
+      "초등학교 학생에게 맞는 일반 표현을 사용한다.";
+    profile.realisticConstraints[0] =
+      "선택한 학생과 이해한 학생 모두에게 기다릴 시간을 제공한다.";
+
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        items: [
+          {
+            path: "profile.shortSummary",
+            category: "person_name",
+            text: profile.shortSummary,
+            reason: "학생이라는 단어가 있습니다.",
+            suggestedRewrite: "학생이라는 단어를 삭제합니다.",
+          },
+          {
+            path: "profile.modules.0.summary",
+            category: "specific_school_or_class",
+            text: firstModule.summary,
+            reason: "학급이라는 단어가 있습니다.",
+            suggestedRewrite: "학급이라는 단어를 삭제합니다.",
+          },
+          {
+            path: "profile.teachingDesignPrinciples.0",
+            category: "combination_risk",
+            text: profile.teachingDesignPrinciples[0],
+            reason: "우리 학급이라는 표현이 있습니다.",
+            suggestedRewrite: "일반적인 표현으로 바꿉니다.",
+          },
+          {
+            path: "profile.classSupportConsiderations.0",
+            category: "identifiable_sensitive_context",
+            text: profile.classSupportConsiderations[0],
+            reason: "우리 반 학생이라는 표현이 있습니다.",
+            suggestedRewrite: "일반적인 표현으로 바꿉니다.",
+          },
+          {
+            path: "profile.aiCollaborationInstructions.0",
+            category: "person_name",
+            text: profile.aiCollaborationInstructions[0],
+            reason: "초등학교 학생이라는 표현이 있습니다.",
+            suggestedRewrite: "학교급 표현을 삭제합니다.",
+          },
+          {
+            path: "profile.realisticConstraints.0",
+            category: "person_name",
+            text: profile.realisticConstraints[0],
+            reason: "선택한 학생과 이해한 학생이라는 표현이 있습니다.",
+            suggestedRewrite: "이름처럼 보이는 표현을 삭제합니다.",
+          },
+        ],
+      },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+    const request = parse.mock.calls[0]?.[0] as
+      { instructions?: string } | undefined;
+    expect(request?.instructions).toContain(
+      '"학생", "학생들", "학급", "우리 학급", "우리 반"',
+    );
+  });
+
   it("computes needs_review from an exact validated AI candidate", async () => {
     const profile = teacherProfileFixture();
+    profile.shortSummary =
+      "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생의 참여를 지원한다.";
     setOpenAIClientForTests({
       responses: {
         parse: vi.fn().mockResolvedValue({

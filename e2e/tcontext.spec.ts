@@ -98,7 +98,7 @@ const generatedProfile = {
     generatedAt: "2026-07-31T00:00:00.000Z",
     schemaVersion: "1.0",
     modelName: "gpt-5.4-nano",
-    promptVersion: "1.2",
+    promptVersion: "1.3",
   },
   profileTitle: "질문과 작은 성공을 연결하는 교사 컨텍스트",
   shortSummary:
@@ -194,6 +194,7 @@ async function answerFirstQuestionAndFinishInterview(page: Page) {
   }
 
   await expect(page).toHaveURL(/\/review$/);
+  await expect(page.getByTestId("unresolved-count")).toBeVisible();
 }
 
 async function approveDraftAndFinishReview(page: Page) {
@@ -238,6 +239,14 @@ test.describe("anonymous teacher-context flow", () => {
     });
 
     await startElementaryInterview(page);
+    const exampleDetails = page
+      .locator("details")
+      .filter({ hasText: "답하기 어렵다면 예시 보기" });
+    await expect(exampleDetails).not.toHaveAttribute("open", "");
+    await exampleDetails.locator("summary").click();
+    await expect(
+      page.getByText(/^정답이 아닌 짧은 참고 예시입니다\./),
+    ).toBeVisible();
     const answerBox = page.getByRole("textbox", { name: "답변" });
     await expect(answerBox).toHaveAttribute("maxlength", "2000");
     await expect(page.getByText("권장 200~800자 · 0 / 2,000자")).toBeVisible();
@@ -245,6 +254,7 @@ test.describe("anonymous teacher-context flow", () => {
     await page.getByRole("button", { name: "다음 질문" }).click();
 
     await expect(page.getByText(/^질문 2 \/ \d+$/)).toBeVisible();
+    await expect(exampleDetails).not.toHaveAttribute("open", "");
     await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
   });
 
@@ -272,6 +282,297 @@ test.describe("anonymous teacher-context flow", () => {
     await expect(page.locator("main").getByRole("alert")).toContainText(
       "개인정보로 보이는 표현을 바꿔 주세요.",
     );
+  });
+
+  test("refines one profile module with AI and keeps the review editable", async ({
+    page,
+  }) => {
+    const refineRequests: Array<Record<string, unknown>> = [];
+    const refinedSummary =
+      "수정과 재시도를 배움의 중요한 과정으로 해석하는 교육관입니다.";
+    const refinedProfile = {
+      ...generatedProfile,
+      modules: generatedProfile.modules.map((module) =>
+        module.id === "educational_philosophy"
+          ? { ...module, summary: refinedSummary }
+          : module,
+      ),
+    };
+
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [],
+      });
+    });
+    await page.route("**/api/profile/refine", async (route) => {
+      refineRequests.push(route.request().postDataJSON());
+      await fulfillJson(route, { profile: refinedProfile });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    const philosophyModule = page.getByRole("region", {
+      name: "교육관과 학생관",
+    });
+    const instruction = philosophyModule.getByLabel("이 모듈만 AI로 다시 작성");
+    await instruction.fill("교육관이 더 구체적으로 드러나게 작성해 주세요.");
+    await philosophyModule
+      .getByRole("button", { name: "이 모듈만 다시 작성" })
+      .click();
+
+    await expect(
+      philosophyModule.getByLabel("모듈 요약 직접 수정"),
+    ).toHaveValue(refinedSummary);
+    await expect(instruction).toHaveValue("");
+    expect(refineRequests).toHaveLength(1);
+    expect(refineRequests[0]).toMatchObject({
+      moduleId: "educational_philosophy",
+      instruction: "교육관이 더 구체적으로 드러나게 작성해 주세요.",
+    });
+  });
+
+  test("keeps the module and instruction when AI refinement fails", async ({
+    page,
+  }) => {
+    const instructionText =
+      "교육관이 실제 수업 장면과 연결되도록 다시 작성해 주세요.";
+    const safeErrorMessage =
+      "AI 재작성 서비스를 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+    const philosophyModuleBeforeRefine = generatedProfile.modules.find(
+      (module) => module.id === "educational_philosophy",
+    );
+
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [],
+      });
+    });
+    await page.route("**/api/profile/refine", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            code: "ai_service_unavailable",
+            message: safeErrorMessage,
+          },
+        }),
+      });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    const philosophyModule = page.getByRole("region", {
+      name: "교육관과 학생관",
+    });
+    const summary = philosophyModule.getByLabel("모듈 요약 직접 수정");
+    const claim = philosophyModule.getByLabel("문장 직접 수정");
+    const instruction = philosophyModule.getByLabel("이 모듈만 AI로 다시 작성");
+    const refineButton = philosophyModule.getByRole("button", {
+      name: "이 모듈만 다시 작성",
+    });
+
+    await instruction.fill(instructionText);
+    await refineButton.click();
+
+    const errorAlert = page
+      .getByRole("alert")
+      .filter({ hasText: "검토를 마칠 수 없습니다" });
+    await expect(errorAlert).toContainText(safeErrorMessage);
+    await expect(summary).toHaveValue(philosophyModuleBeforeRefine!.summary);
+    await expect(claim).toHaveValue(
+      philosophyModuleBeforeRefine!.claims[0]!.text,
+    );
+    await expect(instruction).toHaveValue(instructionText);
+    await expect(refineButton).toBeEnabled();
+  });
+
+  test("ignores a late AI refinement after the teacher edits the module", async ({
+    page,
+  }) => {
+    const teacherSummary =
+      "교사가 직접 고친 요약으로, 학생의 수정 과정과 질문을 함께 살핍니다.";
+    const teacherClaim =
+      "학생이 스스로 고친 이유를 설명할 시간을 수업 안에 마련합니다.";
+    const lateAiSummary = "늦게 도착한 AI 요약은 적용되면 안 됩니다.";
+    const lateAiClaim = "늦게 도착한 AI 문장도 적용되면 안 됩니다.";
+    const lateProfile = {
+      ...generatedProfile,
+      modules: generatedProfile.modules.map((module) =>
+        module.id === "educational_philosophy"
+          ? {
+              ...module,
+              summary: lateAiSummary,
+              claims: module.claims.map((claim) => ({
+                ...claim,
+                text: lateAiClaim,
+              })),
+            }
+          : module,
+      ),
+    };
+    let releaseRefinement: (() => void) | undefined;
+    const refinementGate = new Promise<void>((resolve) => {
+      releaseRefinement = resolve;
+    });
+    let markRequestReceived: (() => void) | undefined;
+    const requestReceived = new Promise<void>((resolve) => {
+      markRequestReceived = resolve;
+    });
+
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [],
+      });
+    });
+    await page.route("**/api/profile/refine", async (route) => {
+      markRequestReceived?.();
+      await refinementGate;
+      await fulfillJson(route, { profile: lateProfile });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    const philosophyModule = page.getByRole("region", {
+      name: "교육관과 학생관",
+    });
+    const summary = philosophyModule.getByLabel("모듈 요약 직접 수정");
+    const claim = philosophyModule.getByLabel("문장 직접 수정");
+    const instruction = philosophyModule.getByLabel("이 모듈만 AI로 다시 작성");
+    const refineButton = philosophyModule.getByRole("button", {
+      name: "이 모듈만 다시 작성",
+    });
+
+    await instruction.fill("교육관을 더 생생하게 다시 작성해 주세요.");
+    await refineButton.click();
+    await requestReceived;
+    await expect(
+      philosophyModule.getByRole("button", {
+        name: "이 모듈 다시 작성 중",
+      }),
+    ).toBeDisabled();
+
+    await summary.fill(teacherSummary);
+    await claim.fill(teacherClaim);
+    releaseRefinement?.();
+
+    const raceConditionAlert = page
+      .getByRole("alert")
+      .filter({ hasText: "검토를 마칠 수 없습니다" });
+    await expect(raceConditionAlert).toContainText(
+      "AI가 작성하는 동안 문서가 수정되어 새 결과를 적용하지 않았습니다.",
+    );
+    await expect(summary).toHaveValue(teacherSummary);
+    await expect(claim).toHaveValue(teacherClaim);
+    await expect(summary).not.toHaveValue(lateAiSummary);
+    await expect(claim).not.toHaveValue(lateAiClaim);
+    await expect(instruction).toHaveValue(
+      "교육관을 더 생생하게 다시 작성해 주세요.",
+    );
+    await expect(refineButton).toBeEnabled();
+  });
+
+  test("ignores a stale privacy result when the teacher edits during the check", async ({
+    page,
+  }) => {
+    const latestSummary =
+      "개인정보 검사 중 교사가 직접 고친 최신 요약을 유지합니다.";
+    const privacyRequests: Array<Record<string, unknown>> = [];
+    let releasePrivacyReview = () => {};
+    const privacyReviewGate = new Promise<void>((resolve) => {
+      releasePrivacyReview = resolve;
+    });
+    let markPrivacyRequestReceived = () => {};
+    const privacyRequestReceived = new Promise<void>((resolve) => {
+      markPrivacyRequestReceived = resolve;
+    });
+
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [
+          { category: "preferredTeachingMethods", tag: "inquiry" },
+        ],
+      });
+    });
+    await page.route("**/api/privacy/review", async (route) => {
+      privacyRequests.push(route.request().postDataJSON());
+      markPrivacyRequestReceived();
+      await privacyReviewGate;
+      await fulfillJson(route, {
+        source: "openai",
+        review: { status: "clear", items: [] },
+      });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    await page.getByRole("button", { name: "이 추론 승인" }).click();
+    await page.getByRole("button", { name: "내용 확인" }).click();
+    const synthesisConfirmation = page.getByRole("checkbox", {
+      name: /문서 제목, 전체·모듈 요약/,
+    });
+    await synthesisConfirmation.click();
+
+    const privacyButton = page.getByRole("button", {
+      name: "검토 마치고 개인정보 검사",
+    });
+    await privacyButton.click();
+    await privacyRequestReceived;
+    await expect(
+      page.getByRole("button", { name: "개인정보 최종 검사 중" }),
+    ).toBeDisabled();
+
+    const summary = page.getByLabel("전체 요약 직접 수정");
+    const suggestedTag = page.getByRole("checkbox", { name: "탐구" });
+    await summary.fill(latestSummary);
+    await suggestedTag.click();
+    releasePrivacyReview();
+
+    const staleReviewAlert = page
+      .getByRole("alert")
+      .filter({ hasText: "검토를 마칠 수 없습니다" });
+    await expect(staleReviewAlert).toContainText(
+      "개인정보 검사 중 문서가 수정되어 이전 검사 결과를 적용하지 않았습니다. 현재 내용을 확인한 뒤 다시 검사해 주세요.",
+    );
+    await expect(page).toHaveURL(/\/review$/);
+    await expect(summary).toHaveValue(latestSummary);
+    await expect(suggestedTag).toBeChecked();
+    await expect(synthesisConfirmation).not.toBeChecked();
+    await expect(
+      page.getByText("개인정보 최종 검사를 통과했습니다.", { exact: true }),
+    ).toHaveCount(0);
+    await expect(privacyButton).toBeEnabled();
+    expect(privacyRequests).toHaveLength(1);
+    const staleRequest = privacyRequests[0] as {
+      profile?: {
+        shortSummary?: string;
+        confirmedTags?: Record<string, unknown[]>;
+      };
+    };
+    expect(staleRequest.profile?.shortSummary).toBe(
+      generatedProfile.shortSummary,
+    );
+    expect(staleRequest.profile?.confirmedTags).toEqual(emptyConfirmedTags);
   });
 
   test("blocks PII locally, completes review, and exports without contribution", async ({

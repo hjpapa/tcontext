@@ -17,7 +17,7 @@ const SUPPORT_REWRITES: Partial<Record<PrivacyRiskType, string>> = {
   medical_or_counseling:
     "진단·상담 정보 대신 관찰 가능한 학습 상황과 필요한 수업 지원을 적어 주세요.",
   school_name:
-    "학교명은 삭제하고 학교급과 수업 환경처럼 필요한 범위만 적어 주세요.",
+    "학교·기관·반 이름은 삭제하고 학교급과 수업 환경처럼 필요한 범위만 적어 주세요.",
   stigmatizing_description:
     "학생을 특성으로 규정하지 말고, 관찰되는 상황과 효과적인 지원을 적어 주세요.",
 };

@@ -7,9 +7,13 @@ import {
   PROMPT_VERSION,
 } from "@/lib/ai/models";
 import { PROFILE_GENERATION_INSTRUCTIONS } from "@/lib/ai/prompts/profile";
-import { PROFILE_REFINE_INSTRUCTIONS } from "@/lib/ai/prompts/refine";
+import {
+  PROFILE_MODULE_REFINE_INSTRUCTIONS,
+  PROFILE_REFINE_INSTRUCTIONS,
+} from "@/lib/ai/prompts/refine";
 import {
   profileGenerationOutputSchema,
+  profileModuleRefineOutputSchema,
   profileRefineOutputSchema,
   type SuggestedTag,
 } from "@/lib/ai/schemas/profile";
@@ -22,6 +26,7 @@ import { localProfilePrivacyReview } from "@/lib/security/privacy-guard";
 import {
   teacherContextProfileSchema,
   type ConfirmedTags,
+  type EvidenceBasis,
   type ProfileClaim,
   type ProfileModule,
   type TeacherContextProfile,
@@ -30,6 +35,13 @@ import type { z } from "zod";
 
 type GenerateInput = z.output<typeof profileGenerateRequestSchema>;
 type RefineInput = z.output<typeof profileRefineRequestSchema>;
+
+const PROFILE_GENERATION_OUTPUT_TOKENS = 8_000;
+const PROFILE_GENERATION_RETRY_OUTPUT_TOKENS = 16_000;
+const PROFILE_REFINE_OUTPUT_TOKENS = 8_000;
+const PROFILE_REFINE_RETRY_OUTPUT_TOKENS = 16_000;
+const MODULE_REFINE_OUTPUT_TOKENS = 3_000;
+const MODULE_REFINE_RETRY_OUTPUT_TOKENS = 6_000;
 
 function emptyConfirmedTags(): ConfirmedTags {
   return {
@@ -65,6 +77,19 @@ function deduplicateTags(tags: SuggestedTag[]): SuggestedTag[] {
     seen.add(key);
     return true;
   });
+}
+
+function parseAIProfile(value: unknown): TeacherContextProfile {
+  const result = teacherContextProfileSchema.safeParse(value);
+  if (!result.success) {
+    throw new ApiError(
+      "ai_invalid_response",
+      502,
+      "AI가 검증 가능한 프로필을 생성하지 못했습니다. 다시 시도해 주세요.",
+      { cause: result.error },
+    );
+  }
+  return result.data;
 }
 
 function assertEvidenceQuestionIds(
@@ -112,12 +137,13 @@ export async function generateProfile(input: GenerateInput): Promise<{
     }),
     schema: profileGenerationOutputSchema,
     schemaName: "tcontext_profile_generation",
-    maxOutputTokens: 8_000,
+    maxOutputTokens: PROFILE_GENERATION_OUTPUT_TOKENS,
+    retryMaxOutputTokens: PROFILE_GENERATION_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
   assertEvidenceQuestionIds(output.profile, input);
 
-  const draft = teacherContextProfileSchema.parse({
+  const draft = parseAIProfile({
     ...output.profile,
     metadata: trustedMetadata({
       schoolLevel: input.schoolLevel,
@@ -127,14 +153,15 @@ export async function generateProfile(input: GenerateInput): Promise<{
     confirmedTags: emptyConfirmedTags(),
     modules: output.profile.modules.map((module) => ({
       ...module,
-      claims: module.claims.map((claim) => ({
+      claims: module.claims.map((claim, claimIndex) => ({
         ...claim,
+        id: `${module.id}:claim:${claimIndex + 1}`,
         confirmedByUser: false,
       })),
     })),
   });
 
-  const profile = teacherContextProfileSchema.parse({
+  const profile = parseAIProfile({
     ...draft,
     privacyReview: localProfilePrivacyReview(draft),
   });
@@ -161,9 +188,17 @@ function preserveClaims(
 
     const replacement = generatedById.get(claim.id);
     if (!replacement) {
-      return [];
+      return [claim];
     }
-    return [{ ...replacement, id: claim.id, confirmedByUser: false }];
+    return [
+      {
+        ...replacement,
+        id: claim.id,
+        basis: preserveEvidenceConfidence(claim.basis, replacement.basis),
+        evidenceQuestionIds: claim.evidenceQuestionIds,
+        confirmedByUser: false,
+      },
+    ];
   });
 
   return {
@@ -174,9 +209,142 @@ function preserveClaims(
   };
 }
 
+function preserveEvidenceConfidence(
+  original: EvidenceBasis,
+  generated: EvidenceBasis,
+): EvidenceBasis {
+  const confidence: Record<EvidenceBasis, number> = {
+    needs_confirmation: 0,
+    inferred: 1,
+    direct: 2,
+  };
+  return confidence[generated] > confidence[original] ? original : generated;
+}
+
+function editableUnconfirmedClaimIds(
+  input: RefineInput,
+  moduleId?: ProfileModule["id"],
+): Set<string> {
+  const requestedIds = new Set(input.editableClaimIds);
+  return new Set(
+    input.profile.modules
+      .filter((module) => moduleId === undefined || module.id === moduleId)
+      .flatMap((module) =>
+        module.claims
+          .filter(
+            (claim) => requestedIds.has(claim.id) && !claim.confirmedByUser,
+          )
+          .map((claim) => claim.id),
+      ),
+  );
+}
+
+function pendingPrivacyReview(): TeacherContextProfile["privacyReview"] {
+  return {
+    status: "needs_review",
+    items: [
+      {
+        text: "수정된 프로파일",
+        reason: "수정 후 개인정보 재점검이 필요합니다.",
+        suggestedRewrite: "개인정보 재점검을 실행해 주세요.",
+      },
+    ],
+  };
+}
+
+function finishRefinement(
+  draftInput: TeacherContextProfile,
+): TeacherContextProfile {
+  const draft = parseAIProfile({
+    ...draftInput,
+    privacyReview: pendingPrivacyReview(),
+  });
+  const localReview = localProfilePrivacyReview(draft);
+
+  return parseAIProfile({
+    ...draft,
+    privacyReview:
+      localReview.status === "needs_review" ? localReview : draft.privacyReview,
+  });
+}
+
+async function refineSingleModule(
+  input: RefineInput & { moduleId: ProfileModule["id"] },
+): Promise<TeacherContextProfile> {
+  const targetModule = input.profile.modules.find(
+    (module) => module.id === input.moduleId,
+  );
+  if (!targetModule) {
+    throw new ApiError(
+      "invalid_request",
+      400,
+      "수정할 프로필 모듈을 찾지 못했습니다.",
+    );
+  }
+
+  const editableIds = editableUnconfirmedClaimIds(input, input.moduleId);
+  const output = await runStructuredResponse({
+    operation: "profile_refine",
+    model: OPENAI_MODELS.profile,
+    effort: OPENAI_REASONING_EFFORT.profile,
+    instructions: PROFILE_MODULE_REFINE_INSTRUCTIONS,
+    input: JSON.stringify({
+      documentContext: {
+        profileTitle: input.profile.profileTitle,
+        shortSummary: input.profile.shortSummary,
+        moduleSummaries: input.profile.modules.map((module) => ({
+          id: module.id,
+          title: module.title,
+          summary: module.summary,
+        })),
+        teachingDesignPrinciples: input.profile.teachingDesignPrinciples,
+        classSupportConsiderations: input.profile.classSupportConsiderations,
+        realisticConstraints: input.profile.realisticConstraints,
+        aiCollaborationInstructions: input.profile.aiCollaborationInstructions,
+      },
+      targetModuleId: input.moduleId,
+      targetModule,
+      instruction: input.instruction,
+      editableClaimIds: [...editableIds],
+      protectedClaimIds: targetModule.claims
+        .filter((claim) => !editableIds.has(claim.id))
+        .map((claim) => claim.id),
+    }),
+    schema: profileModuleRefineOutputSchema,
+    schemaName: "tcontext_profile_module_refine",
+    maxOutputTokens: MODULE_REFINE_OUTPUT_TOKENS,
+    retryMaxOutputTokens: MODULE_REFINE_RETRY_OUTPUT_TOKENS,
+    timeoutMs: OPENAI_TIMEOUT_MS.profile,
+  });
+
+  if (output.module.id !== input.moduleId) {
+    throw new ApiError(
+      "ai_invalid_response",
+      502,
+      "AI가 요청한 프로필 모듈과 다른 응답을 반환했습니다.",
+    );
+  }
+
+  const refinedModule = {
+    ...preserveClaims(targetModule, output.module, editableIds),
+    title: targetModule.title,
+  };
+  return finishRefinement({
+    ...input.profile,
+    modules: input.profile.modules.map((module) =>
+      module.id === input.moduleId ? refinedModule : module,
+    ),
+  });
+}
+
 export async function refineProfile(
   input: RefineInput,
 ): Promise<TeacherContextProfile> {
+  if (input.moduleId !== undefined) {
+    return refineSingleModule({ ...input, moduleId: input.moduleId });
+  }
+
+  const editableIds = editableUnconfirmedClaimIds(input);
   const output = await runStructuredResponse({
     operation: "profile_refine",
     model: OPENAI_MODELS.profile,
@@ -185,53 +353,36 @@ export async function refineProfile(
     input: JSON.stringify({
       profile: input.profile,
       instruction: input.instruction,
-      moduleId: input.moduleId ?? null,
-      editableClaimIds: input.editableClaimIds,
+      moduleId: null,
+      editableClaimIds: [...editableIds],
+      protectedClaimIds: input.profile.modules.flatMap((module) =>
+        module.claims
+          .filter((claim) => !editableIds.has(claim.id))
+          .map((claim) => claim.id),
+      ),
     }),
     schema: profileRefineOutputSchema,
     schemaName: "tcontext_profile_refine",
-    maxOutputTokens: 8_000,
+    maxOutputTokens: PROFILE_REFINE_OUTPUT_TOKENS,
+    retryMaxOutputTokens: PROFILE_REFINE_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
 
   const generatedById = new Map(
     output.profile.modules.map((module) => [module.id, module]),
   );
-  const editableIds = new Set(input.editableClaimIds);
-
   const modules = input.profile.modules.map((original) => {
     const generated = generatedById.get(original.id);
-    const moduleIsInScope =
-      input.moduleId === undefined || original.id === input.moduleId;
-    if (!generated || !moduleIsInScope) {
+    if (!generated) {
       return original;
     }
     return preserveClaims(original, generated, editableIds);
   });
 
-  const generatedTopLevel =
-    input.moduleId === undefined ? output.profile : input.profile;
-  const draft = teacherContextProfileSchema.parse({
-    ...generatedTopLevel,
+  return finishRefinement({
+    ...output.profile,
     metadata: input.profile.metadata,
     modules,
     confirmedTags: input.profile.confirmedTags,
-    privacyReview: {
-      status: "needs_review",
-      items: [
-        {
-          text: "수정된 프로파일",
-          reason: "수정 후 개인정보 재점검이 필요합니다.",
-          suggestedRewrite: "개인정보 재점검을 실행해 주세요.",
-        },
-      ],
-    },
-  });
-
-  const localReview = localProfilePrivacyReview(draft);
-  return teacherContextProfileSchema.parse({
-    ...draft,
-    privacyReview:
-      localReview.status === "needs_review" ? localReview : draft.privacyReview,
   });
 }

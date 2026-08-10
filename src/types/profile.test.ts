@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { FICTIONAL_PROFILES } from "@/content/examples";
+import { buildInterviewQuestions } from "@/lib/interview/router";
+import { teacherRoleSchema } from "@/types/interview";
 import {
   confirmedTagsFromCandidates,
   confirmedTagsInputSchema,
@@ -19,6 +21,43 @@ describe("teacherContextProfileSchema", () => {
     expect(FICTIONAL_PROFILES).toHaveLength(4);
     for (const profile of FICTIONAL_PROFILES) {
       expect(teacherContextProfileSchema.safeParse(profile).success).toBe(true);
+    }
+  });
+
+  it("uses evidence question IDs that exist in each fictional interview path", () => {
+    const commonEvidenceByModule = {
+      identity_and_role: "common-role-focus",
+      educational_philosophy: "common-educational-principle",
+      preferred_teaching: "common-lesson-flow",
+      class_context: "common-class-support",
+      materials_assessment_feedback: "common-assessment-feedback",
+      environment_and_ai: "common-ai-boundaries",
+    } as const;
+    const schoolEvidenceByLevel = {
+      kindergarten: "kindergarten-transition",
+      elementary: "elementary-group-sharing",
+      middle: "middle-autonomy-participation",
+      high: "high-assessment-pressure",
+    } as const;
+
+    for (const profile of FICTIONAL_PROFILES) {
+      const questionIds = new Set(
+        buildInterviewQuestions({
+          schoolLevel: profile.metadata.schoolLevel,
+          role: teacherRoleSchema.parse(profile.metadata.role),
+        }).map((question) => question.id),
+      );
+
+      for (const profileModule of profile.modules) {
+        const expectedEvidenceId =
+          profileModule.id === "participation_and_emotion"
+            ? schoolEvidenceByLevel[profile.metadata.schoolLevel]
+            : commonEvidenceByModule[profileModule.id];
+        for (const claim of profileModule.claims) {
+          expect(claim.evidenceQuestionIds).toEqual([expectedEvidenceId]);
+          expect(questionIds.has(expectedEvidenceId)).toBe(true);
+        }
+      }
     }
   });
 
