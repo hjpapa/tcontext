@@ -50,15 +50,11 @@ export default function Home() {
   const retentionDays = getRetentionDays();
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="overflow-x-hidden">
       <div>
         <section className="relative border-b">
-          <div
-            className="bg-border pointer-events-none absolute inset-y-0 left-1/2 hidden w-px xl:block"
-            aria-hidden="true"
-          />
           <div className="mx-auto grid max-w-7xl lg:grid-cols-[1.06fr_0.94fr]">
-            <div className="flex min-h-[680px] flex-col justify-center px-5 py-20 sm:px-8 lg:px-12 xl:px-16">
+            <div className="flex flex-col justify-center px-5 py-20 sm:px-8 lg:min-h-[680px] lg:px-12 xl:px-16">
               <Badge
                 className="mb-7 w-fit rounded-full px-3 py-1 font-medium"
                 variant="secondary"
@@ -73,9 +69,9 @@ export default function Home() {
                 </span>
               </h1>
               <p className="text-muted-foreground mt-8 max-w-2xl text-lg leading-8 text-pretty sm:text-xl">
-                나의 교육관, 수업 방식, 학급 맥락을 12–18분 동안 정리합니다.
-                교사가 검토한 결과만 여러 생성형 AI에서 활용할 수 있는 Markdown
-                문서로 완성됩니다.
+                10개의 핵심 질문을 따라 나의 교육관, 수업 방식, 학급 맥락을
+                12–18분 동안 정리합니다. 교사가 검토한 결과만 여러 생성형 AI에서
+                활용할 수 있는 Markdown 문서로 완성됩니다.
               </p>
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-13 px-6 text-base">
@@ -94,20 +90,23 @@ export default function Home() {
                 </Button>
               </div>
               <div className="text-muted-foreground mt-12 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-                {["회원가입 없음", "원본 답변 미저장", "범용 Markdown"].map(
-                  (item) => (
-                    <span className="flex items-center gap-2" key={item}>
-                      <span className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-full">
-                        <Check className="size-3.5" aria-hidden="true" />
-                      </span>
-                      {item}
+                {[
+                  "회원가입 없음",
+                  "원본 답변 미저장",
+                  "10개 맞춤 질문",
+                  "범용 Markdown",
+                ].map((item) => (
+                  <span className="flex items-center gap-2" key={item}>
+                    <span className="bg-primary/10 text-primary flex size-5 items-center justify-center rounded-full">
+                      <Check className="size-3.5" aria-hidden="true" />
                     </span>
-                  ),
-                )}
+                    {item}
+                  </span>
+                ))}
               </div>
             </div>
 
-            <div className="bg-secondary/55 flex items-center px-5 py-16 sm:px-8 lg:px-12 xl:px-16">
+            <div className="bg-secondary/55 flex items-center border-t px-5 py-16 sm:px-8 lg:border-t-0 lg:border-l lg:px-12 xl:px-16">
               <div className="bg-card w-full rounded-[1.5rem] border p-5 shadow-[0_24px_70px_rgba(35,55,44,0.10)] sm:p-7">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -248,7 +247,7 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
           <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
             <div>
-              <p className="eyebrow">12–18분의 흐름</p>
+              <p className="eyebrow">10개 질문 · 12–18분의 흐름</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
                 답하고,
                 <br />

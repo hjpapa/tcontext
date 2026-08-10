@@ -137,6 +137,37 @@
   .skip-link {
     @apply bg-primary text-primary-foreground fixed top-3 left-3 z-[100] -translate-y-20 rounded-lg px-4 py-2 text-sm font-semibold shadow-lg transition-transform focus:translate-y-0;
   }
+
+  .app-canvas {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        circle at 8% 2%,
+        color-mix(in oklab, var(--secondary) 72%, transparent) 0,
+        transparent 26rem
+      ),
+      radial-gradient(
+        circle at 94% 20%,
+        color-mix(in oklab, var(--accent) 28%, transparent) 0,
+        transparent 24rem
+      );
+  }
+
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  .page-workspace {
+    @apply bg-card/94 rounded-[1.75rem] border p-5 shadow-[0_24px_80px_rgba(35,55,44,0.07)] sm:p-8 lg:rounded-[2rem] lg:p-10;
+  }
+
+  .page-hero {
+    @apply bg-card/92 relative overflow-hidden rounded-[1.75rem] border p-6 shadow-[0_20px_70px_rgba(35,55,44,0.06)] sm:p-9 lg:rounded-[2rem] lg:p-12;
+  }
+
+  .feature-card {
+    @apply bg-card rounded-2xl border p-5 shadow-[0_12px_36px_rgba(35,55,44,0.045)] sm:p-6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -151,9 +182,6 @@
 }
 
 @media print {
-  header,
-  footer,
-  nav,
   [data-print-hidden="true"] {
     display: none !important;
   }
@@ -161,6 +189,22 @@
   body {
     background: white;
     color: black;
+  }
+
+  .app-canvas {
+    display: block;
+    min-height: auto;
+    background: white !important;
+  }
+
+  .page-workspace {
+    background: white !important;
+  }
+
+  [data-print-section="true"],
+  [data-print-claim="true"] {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
   }
 
   main {

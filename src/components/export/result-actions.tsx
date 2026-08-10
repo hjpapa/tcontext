@@ -82,12 +82,16 @@ export function ResultActions({
         : "다운로드와 복사는 로그인이나 데이터베이스 저장 없이 이 브라우저에서 바로 작동합니다.";
 
   return (
-    <div className="space-y-3" aria-label="문서 내보내기">
+    <div
+      className="space-y-3"
+      aria-label="문서 내보내기"
+      data-print-hidden="true"
+    >
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           type="button"
           size="lg"
-          className="min-h-14 justify-start bg-[#153f2e] px-5 text-base text-white hover:bg-[#235b43]"
+          className="min-h-14 justify-start px-5 text-base sm:col-span-2"
           onClick={() =>
             downloadMarkdown(
               markdown,
@@ -102,7 +106,7 @@ export function ResultActions({
           type="button"
           variant="outline"
           size="lg"
-          className="min-h-14 justify-start bg-white px-5 text-base"
+          className="bg-card min-h-14 justify-start px-5 text-base"
           onClick={() => void copy(markdown, "markdown")}
         >
           {copied("markdown") ? (
@@ -116,7 +120,7 @@ export function ResultActions({
           type="button"
           variant="outline"
           size="lg"
-          className="min-h-14 justify-start bg-white px-5 text-base"
+          className="bg-card min-h-14 justify-start px-5 text-base"
           onClick={() => void copy(profileToPlainText(profile), "plainText")}
         >
           {copied("plainText") ? (
@@ -130,7 +134,7 @@ export function ResultActions({
           type="button"
           variant="outline"
           size="lg"
-          className="min-h-14 justify-start bg-white px-5 text-base"
+          className="bg-card min-h-14 justify-start px-5 text-base"
           onClick={() => void copy(profileToCompactText(profile), "compact")}
         >
           {copied("compact") ? (
@@ -144,14 +148,14 @@ export function ResultActions({
           type="button"
           variant="outline"
           size="lg"
-          className="min-h-14 justify-start bg-white px-5 text-base"
+          className="bg-card min-h-14 justify-start px-5 text-base"
           onClick={() => window.print()}
         >
           <Printer aria-hidden="true" />
           인쇄·PDF 저장
         </Button>
       </div>
-      <p className="text-sm leading-6 text-[#536159]" aria-live="polite">
+      <p className="text-muted-foreground text-sm leading-6" aria-live="polite">
         {statusMessage}
       </p>
     </div>

@@ -6,11 +6,13 @@ export default function ResultPage() {
   const retentionDays = getRetentionDays();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
-      <ResultView
-        consentVersion={consentVersion}
-        retentionDays={retentionDays}
-      />
+    <div className="page-container py-8 sm:py-12 lg:py-16 print:max-w-none print:p-0">
+      <div className="page-workspace print:border-0 print:p-0 print:shadow-none">
+        <ResultView
+          consentVersion={consentVersion}
+          retentionDays={retentionDays}
+        />
+      </div>
     </div>
   );
 }

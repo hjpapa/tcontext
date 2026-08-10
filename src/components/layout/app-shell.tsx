@@ -1,58 +1,77 @@
 import Link from "next/link";
-import { BookOpenText, ShieldCheck } from "lucide-react";
+import { BookOpenText, FileText, ShieldCheck } from "lucide-react";
+
+import { PrimaryNav } from "@/components/layout/primary-nav";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-dvh bg-[#fbfaf5] text-[#18251e]">
-      <a
-        href="#main-content"
-        className="fixed top-4 left-4 z-[100] -translate-y-24 rounded-md bg-[#153f2e] px-4 py-3 font-semibold text-white shadow-lg transition focus:translate-y-0"
-      >
+    <div className="app-canvas flex min-h-dvh flex-col">
+      <a href="#main-content" className="skip-link">
         본문으로 바로가기
       </a>
-      <header className="border-b border-[#dce2dc] bg-[#fbfaf5]/95">
-        <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <header
+        data-print-hidden="true"
+        className="bg-background/88 supports-[backdrop-filter]:bg-background/78 sticky top-0 z-50 border-b backdrop-blur-xl"
+      >
+        <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
           <Link
             href="/"
-            className="inline-flex min-h-11 items-center gap-2 rounded-md text-lg font-bold tracking-tight outline-none focus-visible:ring-2 focus-visible:ring-[#28684c] focus-visible:ring-offset-2"
+            className="group inline-flex min-h-11 items-center gap-3 rounded-xl"
           >
-            <BookOpenText
-              aria-hidden="true"
-              className="size-6 text-[#28684c]"
-            />
-            TContext
+            <span className="bg-primary text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform group-hover:-rotate-2">
+              <BookOpenText aria-hidden="true" className="size-5" />
+            </span>
+            <span className="leading-none">
+              <span className="block text-lg font-semibold tracking-[-0.025em]">
+                TContext
+              </span>
+              <span className="text-muted-foreground mt-1 hidden text-[10px] font-semibold tracking-[0.12em] uppercase sm:block">
+                Teacher context document
+              </span>
+            </span>
           </Link>
-          <nav aria-label="주요 메뉴" className="flex items-center gap-1">
-            <Link
-              href="/examples"
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold hover:bg-[#eef1eb] focus-visible:ring-2 focus-visible:ring-[#28684c] focus-visible:outline-none"
-            >
-              예시
-            </Link>
-            <Link
-              href="/privacy"
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-semibold hover:bg-[#eef1eb] focus-visible:ring-2 focus-visible:ring-[#28684c] focus-visible:outline-none"
-            >
-              개인정보 안내
-            </Link>
-          </nav>
+          <PrimaryNav />
         </div>
       </header>
-      <main id="main-content" tabIndex={-1}>
+      <main id="main-content" tabIndex={-1} className="relative flex-1">
         {children}
       </main>
-      <footer className="mt-20 border-t border-[#dce2dc]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-[#536159] sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p className="flex items-center gap-2">
-            <ShieldCheck aria-hidden="true" className="size-5" />
-            공개 문서 생성은 로그인 없이 사용하며, 원문 답변은 저장하지
-            않습니다.
-          </p>
-          <div className="flex gap-4">
-            <Link className="underline underline-offset-4" href="/privacy">
+      <footer
+        data-print-hidden="true"
+        className="bg-card/72 border-t backdrop-blur-sm"
+      >
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-[1.4fr_0.6fr] md:items-end">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 font-semibold">
+              <FileText aria-hidden="true" className="text-primary size-5" />
+              TContext
+            </div>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
+              교사의 실제 수업 맥락을 AI가 이해할 수 있는 문서로 정리합니다.
+              로그인 없이 사용할 수 있으며 원문 인터뷰 답변은 저장하지 않습니다.
+            </p>
+            <p className="text-primary mt-4 flex items-center gap-2 text-xs font-semibold">
+              <ShieldCheck aria-hidden="true" className="size-4" />
+              교사가 모든 문장을 검토하고 수정한 뒤 완성합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold md:justify-end">
+            <Link
+              className="hover:text-primary underline-offset-4 hover:underline"
+              href="/examples"
+            >
+              문서 예시
+            </Link>
+            <Link
+              className="hover:text-primary underline-offset-4 hover:underline"
+              href="/privacy"
+            >
               개인정보 처리 안내
             </Link>
-            <Link className="underline underline-offset-4" href="/delete">
+            <Link
+              className="hover:text-primary underline-offset-4 hover:underline"
+              href="/delete"
+            >
               기여 데이터 삭제
             </Link>
           </div>

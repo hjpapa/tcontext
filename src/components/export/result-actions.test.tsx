@@ -35,6 +35,20 @@ afterEach(() => {
 });
 
 describe("ResultActions", () => {
+  it("keeps interactive export controls out of printed documents", () => {
+    render(
+      <ResultActions
+        profile={fictionalProfile()}
+        markdown="# Markdown document"
+      />,
+    );
+
+    expect(screen.getByLabelText("문서 내보내기")).toHaveAttribute(
+      "data-print-hidden",
+      "true",
+    );
+  });
+
   it("copies the canonical plain-text export and announces success", async () => {
     const profile = fictionalProfile();
     const writeText = vi.fn<(value: string) => Promise<void>>(() =>

@@ -511,14 +511,14 @@ export function ProfileReview() {
   return (
     <section aria-labelledby="review-title" className="space-y-12">
       <div className="max-w-4xl space-y-4">
-        <p className="text-sm font-bold text-[#28684c]">AI 초안 검토</p>
+        <p className="eyebrow">AI 초안 검토</p>
         <h1
           id="review-title"
           className="text-3xl font-bold tracking-tight sm:text-5xl"
         >
           선생님의 말과 AI의 해석을 한 문장씩 확인해 주세요.
         </h1>
-        <p className="text-lg leading-8 text-[#536159]">
+        <p className="text-muted-foreground text-lg leading-8">
           AI는 답변 전반을 연결해 수업 맥락과 실행 원칙을 풍부하게 제안합니다.
           이 문서는 평가 결과가 아니며, 맞지 않는 문장은 바로 고치거나 삭제할 수
           있습니다. AI 추론은 선생님이 승인하기 전까지 확정되지 않습니다.
@@ -535,27 +535,76 @@ export function ProfileReview() {
           type="button"
           variant="outline"
           size="lg"
-          className="min-h-12 bg-white"
+          className="bg-card min-h-12"
           onClick={downloadDraft}
         >
           <Download aria-hidden="true" />
           검토 중 초안 Markdown 다운로드
         </Button>
-        <p className="text-sm leading-6 text-[#536159]">
+        <p className="text-muted-foreground text-sm leading-6">
           미확인 문장이 남아 있어도 내려받을 수 있으며, 문서 상단에 검토 필요
           경고가 포함됩니다.
         </p>
       </div>
 
+      <nav
+        aria-label="프로필 모듈 바로가기"
+        className="bg-secondary/45 rounded-2xl border p-4 sm:p-5"
+      >
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold">문서 지도</p>
+            <p className="text-muted-foreground mt-1 text-xs leading-5">
+              확인할 모듈로 바로 이동할 수 있습니다.
+            </p>
+          </div>
+          <span className="bg-card text-primary rounded-full border px-3 py-1 text-xs font-bold">
+            미확인 {unresolvedCount}개
+          </span>
+        </div>
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          <a
+            href="#document-synthesis-title"
+            className="bg-card hover:border-primary/50 inline-flex min-h-10 shrink-0 items-center rounded-full border px-3 text-xs font-semibold"
+          >
+            전체 문서
+          </a>
+          {profile.modules.map((profileModule, index) => {
+            const moduleUnresolved = profileModule.claims.filter(
+              (claim) =>
+                claim.basis === "needs_confirmation" || !claim.confirmedByUser,
+            ).length;
+
+            return (
+              <a
+                href={`#module-${profileModule.id}`}
+                key={profileModule.id}
+                className="bg-card hover:border-primary/50 inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-semibold"
+              >
+                <span className="text-primary font-mono text-[10px]">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                {PROFILE_MODULE_TITLES[profileModule.id]}
+                {moduleUnresolved > 0 ? (
+                  <span className="bg-destructive/10 text-destructive rounded-full px-1.5 py-0.5 text-[10px]">
+                    {moduleUnresolved}
+                  </span>
+                ) : null}
+              </a>
+            );
+          })}
+        </div>
+      </nav>
+
       <section
         aria-labelledby="document-synthesis-title"
-        className="space-y-5 border-t border-[#cfd8d0] pt-8"
+        className="scroll-mt-28 space-y-5 border-t pt-8"
       >
         <div className="max-w-3xl">
           <p className="text-sm font-bold text-[#28684c]">전체 문서</p>
           <h2
             id="document-synthesis-title"
-            className="mt-1 text-2xl font-bold sm:text-3xl"
+            className="mt-1 scroll-mt-28 text-2xl font-bold sm:text-3xl"
           >
             제목과 요약도 직접 고치거나 지울 수 있습니다.
           </h2>
@@ -622,7 +671,7 @@ export function ProfileReview() {
           <section
             key={module.id}
             aria-labelledby={`module-${module.id}`}
-            className="space-y-5 border-t border-[#cfd8d0] pt-8"
+            className="scroll-mt-28 space-y-5 border-t pt-8"
           >
             <div className="max-w-3xl space-y-4">
               <p className="text-sm font-bold text-[#28684c]">
@@ -630,7 +679,7 @@ export function ProfileReview() {
               </p>
               <h2
                 id={`module-${module.id}`}
-                className="mt-1 text-2xl font-bold sm:text-3xl"
+                className="mt-1 scroll-mt-28 text-2xl font-bold sm:text-3xl"
               >
                 {PROFILE_MODULE_TITLES[module.id]}
               </h2>
@@ -1111,8 +1160,13 @@ export function ProfileReview() {
         </Alert>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 border-t border-[#cfd8d0] bg-[#fbfaf5]/95 px-4 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-        <Button asChild variant="outline" size="lg" className="min-h-12">
+      <div className="bg-background/95 sticky bottom-0 z-30 -mx-5 flex flex-col gap-3 border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-18px_45px_rgba(35,55,44,0.10)] backdrop-blur-xl sm:-mx-8 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:-mx-10 lg:px-10">
+        <Button
+          asChild
+          variant="outline"
+          size="lg"
+          className="min-h-12 w-full sm:w-auto"
+        >
           <Link href="/interview">
             <ArrowLeft aria-hidden="true" />
             인터뷰로 돌아가기
@@ -1120,7 +1174,7 @@ export function ProfileReview() {
         </Button>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
           {unresolvedCount > 0 ? (
-            <span className="text-sm font-semibold text-[#8d352f]">
+            <span className="text-destructive text-sm font-semibold">
               문장 {unresolvedCount}개를 확인해 주세요.
             </span>
           ) : null}
@@ -1129,7 +1183,7 @@ export function ProfileReview() {
             size="lg"
             disabled={busy || refiningModule !== null}
             onClick={() => void completeReview()}
-            className="min-h-12 bg-[#153f2e] px-6 text-base text-white hover:bg-[#235b43]"
+            className="min-h-12 w-full px-6 text-base sm:w-auto"
           >
             {busy ? (
               <>
@@ -1149,7 +1203,7 @@ export function ProfileReview() {
 
       <button
         type="button"
-        className="text-sm text-[#536159] underline underline-offset-4"
+        className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-4"
         onClick={() => {
           draftRevisionRef.current += 1;
           clearBrowserRecords();

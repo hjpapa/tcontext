@@ -89,7 +89,11 @@ export function ResultView({
         aria-label="완성된 교사 프로필"
       >
         {profile.modules.map((module, index) => (
-          <section key={module.id} aria-labelledby={`result-${module.id}`}>
+          <section
+            key={module.id}
+            aria-labelledby={`result-${module.id}`}
+            data-print-section="true"
+          >
             <p className="text-sm font-bold text-[#28684c]">
               {index + 1} / {profile.modules.length}
             </p>
@@ -103,6 +107,7 @@ export function ResultView({
               {module.claims.map((claim) => (
                 <li
                   key={claim.id}
+                  data-print-claim="true"
                   className="flex flex-col gap-2 border-l-2 border-[#b8c8bc] pl-4 sm:flex-row sm:items-start"
                 >
                   <EvidenceBadge basis={claim.basis} />
@@ -114,7 +119,7 @@ export function ResultView({
         ))}
 
         <div className="grid gap-8 lg:grid-cols-2">
-          <section>
+          <section data-print-section="true">
             <h2 className="text-xl font-bold">수업 설계 원칙</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 leading-7">
               {profile.teachingDesignPrinciples.map((item) => (
@@ -122,7 +127,7 @@ export function ResultView({
               ))}
             </ul>
           </section>
-          <section>
+          <section data-print-section="true">
             <h2 className="text-xl font-bold">학급 지원 고려사항</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 leading-7">
               {profile.classSupportConsiderations.map((item) => (
@@ -130,7 +135,7 @@ export function ResultView({
               ))}
             </ul>
           </section>
-          <section>
+          <section data-print-section="true">
             <h2 className="text-xl font-bold">현실적인 제약</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 leading-7">
               {profile.realisticConstraints.map((item) => (
@@ -138,7 +143,7 @@ export function ResultView({
               ))}
             </ul>
           </section>
-          <section>
+          <section data-print-section="true">
             <h2 className="text-xl font-bold">AI 협업 지침</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 leading-7">
               {profile.aiCollaborationInstructions.map((item) => (
@@ -149,12 +154,14 @@ export function ResultView({
         </div>
       </article>
 
-      <ContributionPanel
-        profile={profile}
-        markdown={markdown}
-        consentVersion={consentVersion}
-        retentionDays={retentionDays}
-      />
+      <div data-print-hidden="true">
+        <ContributionPanel
+          profile={profile}
+          markdown={markdown}
+          consentVersion={consentVersion}
+          retentionDays={retentionDays}
+        />
+      </div>
 
       <section className="border-t border-[#cfd8d0] pt-8 print:hidden">
         <h2 className="text-xl font-bold">이 탭의 기록 지우기</h2>

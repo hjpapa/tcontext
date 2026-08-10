@@ -328,14 +328,14 @@ export function InterviewFlow() {
     return (
       <section aria-labelledby="setup-title" className="space-y-10">
         <div className="space-y-3">
-          <p className="text-sm font-bold text-[#28684c]">인터뷰 설정</p>
+          <p className="eyebrow">인터뷰 설정</p>
           <h1
             id="setup-title"
             className="text-3xl font-bold tracking-tight sm:text-5xl"
           >
             지금의 학교급과 역할을 알려주세요.
           </h1>
-          <p className="text-lg text-[#536159]">
+          <p className="text-muted-foreground text-lg leading-8">
             기본 질문은 10개입니다. 답을 더 이해할 필요가 있을 때만 짧은 AI 후속
             질문이 최대 4개 추가되며, 결과는 유형이나 점수가 아닙니다.
           </p>
@@ -348,7 +348,7 @@ export function InterviewFlow() {
               (value) => (
                 <label
                   key={value}
-                  className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-[#cfd8d0] bg-white px-4 py-3 has-[:checked]:border-[#28684c] has-[:checked]:bg-[#edf5ef] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#28684c]"
+                  className="bg-card has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-primary flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-[:focus-visible]:ring-2"
                 >
                   <input
                     type="radio"
@@ -356,7 +356,7 @@ export function InterviewFlow() {
                     value={value}
                     checked={schoolLevel === value}
                     onChange={() => setSchoolLevel(value)}
-                    className="size-5 accent-[#28684c]"
+                    className="accent-primary size-5"
                   />
                   <span className="font-semibold">
                     {SCHOOL_LEVEL_LABELS[value]}
@@ -373,7 +373,7 @@ export function InterviewFlow() {
             {(Object.keys(ROLE_LABELS) as TeacherRole[]).map((value) => (
               <label
                 key={value}
-                className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-[#cfd8d0] bg-white px-4 py-3 has-[:checked]:border-[#28684c] has-[:checked]:bg-[#edf5ef] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#28684c]"
+                className="bg-card has-[:checked]:border-primary has-[:checked]:bg-secondary has-[:focus-visible]:ring-primary flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 has-[:focus-visible]:ring-2"
               >
                 <input
                   type="radio"
@@ -381,7 +381,7 @@ export function InterviewFlow() {
                   value={value}
                   checked={role === value}
                   onChange={() => setRole(value)}
-                  className="size-5 accent-[#28684c]"
+                  className="accent-primary size-5"
                 />
                 <span className="font-semibold">{ROLE_LABELS[value]}</span>
               </label>
@@ -403,7 +403,7 @@ export function InterviewFlow() {
           <Button
             type="button"
             size="lg"
-            className="min-h-12 bg-[#153f2e] px-6 text-base text-white hover:bg-[#235b43]"
+            className="min-h-12 px-6 text-base"
             onClick={startInterview}
           >
             인터뷰 시작하기
@@ -428,28 +428,28 @@ export function InterviewFlow() {
             질문 {interview.currentQuestionIndex + 1} /{" "}
             {interview.questions.length}
           </span>
-          <span className="text-[#536159]">
+          <span className="text-muted-foreground">
             답변 {answeredCount}개 · AI 후속 {interview.followUpCount}/4
           </span>
         </div>
         <Progress
           value={progress}
           aria-label={`인터뷰 ${progress}% 진행`}
-          className="h-2 bg-[#e2e6df] [&>div]:bg-[#28684c]"
+          className="bg-muted [&>div]:bg-primary h-2"
         />
         <div>
-          <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-[#536159]">
+          <label className="text-muted-foreground flex min-h-11 cursor-pointer items-center gap-3 text-sm">
             <input
               type="checkbox"
               checked={deviceProgressEnabled}
               onChange={(event) =>
                 setDeviceProgressEnabled(event.target.checked)
               }
-              className="size-5 accent-[#28684c]"
+              className="accent-primary size-5"
             />
             이 기기에 진행 위치만 임시 저장
           </label>
-          <p className="ml-8 text-sm leading-6 text-[#536159]">
+          <p className="text-muted-foreground ml-8 text-sm leading-6">
             선택해도 원문 답변과 생성 문서는 저장하지 않습니다.
           </p>
         </div>
@@ -457,7 +457,7 @@ export function InterviewFlow() {
 
       <div className="space-y-7">
         <div className="space-y-3">
-          <p className="text-sm font-bold text-[#28684c]">
+          <p className="text-primary text-sm font-bold">
             {currentQuestion.source === "follow_up" ? (
               <span className="inline-flex items-center gap-2">
                 <Sparkles aria-hidden="true" className="size-4" />
@@ -473,25 +473,25 @@ export function InterviewFlow() {
           >
             {questionText(currentQuestion)}
           </h1>
-          <p className="text-base leading-7 text-[#536159]">
+          <p className="text-muted-foreground text-base leading-7">
             정답은 없습니다. 떠오르는 장면부터 편하게 적어 주세요. 구체적인
             경험을 2~5문장으로 적으면 충분합니다.
           </p>
           <div className="grid gap-3 pt-2 sm:grid-cols-2">
-            <div className="rounded-lg bg-[#eef3ed] p-4">
+            <div className="bg-secondary/65 rounded-xl border p-4">
               <h2 className="text-sm font-bold">질문의 의도</h2>
-              <p className="mt-1 text-sm leading-6 text-[#536159]">
+              <p className="text-muted-foreground mt-1 text-sm leading-6">
                 {currentQuestion.intent}
               </p>
             </div>
             <details
               key={currentQuestion.id}
-              className="group rounded-lg bg-[#f6f1e6] p-4"
+              className="group bg-accent/25 rounded-xl border p-4"
             >
-              <summary className="min-h-8 cursor-pointer text-sm font-bold underline decoration-[#9c7955] underline-offset-4">
+              <summary className="flex min-h-11 cursor-pointer items-center text-sm font-bold underline decoration-current/40 underline-offset-4">
                 답하기 어렵다면 예시 보기
               </summary>
-              <p className="mt-2 text-sm leading-6 text-[#536159]">
+              <p className="text-muted-foreground mt-2 text-sm leading-6">
                 정답이 아닌 짧은 참고 예시입니다. {currentQuestion.example}
               </p>
             </details>
@@ -511,14 +511,13 @@ export function InterviewFlow() {
               setPrivacyRisks(null);
             }}
             disabled={busy}
-            autoFocus
             rows={8}
             maxLength={MAX_INTERVIEW_ANSWER_LENGTH}
             aria-describedby="answer-length-help answer-privacy-help question-privacy-guidance"
-            className="min-h-48 resize-y border-[#aebbb0] bg-white p-4 text-lg leading-8 focus-visible:ring-[#28684c]"
+            className="bg-card border-input min-h-48 resize-y p-4 text-lg leading-8"
             placeholder="예: 먼저 짧은 질문으로 생각을 꺼내고, 개인 메모 뒤 모둠에서 나누도록 합니다…"
           />
-          <div className="flex flex-col justify-between gap-2 text-sm text-[#536159] sm:flex-row">
+          <div className="text-muted-foreground flex flex-col justify-between gap-2 text-sm sm:flex-row">
             <div className="space-y-1">
               <p id="answer-privacy-help">
                 이름·학교명·반·연락처·성적·진단명은 적지 마세요.
@@ -532,7 +531,7 @@ export function InterviewFlow() {
                 </p>
               </details>
             </div>
-            <span id="answer-length-help" aria-live="polite">
+            <span id="answer-length-help">
               권장 200~800자 · {answer.length} /{" "}
               {MAX_INTERVIEW_ANSWER_LENGTH.toLocaleString("ko-KR")}자
             </span>
@@ -577,13 +576,13 @@ export function InterviewFlow() {
           </div>
         ) : null}
 
-        <div className="flex flex-col-reverse justify-between gap-4 border-t border-[#dce2dc] pt-6 sm:flex-row">
+        <div className="grid gap-3 border-t pt-6 sm:grid-cols-[auto_1fr] sm:items-center">
           <Button
             type="button"
             variant="outline"
             size="lg"
             disabled={busy || interview.currentQuestionIndex === 0}
-            className="min-h-12"
+            className="min-h-12 justify-center"
             onClick={() => {
               setError("");
               setPrivacyRisks(null);
@@ -603,7 +602,7 @@ export function InterviewFlow() {
             <ArrowLeft aria-hidden="true" />
             이전 질문
           </Button>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <Button
               type="button"
               variant="ghost"
@@ -628,7 +627,7 @@ export function InterviewFlow() {
               type="button"
               size="lg"
               disabled={busy}
-              className="min-h-12 bg-[#153f2e] px-6 text-base text-white hover:bg-[#235b43]"
+              className="col-span-2 min-h-12 w-full px-6 text-base sm:w-auto"
               onClick={() => void commitAndContinue("answered")}
             >
               {busy ? (
@@ -657,8 +656,15 @@ export function InterviewFlow() {
 
         <button
           type="button"
-          className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm text-[#536159] underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-[#28684c] focus-visible:outline-none"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center gap-2 rounded-md text-sm underline underline-offset-4"
           onClick={() => {
+            if (
+              !window.confirm(
+                "이 탭의 인터뷰 답변과 진행 내용을 모두 지울까요? 이 작업은 되돌릴 수 없습니다.",
+              )
+            ) {
+              return;
+            }
             clearBrowserRecords();
             setStep("privacy");
             setPrivacyAccepted(false);
