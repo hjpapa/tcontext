@@ -19,6 +19,8 @@ export const OPENAI_TIMEOUT_MS = {
 export const PROFILE_SCHEMA_VERSION =
   process.env.PROFILE_SCHEMA_VERSION?.trim() || "1.0";
 
-export const PROMPT_VERSION = process.env.PROMPT_VERSION?.trim() || "1.3";
+// Prompt changes ship with the code, so deployment configuration must not be
+// able to label a newer prompt with an older version.
+export const PROMPT_VERSION = "1.3";
 
 export const APP_VERSION = process.env.APP_VERSION?.trim() || "0.1.0";
