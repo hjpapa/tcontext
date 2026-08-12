@@ -14,6 +14,7 @@ import {
   localAuthoredProfilePrivacyReview,
   type TextField,
 } from "@/lib/security/privacy-guard";
+import { isGenericEducationalRoleDescriptor } from "@/lib/privacy/name-context";
 import {
   privacyReviewSchema,
   type PrivacyReview,
@@ -166,6 +167,7 @@ function hasPotentialPersonName(text: string) {
       descriptor &&
       LIKELY_KOREAN_NAME.test(descriptor) &&
       !GENERIC_PERSON_DESCRIPTORS.has(descriptor) &&
+      !isGenericEducationalRoleDescriptor(descriptor) &&
       !GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) &&
       !/(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
         descriptor,

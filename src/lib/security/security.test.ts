@@ -13,6 +13,7 @@ import {
 } from "@/lib/security/hash-token";
 import {
   assertSafeForAI,
+  collectProfileRefinePrivacyTextFields,
   collectProfilePrivacyTextFields,
   findPrivacyRisks,
   localProfilePrivacyReview,
@@ -127,6 +128,59 @@ describe("security boundaries", () => {
         },
       ]),
     ).not.toThrow();
+  });
+
+  it("allows ordinary Korean grammar in a module-refinement summary", () => {
+    const profile = storedProfile();
+    const summary =
+      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.";
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("Missing profile module fixture");
+    firstModule.summary = summary;
+
+    const fields = collectProfileRefinePrivacyTextFields(
+      profile,
+      "educational_philosophy",
+    );
+
+    expect(fields).toContainEqual({
+      path: "profile.modules.0.summary",
+      value: summary,
+    });
+    expect(findPrivacyRisks(fields)).toEqual([]);
+    expect(() => assertSafeForAI(fields)).not.toThrow();
+  });
+
+  it("still blocks a likely name in a module-refinement summary", () => {
+    const profile = storedProfile();
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("Missing profile module fixture");
+    firstModule.summary = "김다은 학생의 선택을 존중합니다.";
+
+    let thrown: unknown;
+    try {
+      assertSafeForAI(
+        collectProfileRefinePrivacyTextFields(
+          profile,
+          "educational_philosophy",
+        ),
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "privacy_risk_detected",
+      details: {
+        findings: expect.arrayContaining([
+          {
+            category: "student_name",
+            path: "profile.modules.0.summary",
+          },
+        ]),
+      },
+    });
+    expect(JSON.stringify(thrown)).not.toContain("김다은");
   });
 
   it.each([

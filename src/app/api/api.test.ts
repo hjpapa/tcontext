@@ -256,6 +256,62 @@ describe("API route boundaries", () => {
     expect(refineProfile).toHaveBeenCalledOnce();
   });
 
+  it("refines a module when another summary uses ordinary Korean topic grammar", async () => {
+    const profile = submissionProfile();
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("Missing profile module fixture");
+    firstModule.summary =
+      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.";
+    vi.mocked(refineProfile).mockResolvedValue(profile);
+
+    const response = await refineProfileRoute(
+      jsonRequest("/api/profile/refine", {
+        profile,
+        instruction: "실제 수업에서 활용하는 문장으로 작성",
+        moduleId: "educational_philosophy",
+        editableClaimIds: ["claim-2"],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ profile });
+    expect(refineProfile).toHaveBeenCalledOnce();
+  });
+
+  it("still blocks a likely name in another module summary", async () => {
+    const profile = submissionProfile();
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("Missing profile module fixture");
+    firstModule.summary = "김다은 학생의 선택을 존중합니다.";
+
+    const response = await refineProfileRoute(
+      jsonRequest("/api/profile/refine", {
+        profile,
+        instruction: "실제 수업에서 활용하는 문장으로 작성",
+        moduleId: "educational_philosophy",
+        editableClaimIds: ["claim-2"],
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      error: {
+        code: "privacy_risk_detected",
+        details: {
+          findings: [
+            {
+              category: "student_name",
+              path: "profile.modules.0.summary",
+            },
+          ],
+        },
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain("김다은");
+    expect(refineProfile).not.toHaveBeenCalled();
+  });
+
   it("returns the exact draft field path when a refinement draft is invalid", async () => {
     const profile = submissionProfile();
     profile.profileTitle = "";

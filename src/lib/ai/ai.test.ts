@@ -941,7 +941,7 @@ describe("OpenAI structured boundary", () => {
     const firstModule = profile.modules[0];
     if (!firstModule) throw new Error("fixture module is missing");
     profile.shortSummary =
-      "학급의 학생들은 자신의 생각을 설명하고 수정할 시간이 필요하다.";
+      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둔다.";
     firstModule.summary = "학급 전체의 참여를 돕는 예측 가능한 흐름을 만든다.";
     profile.teachingDesignPrinciples[0] =
       "우리 학급은 토론과 수정 기회를 중요하게 여긴다.";
@@ -959,8 +959,8 @@ describe("OpenAI structured boundary", () => {
             path: "profile.shortSummary",
             category: "person_name",
             text: profile.shortSummary,
-            reason: "학생이라는 단어가 있습니다.",
-            suggestedRewrite: "학생이라는 단어를 삭제합니다.",
+            reason: "방식은 학생이라는 표현을 이름으로 판단했습니다.",
+            suggestedRewrite: "일반적인 표현으로 바꿉니다.",
           },
           {
             path: "profile.modules.0.summary",

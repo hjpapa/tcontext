@@ -136,6 +136,13 @@ describe("detectPrivacyRisks", () => {
     "성적별 학생 지원 자료를 준비합니다.",
     "원아 보호자와 관찰 기록을 공유합니다.",
     "국어 교사는 평균 80점 기준을 설명합니다.",
+    "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.",
+    "설명은 학생의 질문 뒤에 제공합니다.",
+    "선택은 학생에게 맡깁니다.",
+    "성장은 학생의 수정 과정에서 확인합니다.",
+    "기준은 학생과 함께 정합니다.",
+    "교사 정체성은 학생의 성장을 지원하는 역할에 가깝습니다.",
+    "성찰적 교사는 학생의 반응을 다음 수업에 반영합니다.",
     "한 학생의 점수는 85점이다.",
     "학생 한 명의 석차는 3등이다.",
     "한 학생이 ADHD 진단을 받았다.",
@@ -147,6 +154,18 @@ describe("detectPrivacyRisks", () => {
   ])("keeps generic dates, metrics, and support guidance clear: %s", (text) => {
     expect(containsPrivacyRisk(text)).toBe(false);
   });
+
+  it.each([
+    "김다은 학생의 선택을 존중합니다.",
+    "이하은 학생에게 단계별 안내를 제공합니다.",
+    "박지은 학생은 토론을 선호합니다.",
+    "교사 박은영은 토론을 선호합니다.",
+  ])(
+    "keeps likely Korean names blocked after grammar exceptions: %s",
+    (text) => {
+      expect(containsPrivacyRisk(text)).toBe(true);
+    },
+  );
 
   it.each(["991332-1234567", "120101-9123456", "000230-3123456"])(
     "ignores a structurally invalid resident number: %s",
