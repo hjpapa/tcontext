@@ -15,21 +15,21 @@ import {
 import { PROFILE_MODULE_IDS, SCHOOL_LEVELS } from "@/types/profile";
 
 describe("question routing", () => {
-  it("builds a concise 10-question interview for every level and role", () => {
+  it("builds a concise 11-question interview for every level and role", () => {
     for (const schoolLevel of SCHOOL_LEVELS) {
       for (const role of TEACHER_ROLES) {
         const questions = buildInterviewQuestions({ schoolLevel, role });
-        expect(questions).toHaveLength(10);
+        expect(questions).toHaveLength(11);
         expect(
           questions.filter((item) => item.source === "common"),
-        ).toHaveLength(8);
+        ).toHaveLength(9);
         expect(
           questions.filter((item) => item.source === "school_level"),
         ).toHaveLength(1);
         expect(questions.filter((item) => item.source === "role")).toHaveLength(
           1,
         );
-        expect(new Set(questions.map((item) => item.id)).size).toBe(10);
+        expect(new Set(questions.map((item) => item.id)).size).toBe(11);
 
         for (const moduleId of PROFILE_MODULE_IDS) {
           expect(
@@ -69,6 +69,9 @@ describe("question routing", () => {
       "지키려는 원칙",
     );
     expect(promptFor("common-lesson-flow")).toContain("가장 먼저 중심");
+    expect(promptFor("common-adaptive-tendency")).toContain(
+      "가장 먼저 한 행동",
+    );
     expect(promptFor("common-class-support")).toContain("가장 크게 좌우");
     expect(promptFor("common-assessment-feedback")).toContain("학습의 근거");
     expect(promptFor("common-environment")).toContain("현실 조건");
@@ -141,7 +144,7 @@ describe("interview runtime state", () => {
     expect(answered.answers[questionId]?.text).toContain("자료");
     expect(calculateInterviewProgress(answered)).toMatchObject({
       current: 1,
-      total: 10,
+      total: 11,
     });
   });
 });

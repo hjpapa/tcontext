@@ -21,6 +21,6 @@ export const PROFILE_SCHEMA_VERSION =
 
 // Prompt changes ship with the code, so deployment configuration must not be
 // able to label a newer prompt with an older version.
-export const PROMPT_VERSION = "1.4";
+export const PROMPT_VERSION = "1.6";
 
 export const APP_VERSION = process.env.APP_VERSION?.trim() || "0.1.0";

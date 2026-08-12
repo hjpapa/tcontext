@@ -350,8 +350,9 @@ export function InterviewFlow() {
             지금의 학교급과 역할을 알려주세요.
           </h1>
           <p className="text-muted-foreground text-lg leading-8">
-            기본 질문은 10개입니다. 답을 더 이해할 필요가 있을 때만 짧은 AI 후속
-            질문이 최대 4개 추가되며, 결과는 유형이나 점수가 아닙니다.
+            기본 질문은 11개입니다. 답을 더 이해할 필요가 있을 때만 짧은 AI 후속
+            질문이 최대 4개 추가되며, 결과에는 고정 유형이나 점수를 붙이지
+            않습니다.
           </p>
         </div>
 

@@ -49,11 +49,13 @@ describe("teacherContextProfileSchema", () => {
       );
 
       for (const profileModule of profile.modules) {
-        const expectedEvidenceId =
-          profileModule.id === "participation_and_emotion"
-            ? schoolEvidenceByLevel[profile.metadata.schoolLevel]
-            : commonEvidenceByModule[profileModule.id];
-        for (const claim of profileModule.claims) {
+        for (const [claimIndex, claim] of profileModule.claims.entries()) {
+          const expectedEvidenceId =
+            profileModule.id === "participation_and_emotion"
+              ? schoolEvidenceByLevel[profile.metadata.schoolLevel]
+              : profileModule.id === "preferred_teaching" && claimIndex > 0
+                ? "common-adaptive-tendency"
+                : commonEvidenceByModule[profileModule.id];
           expect(claim.evidenceQuestionIds).toEqual([expectedEvidenceId]);
           expect(questionIds.has(expectedEvidenceId)).toBe(true);
         }

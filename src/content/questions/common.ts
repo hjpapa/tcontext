@@ -52,6 +52,19 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     required: true,
   },
   {
+    id: "common-adaptive-tendency",
+    moduleId: "preferred_teaching",
+    source: "common",
+    prompt:
+      "수업이 계획과 다르게 흘러간 최근 장면에서, 가장 먼저 한 행동은 무엇이었나요?",
+    intent:
+      "예상 밖 상황에서 드러나는 수업 운영의 판단 경향을 관찰 가능한 행동으로 확인합니다.",
+    example:
+      "학생의 이해 상태를 짧게 확인한 뒤 활동 순서와 시간을 조정했습니다.",
+    privacyHint: PRIVACY_HINT,
+    required: true,
+  },
+  {
     id: "common-class-support",
     moduleId: "class_context",
     source: "common",

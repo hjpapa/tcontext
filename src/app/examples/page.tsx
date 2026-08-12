@@ -15,6 +15,10 @@ import {
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
 import { Button } from "@/components/ui/button";
 import {
+  AI_EXECUTION_INSTRUCTIONS,
+  LESSON_TASK_CONTEXT_ITEMS,
+} from "@/content/profile-document";
+import {
   FICTIONAL_PROFILE_BY_SCHOOL_LEVEL,
   FICTIONAL_PROFILES,
 } from "@/content/examples";
@@ -23,7 +27,7 @@ import type { SchoolLevel } from "@/types/profile";
 export const metadata: Metadata = {
   title: "완성 문서 예시",
   description:
-    "공통 8개, 학교급 1개, 역할 1개의 인터뷰 답변이 검토 가능한 교사 컨텍스트 문서가 되는 과정을 살펴봅니다.",
+    "공통 9개, 학교급 1개, 역할 1개의 인터뷰 답변이 검토 가능한 교사 컨텍스트 문서가 되는 과정을 살펴봅니다.",
 };
 
 const SCHOOL_LEVEL_LABELS: Record<SchoolLevel, string> = {
@@ -40,9 +44,9 @@ const ROLE_LABELS: Record<string, string> = {
 
 const INTERVIEW_STRUCTURE = [
   {
-    count: "8",
+    count: "9",
     label: "공통 질문",
-    description: "교육관, 수업 흐름, 평가와 AI 활용",
+    description: "교육관, 수업 흐름, 판단 성향, 평가와 AI 활용",
   },
   {
     count: "1",
@@ -83,6 +87,27 @@ const EVIDENCE_EXAMPLES = [
   },
 ] as const;
 
+const LESSON_TASK_CONTEXT_PREVIEW = [
+  'task_type: "수업 설계 | 슬라이드 | 활동지 | 평가 | 수업 검토"',
+  'grade: ""',
+  'subject: ""',
+  'unit_or_topic: ""',
+  'achievement_standard: ""',
+  "lesson_duration_minutes: 40",
+  "number_of_lessons: 1",
+  'learning_goal: ""',
+  'essential_question: ""',
+  'core_student_activity: ""',
+  'student_use_of_ai: "없음 | 교사 시연 | 모둠 활용 | 학생 개별 활용"',
+  'available_devices_and_tools: ""',
+  'materials: ""',
+  'classwide_learning_supports: ""',
+  'classwide_participation_or_emotional_supports: ""',
+  'desired_output: "수업안 | 슬라이드 구성안 | 활동지 | 평가 기준"',
+  'must_include: ""',
+  'constraints: ""',
+] as const;
+
 const DEFAULT_SCHOOL_LEVEL: SchoolLevel = "elementary";
 
 type ExamplesPageProps = {
@@ -114,7 +139,7 @@ export default async function ExamplesPage({
           <div className="flex flex-col justify-center px-5 py-16 sm:px-8 sm:py-20 lg:min-h-[660px] lg:px-12 xl:px-16">
             <p className="eyebrow">완성 문서 미리보기</p>
             <h1 className="mt-5 max-w-3xl text-[clamp(2.75rem,6vw,5.25rem)] leading-[1.04] font-semibold tracking-[-0.055em] text-balance">
-              열 번의 답변이
+              열한 번의 답변이
               <span className="text-primary mt-2 block">
                 수업을 위한 맥락이 됩니다
               </span>
@@ -155,7 +180,7 @@ export default async function ExamplesPage({
                 </span>
               </div>
 
-              <ol className="mt-7 space-y-3" aria-label="열 개 질문의 구성">
+              <ol className="mt-7 space-y-3" aria-label="열한 개 질문의 구성">
                 {INTERVIEW_STRUCTURE.map((item) => (
                   <li
                     className="bg-background grid grid-cols-[3.25rem_1fr] gap-4 rounded-xl border p-4"
@@ -177,7 +202,7 @@ export default async function ExamplesPage({
               <div className="bg-primary text-primary-foreground mt-4 flex items-center gap-4 rounded-xl p-4">
                 <FileText className="size-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm leading-6">
-                  <strong className="font-semibold">총 10개 질문</strong>에서
+                  <strong className="font-semibold">총 11개 질문</strong>에서
                   검토 가능한 7개 모듈의 문서가 만들어집니다.
                 </p>
               </div>
@@ -487,6 +512,95 @@ export default async function ExamplesPage({
                     ))}
                   </div>
                 </details>
+
+                <section
+                  aria-labelledby="lesson-design-output-title"
+                  className="mt-10 border-t pt-8"
+                >
+                  <p className="eyebrow">수업 설계용 Markdown 구성</p>
+                  <h4
+                    id="lesson-design-output-title"
+                    className="mt-2 text-2xl font-semibold tracking-tight"
+                  >
+                    7개 모듈 뒤에 이번 수업의 조건을 붙입니다
+                  </h4>
+                  <p className="text-muted-foreground mt-3 max-w-3xl text-sm leading-7 sm:text-base">
+                    교사 프로필은 여러 수업에서 반복해 쓰고, 아래 작업
+                    컨텍스트만 수업마다 새로 채웁니다. 이어지는 실행 지침은 AI가
+                    프로필을 수업안으로 바꿀 때 지켜야 할 판단 기준입니다.
+                  </p>
+
+                  <p
+                    className="text-muted-foreground mt-5 text-sm font-medium"
+                    aria-label="완성 문서의 구성 순서"
+                  >
+                    7개 교사 프로필 모듈 → 수업 작업 컨텍스트(YAML) → AI 실행
+                    지침
+                  </p>
+
+                  <div className="mt-5 space-y-3">
+                    <details
+                      id="lesson-task-context-preview"
+                      className="group bg-background rounded-xl border p-5"
+                    >
+                      <summary className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg font-semibold marker:content-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                        <FileText
+                          className="text-primary size-5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="flex-1">
+                          수업 작업 컨텍스트 YAML 미리보기
+                        </span>
+                        <ChevronDown
+                          className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </summary>
+                      <div className="mt-4 border-t pt-4">
+                        <p className="text-muted-foreground mb-3 text-sm leading-6">
+                          학교급은 프로필에서 자동으로 채워지고, 나머지는 이번
+                          수업에 맞게 입력합니다.
+                        </p>
+                        <p className="sr-only">
+                          포함 항목: {LESSON_TASK_CONTEXT_ITEMS.join(", ")}
+                        </p>
+                        <pre className="bg-secondary/55 max-w-full overflow-x-auto rounded-xl p-4 text-xs leading-6 break-words whitespace-pre-wrap sm:text-sm">
+                          <code>{`school_level: "${SCHOOL_LEVEL_LABELS[selectedSchool]}"\n${LESSON_TASK_CONTEXT_PREVIEW.join("\n")}`}</code>
+                        </pre>
+                      </div>
+                    </details>
+
+                    <details
+                      id="ai-execution-guidance-preview"
+                      className="group bg-background rounded-xl border p-5"
+                    >
+                      <summary className="focus-visible:ring-ring flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg font-semibold marker:content-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                        <Sparkles
+                          className="text-primary size-5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="flex-1">AI 실행 지침 미리보기</span>
+                        <ChevronDown
+                          className="size-4 shrink-0 transition-transform group-open:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </summary>
+                      <ol className="text-muted-foreground mt-4 space-y-3 border-t pt-4 text-sm leading-6">
+                        {AI_EXECUTION_INSTRUCTIONS.map((guidance, index) => (
+                          <li className="flex gap-3" key={guidance}>
+                            <span
+                              className="text-primary shrink-0 font-mono text-xs font-semibold"
+                              aria-hidden="true"
+                            >
+                              {String(index + 1).padStart(2, "0")}
+                            </span>
+                            <span>{guidance}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  </div>
+                </section>
               </div>
             </div>
           </article>
@@ -543,7 +657,7 @@ export default async function ExamplesPage({
             <br />내 수업의 장면을 들려주세요
           </h2>
           <p className="mt-6 max-w-2xl leading-7 text-white/70">
-            공통 8개, 학교급 1개, 역할 1개 질문에 답하면 AI가 검토 가능한 초안을
+            공통 9개, 학교급 1개, 역할 1개 질문에 답하면 AI가 검토 가능한 초안을
             만듭니다. 로그인이나 데이터 기여 없이 Markdown으로 가져갈 수
             있습니다.
           </p>

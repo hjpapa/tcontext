@@ -53,7 +53,7 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
       generatedAt: "2026-07-30T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "fictional-example",
-      promptVersion: "1.4",
+      promptVersion: "1.6",
     },
     profileTitle: seed.profileTitle,
     shortSummary: seed.shortSummary,
@@ -68,7 +68,9 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
         evidenceQuestionIds: [
           id === "participation_and_emotion"
             ? seed.schoolLevelEvidenceQuestionId
-            : COMMON_EVIDENCE_QUESTION_IDS[id],
+            : id === "preferred_teaching" && claimIndex > 0
+              ? "common-adaptive-tendency"
+              : COMMON_EVIDENCE_QUESTION_IDS[id],
         ],
         confirmedByUser: true,
       })),
@@ -180,6 +182,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
         summary: "관찰 뒤 재료와 질문으로 놀이를 확장한다.",
         claims: [
           "교사가 놀이 방향을 정하기보다 유아의 관심을 관찰한 뒤 새로운 재료나 짧은 질문을 제안한다.",
+          "계획한 전환보다 놀이 집중이 이어질 때는 먼저 반응을 살피고 활동 시간과 재료를 조정한다.",
         ],
       },
       class_context: {
@@ -248,6 +251,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
         summary: "짧은 안내 뒤 탐구·짝 대화·공유로 이어 간다.",
         claims: [
           "교사 설명은 핵심 질문과 활동 방법에 집중하고 학생이 직접 조작하고 말할 시간을 충분히 둔다.",
+          "예상보다 이해가 더딜 때는 설명을 늘리기보다 구체적 예시와 짝 대화를 먼저 제공한다.",
         ],
       },
       class_context: {
@@ -318,6 +322,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
         summary: "짧은 개념 안내와 자료 탐구, 대화를 결합한다.",
         claims: [
           "개념을 짧게 확인한 뒤 자료를 개인적으로 읽고 소규모 대화에서 근거를 비교하게 한다.",
+          "학생 반응이 예상과 다르면 목표는 유지하면서 자료의 양과 대화 시간을 먼저 조정한다.",
         ],
       },
       class_context: {
@@ -388,6 +393,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
         summary: "개념 이해 뒤 자료 분석과 토론으로 깊이를 더한다.",
         claims: [
           "필수 개념은 명료하게 설명하고 대표 쟁점은 자료 분석, 질문, 토론으로 탐구한다.",
+          "이해 격차가 예상보다 클 때는 핵심 개념을 다시 확인한 뒤 자료 난이도를 조정한다.",
         ],
       },
       class_context: {

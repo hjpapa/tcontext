@@ -6,14 +6,14 @@ TContext는 교사를 점수화하거나 MBTI처럼 유형화하지 않습니다
 
 ## 주요 기능
 
-- 로그인 없는 12~18분 교사 인터뷰
+- 로그인 없는 13~20분 교사 인터뷰
 - 유치원·초등·중학교·고등학교 및 8개 역할별 질문 분기
 - 고정 핵심 질문과 최대 4개의 제한된 AI 후속 질문
 - 직접 진술, AI 추론, 확인 필요 근거 구분
 - 7개 모듈의 Zod 검증 구조화 프로필
 - 교사가 모든 문장과 controlled tag를 검토하는 편집 화면
 - 입력 전 규칙 기반 탐지와 최종 OpenAI 개인정보 이중 검토, 경고 확인 후 로컬 내보내기
-- YAML front matter를 포함한 범용 Markdown 다운로드·복사·인쇄
+- 수업별 작업 YAML과 실행 지침을 포함한 범용 Markdown 다운로드·복사·인쇄
 - 저장 없이 전체 기능 사용
 - 별도 동의가 있을 때만 최종 결과를 Supabase에 선택 저장
 - 제출 ID와 일회성 삭제 코드를 이용한 비로그인 삭제
@@ -52,7 +52,7 @@ OpenAI와 Supabase Secret Key를 사용하는 코드는 모두 Next.js Route Han
 
 | 작업                           | 환경 변수                | 기본값          | reasoning effort |
 | ------------------------------ | ------------------------ | --------------- | ---------------- |
-| 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5.6-luna`  | `low`            |
+| 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5.6-luna`  | `none`           |
 | 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-5.6-terra` | `low`            |
 | 최종 개인정보 검토             | `OPENAI_PRIVACY_MODEL`   | `gpt-5.6-terra` | `low`            |
 
@@ -94,9 +94,11 @@ Vercel에서는 생성된 `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`, `ADMIN_
 
 ## Markdown
 
-구조화 JSON이 canonical source이며 Markdown은 그 JSON에서 결정적으로 생성됩니다. 결과에는 버전, 생성 시각, 학교급, 역할의 YAML front matter와 7개 모듈, 수업 설계 원칙, 지원 고려사항, 현실적 제약, AI 협업 지침, 교사가 확인한 태그가 포함됩니다.
+구조화 JSON이 canonical source이며 Markdown은 그 JSON에서 결정적으로 생성됩니다. 문서 형식 2.0에는 익명 메타데이터, 목적과 해석 원칙, 근거 상태가 구분된 7개 모듈, 수업 설계 원칙, 지원 고려사항, 현실적 제약과 대체안, AI 협업 지침, 생성 결과 점검표가 포함됩니다. 분석용 태그는 canonical JSON에만 유지하고 수업 설계용 본문에는 노출하지 않습니다.
 
-데이터베이스 저장을 거부해도 Markdown 다운로드·Markdown 복사·일반 텍스트 복사·AI용 압축본 복사·인쇄를 모두 사용할 수 있습니다.
+문서 끝에는 교과·단원·성취기준·시간처럼 수업마다 달라지는 정보를 적는 YAML 양식과 다른 AI에 함께 전달할 짧은 실행 프롬프트가 들어갑니다. 현재 수업의 정보가 장기 교사 프로필과 다르면 현재 작업 정보를 우선합니다. 관리자 화면은 새 형식과 이미 동의받아 저장된 구형 Markdown을 모두 검증해 열람합니다.
+
+데이터베이스 저장을 거부해도 수업 설계용 Markdown 다운로드·전체 컨텍스트 복사·일반 텍스트 복사·짧은 AI 컨텍스트 복사·인쇄를 모두 사용할 수 있습니다.
 
 ## 로컬 실행
 

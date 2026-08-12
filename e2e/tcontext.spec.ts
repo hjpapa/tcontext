@@ -130,7 +130,7 @@ const generatedProfile = {
 
 const safeAnswer =
   "짧은 안내 뒤 개인 생각과 짝 대화를 연결하고, 수정할 시간을 제공합니다.";
-const fixedQuestionCount = 10;
+const fixedQuestionCount = 11;
 const teacherEditedSummary =
   "교사가 직접 확인한 요약으로, 짧은 안내와 수정 기회를 우선합니다.";
 
@@ -780,7 +780,9 @@ test.describe("anonymous teacher-context flow", () => {
     expect(contributionRequestCount).toBe(0);
 
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Markdown 다운로드" }).click();
+    await page
+      .getByRole("button", { name: "수업 설계용 Markdown 다운로드" })
+      .click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(
       /^tcontext-teacher-profile-elementary-\d{8}\.md$/,
@@ -788,9 +790,11 @@ test.describe("anonymous teacher-context flow", () => {
     const downloadPath = await download.path();
     expect(downloadPath).not.toBeNull();
     const markdown = await readFile(downloadPath!, "utf8");
-    expect(markdown).toContain("# AI 활용을 위한 교사 프로파일 컨텍스트");
+    expect(markdown).toContain(`# ${generatedProfile.profileTitle}`);
     expect(markdown).toContain(teacherEditedSummary);
-    expect(markdown).toContain("AI가 답변을 종합해 해석함");
+    expect(markdown).toContain("AI가 답변을 종합해 해석한 내용");
+    expect(markdown).toContain("# 수업마다 추가할 작업 컨텍스트");
+    expect(markdown).toContain("# AI에게 바로 전달할 실행 프롬프트");
     expect(markdown).not.toContain(privateAnswer);
     expect(contributionRequestCount).toBe(0);
 
@@ -939,7 +943,9 @@ test.describe("anonymous teacher-context flow", () => {
     expect(contributionRequestCount).toBe(0);
 
     const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Markdown 다운로드" }).click();
+    await page
+      .getByRole("button", { name: "수업 설계용 Markdown 다운로드" })
+      .click();
     const download = await downloadPromise;
     const downloadPath = await download.path();
     expect(downloadPath).not.toBeNull();
@@ -1058,7 +1064,10 @@ test.describe("anonymous teacher-context flow", () => {
       contributionPayload.profile?.privacyReview,
     );
     expect(contributionPayload.profileMarkdown).toContain(
-      "# AI 활용을 위한 교사 프로파일 컨텍스트",
+      `# ${generatedProfile.profileTitle}`,
+    );
+    expect(contributionPayload.profileMarkdown).toContain(
+      'document_format_version: "2.0"',
     );
     expect(contributionPayload.profileMarkdown).toContain(
       generatedProfile.shortSummary,

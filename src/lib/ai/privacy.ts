@@ -27,6 +27,15 @@ const LIKELY_KOREAN_NAME = new RegExp(
   `^[${KOREAN_SURNAMES}][가-힣]{2,3}$`,
   "u",
 );
+const LABELED_NAME_CORE_PATTERN =
+  "(?:[가-힣]{2,4}|[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){0,2})(?:\\s*(?:씨|님))?";
+const LABELED_NAME_ENDING_PATTERN =
+  "(?:입니다|이다|이며|이고|예요|이에요|라고\\s*(?:합니다|해요))";
+const LABELED_NAME_VALUE_PATTERN = `(?!(?:["'“‘「]\\s*)?(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|없는|익명|미상|없음|없다|비공개|가명|표시|밝히|언급)(?:\\s*["'”’」])?(?=$|[,.;:!?]))(?:"\\s*${LABELED_NAME_CORE_PATTERN}\\s*"|'\\s*${LABELED_NAME_CORE_PATTERN}\\s*'|“\\s*${LABELED_NAME_CORE_PATTERN}\\s*”|‘\\s*${LABELED_NAME_CORE_PATTERN}\\s*’|「\\s*${LABELED_NAME_CORE_PATTERN}\\s*」|${LABELED_NAME_CORE_PATTERN})(?:\\s*${LABELED_NAME_ENDING_PATTERN})?(?=$|[,.;:!?])`;
+const EXPLICIT_PERSON_NAME_LABEL = new RegExp(
+  `(?:(?:(?:학생|유아|아동|교사|선생님|보호자)\\s*(?:의\\s*)?|(?:제|내|본인(?:의)?)\\s*)(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?|(?:성명|실명)\\s*(?:은|는|이|가|:|：))\\s*${LABELED_NAME_VALUE_PATTERN}`,
+  "u",
+);
 const GENERIC_EDUCATIONAL_MODIFIER =
   /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
 
@@ -137,9 +146,7 @@ const GENERIC_CLASS_PREFIXES = new Set([
 
 function hasPotentialPersonName(text: string) {
   if (
-    /(?:이름|성명)\s*(?:은|는|이|가|:|：)?\s*["'“”]?(?!(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|없는|익명|표시|밝히|언급))(?:[가-힣]{2,4}|[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})/u.test(
-      text,
-    ) ||
+    EXPLICIT_PERSON_NAME_LABEL.test(text) ||
     /[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)+\s*(?:학생|교사|선생님|보호자)/u.test(
       text,
     ) ||

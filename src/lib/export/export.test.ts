@@ -19,13 +19,38 @@ function fictionalProfile(index: number) {
 }
 
 describe("profile export", () => {
-  it("generates YAML front matter and all seven canonical sections", () => {
+  it("generates the V2 lesson-design document with all seven canonical modules", () => {
     const markdown = profileToMarkdown(fictionalProfile(1));
-    expect(markdown).toMatch(/^---\ntitle:/);
-    expect(markdown).toContain('school_level: "elementary"');
-    expect(markdown).toContain("## 1. 교사 기본 프로파일과 현재 역할");
-    expect(markdown).toContain("## 7. 현실적인 환경·제약과 디지털·AI 활용");
-    expect(markdown).toContain("## 수업마다 추가할 작업 컨텍스트");
+    expect(markdown).toMatch(/^---\ndocument_type: "teacher_profile_context"/);
+    expect(markdown).toContain('document_format_version: "2.0"');
+    expect(markdown).toContain('language: "ko-KR"');
+    expect(markdown).toContain('school_level: "초등학교"');
+    expect(markdown).toContain("## 0. 문서의 목적과 사용 방법");
+    expect(markdown).toContain("# 교사 프로파일");
+    expect(markdown).toContain("## M1. 교사 기본 프로파일과 현재 역할");
+    expect(markdown).toContain("## M7. 현실적인 환경·제약과 디지털·AI 활용");
+    expect(markdown).toContain("# 수업 설계 실행 가이드");
+    expect(markdown).toContain("# 수업마다 추가할 작업 컨텍스트");
+    expect(markdown).toContain("# AI에게 바로 전달할 실행 프롬프트");
+    expect(markdown).toContain("# 유지·갱신 안내");
+  });
+
+  it("includes a reusable lesson task YAML and omits raw analytics tags", () => {
+    const markdown = profileToMarkdown(fictionalProfile(1));
+
+    expect(markdown).toContain(
+      'task_type: "수업 설계 | 슬라이드 | 활동지 | 평가 | 수업 검토"',
+    );
+    expect(markdown).toContain('achievement_standard: ""');
+    expect(markdown).toContain('classwide_learning_supports: ""');
+    expect(markdown).toContain(
+      'desired_output: "수업안 | 슬라이드 구성안 | 활동지 | 평가 기준"',
+    );
+    expect(markdown).toContain(
+      "현재 작업 정보가 프로파일과 다르면 현재 작업 정보를 우선하세요.",
+    );
+    expect(markdown).not.toContain("teacher_final_judgment");
+    expect(markdown).not.toContain("psychological_safety");
   });
 
   it("warns about unresolved claims while keeping download possible", () => {
@@ -55,7 +80,7 @@ describe("profile export", () => {
     const markdown = profileToMarkdown(profile);
     expect(markdown).toContain('privacy_review: "needs_review"');
     expect(markdown).toContain("**개인정보 경고:**");
-    expect(markdown).toContain("서버에 저장하지 않은 상태로 만든 결과");
+    expect(markdown).toContain("서버에 선택 저장할 수 없습니다");
   });
 
   it("preserves a privacy warning in every text export", () => {
@@ -87,7 +112,7 @@ describe("profile export", () => {
     expect(printable).toContain("&lt;script&gt;");
   });
 
-  it("creates plain and compact variants without unconfirmed claims", () => {
+  it("creates plain and module-grouped compact variants without unconfirmed claims", () => {
     const profile = fictionalProfile(0);
     const profileModule = profile.modules[0];
     if (!profileModule) throw new Error("Missing fictional module");
@@ -98,8 +123,28 @@ describe("profile export", () => {
       evidenceQuestionIds: ["common-role-focus"],
       confirmedByUser: false,
     });
-    expect(profileToPlainText(profile)).toContain("확인되지 않은 해석");
-    expect(profileToCompactText(profile)).not.toContain("확인되지 않은 해석");
+    const plainText = profileToPlainText(profile);
+    expect(plainText).toContain("학교급: 유치원");
+    expect(plainText).toContain("역할: 담임교사");
+    expect(plainText).toContain("확인되지 않은 해석");
+    const compact = profileToCompactText(profile);
+    expect(compact).not.toContain("확인되지 않은 해석");
+    expect(compact).toContain("[확인된 맥락 · 교사 기본 프로파일과 현재 역할]");
+    expect(compact).toContain(
+      "현재 수업의 교과·단원·성취기준·시간 정보가 프로필과 다르면 현재 수업 정보를 우선하세요.",
+    );
+  });
+
+  it("keeps the lesson-design use guide and all four synthesis lists in print", () => {
+    const printable = profileToPrintableHtml(fictionalProfile(1));
+
+    expect(printable).toContain("0. 문서의 목적과 사용 방법");
+    expect(printable).toContain("현재 작업 정보를 우선한다");
+    expect(printable).toContain("핵심 수업 설계 원칙");
+    expect(printable).toContain("학급 지원 고려사항");
+    expect(printable).toContain("현실적인 제약과 대체안");
+    expect(printable).toContain("AI와 협업할 때의 지침과 판단 경계");
+    expect(printable).toContain("생성 결과 자기 점검");
   });
 });
 

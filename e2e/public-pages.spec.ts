@@ -63,6 +63,8 @@ test.describe("public pages", () => {
     await expect(skipLink).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.locator("#main-content")).toBeFocused();
+    await expect(page).toHaveURL(/#main-content$/);
+    await page.goto("/");
 
     const primaryNav = page.getByRole("navigation", { name: "주요 메뉴" });
     const examplesLink = primaryNav.getByRole("link", { name: "문서 예시" });
@@ -77,14 +79,14 @@ test.describe("public pages", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
-  test("examples switch school level and expose evidence with keyboard disclosures", async ({
+  test("examples switch school level and expose the lesson-design guide with keyboard disclosures", async ({
     page,
   }) => {
     await page.goto("/examples");
 
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { level: 1 })).toHaveText(
-      /열 번의 답변이/,
+      /열한 번의 답변이/,
     );
 
     const schoolNavigation = page.getByRole("navigation", {
@@ -133,6 +135,36 @@ test.describe("public pages", () => {
 
     await page.keyboard.press("Space");
     await expect(moduleDetails).not.toHaveAttribute("open", "");
+
+    const taskContextSummary = profile
+      .locator("summary")
+      .filter({ hasText: "수업 작업 컨텍스트 YAML 미리보기" });
+    const taskContextDetails = taskContextSummary.locator("..");
+
+    await expect(taskContextDetails).not.toHaveAttribute("open", "");
+    await taskContextSummary.focus();
+    await expect(taskContextSummary).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(taskContextDetails).toHaveAttribute("open", "");
+    await expect(taskContextDetails.locator("code")).toContainText(
+      'task_type: "수업 설계 | 슬라이드 | 활동지 | 평가 | 수업 검토"',
+    );
+    await page.keyboard.press("Space");
+    await expect(taskContextDetails).not.toHaveAttribute("open", "");
+
+    const executionGuidanceSummary = profile
+      .locator("summary")
+      .filter({ hasText: "AI 실행 지침 미리보기" });
+    const executionGuidanceDetails = executionGuidanceSummary.locator("..");
+
+    await expect(executionGuidanceDetails).not.toHaveAttribute("open", "");
+    await executionGuidanceSummary.focus();
+    await expect(executionGuidanceSummary).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(executionGuidanceDetails).toHaveAttribute("open", "");
+    await expect(
+      executionGuidanceDetails.getByText(/질문을 최대 세 개만 한다/),
+    ).toBeVisible();
   });
 
   test("home and examples do not overflow a 320px viewport", async ({

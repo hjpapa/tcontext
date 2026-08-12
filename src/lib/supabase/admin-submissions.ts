@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { profileToLegacyMarkdownV1 } from "@/lib/export/profile-to-markdown-v1";
 import { ApiError } from "@/lib/security/api-error";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { teacherRoleSchema, type TeacherRole } from "@/types/interview";
@@ -169,6 +170,16 @@ function hasValidConsent(
   );
 }
 
+function matchesCanonicalProfileMarkdown(
+  profile: TeacherContextProfile,
+  markdown: string,
+): boolean {
+  return (
+    markdown === profileToMarkdown(profile) ||
+    markdown === profileToLegacyMarkdownV1(profile)
+  );
+}
+
 function evaluateFullDocument(input: {
   profileJson: unknown;
   profileMarkdown: unknown;
@@ -200,7 +211,7 @@ function evaluateFullDocument(input: {
   const parsedMarkdown = z.string().safeParse(input.profileMarkdown);
   if (
     !parsedMarkdown.success ||
-    parsedMarkdown.data !== profileToMarkdown(parsedProfile.data)
+    !matchesCanonicalProfileMarkdown(parsedProfile.data, parsedMarkdown.data)
   ) {
     return {
       documentAccess: "summary",

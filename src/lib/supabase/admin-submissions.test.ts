@@ -6,6 +6,7 @@ vi.mock("@/lib/supabase/admin", () => ({ getSupabaseAdmin: vi.fn() }));
 
 import { requireAdmin } from "@/lib/admin/auth";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { profileToLegacyMarkdownV1 } from "@/lib/export/profile-to-markdown-v1";
 import { ApiError } from "@/lib/security/api-error";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import {
@@ -315,6 +316,51 @@ describe("admin submission reads", () => {
       documentAccess: "full",
       markdown,
     });
+  });
+
+  it("accepts exact legacy V1 Markdown for a previously stored profile", async () => {
+    const profile = structuredClone(FICTIONAL_PROFILES[0]);
+    if (!profile) throw new Error("profile fixture missing");
+    profile.metadata.promptVersion = "1.5";
+    const markdown = profileToLegacyMarkdownV1(profile);
+    const query = queryResult({
+      data: detailRow({
+        prompt_version: "1.5",
+        profile_json: profile,
+        profile_markdown: markdown,
+      }),
+      error: null,
+    });
+    useQueries(query);
+
+    const result = await getAdminSubmission(FULL_ID);
+
+    expect(result).toMatchObject({
+      documentAccess: "full",
+      promptVersion: "1.5",
+      profileMarkdown: markdown,
+    });
+  });
+
+  it("rejects mutated legacy V1 Markdown instead of treating it as canonical", async () => {
+    const profile = structuredClone(FICTIONAL_PROFILES[0]);
+    if (!profile) throw new Error("profile fixture missing");
+    const markdown = `${profileToLegacyMarkdownV1(profile)}\n<!-- mutated -->`;
+    const query = queryResult({
+      data: {
+        id: FULL_ID,
+        profile_json: profile,
+        profile_markdown: markdown,
+        consent_version: "1.0",
+        consented_at: STORED_AT,
+      },
+      error: null,
+    });
+    useQueries(query);
+
+    const result = await getAdminSubmissionMarkdown(FULL_ID);
+
+    expect(result).toEqual({ documentAccess: "summary" });
   });
 
   it("blocks Markdown that no longer matches the canonical profile", async () => {

@@ -151,6 +151,15 @@ describe("security boundaries", () => {
     expect(() => assertSafeForAI(fields)).not.toThrow();
   });
 
+  it("allows an educational topic object before a generic student reference", () => {
+    const text =
+      "교사는 보드게임과 사회정서적 주제를 학생의 자발적 학습력으로 연결하는 수업 가능성을 탐색하고 있다. 활동 자체의 재미뿐 아니라 학생들이 편안하고 즐겁게 참여하는 분위기 조성이 중요한 역할로 나타난다.";
+
+    expect(() =>
+      assertSafeForAI([{ path: "profile.shortSummary", value: text }]),
+    ).not.toThrow();
+  });
+
   it("still blocks a likely name in a module-refinement summary", () => {
     const profile = storedProfile();
     const firstModule = profile.modules[0];

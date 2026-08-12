@@ -941,7 +941,7 @@ describe("OpenAI structured boundary", () => {
     const firstModule = profile.modules[0];
     if (!firstModule) throw new Error("fixture module is missing");
     profile.shortSummary =
-      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둔다.";
+      "교사는 보드게임과 사회정서적 주제를 학생의 자발적 학습력으로 연결하는 수업 가능성을 탐색하고 있다. 활동 자체의 재미뿐 아니라 학생들이 편안하고 즐겁게 참여하는 분위기 조성이 중요한 역할로 나타난다.";
     firstModule.summary = "학급 전체의 참여를 돕는 예측 가능한 흐름을 만든다.";
     profile.teachingDesignPrinciples[0] =
       "우리 학급은 토론과 수정 기회를 중요하게 여긴다.";
@@ -959,7 +959,7 @@ describe("OpenAI structured boundary", () => {
             path: "profile.shortSummary",
             category: "person_name",
             text: profile.shortSummary,
-            reason: "방식은 학생이라는 표현을 이름으로 판단했습니다.",
+            reason: "주제를 학생이라는 표현을 이름으로 판단했습니다.",
             suggestedRewrite: "일반적인 표현으로 바꿉니다.",
           },
           {
@@ -1016,6 +1016,125 @@ describe("OpenAI structured boundary", () => {
     expect(request?.instructions).toContain(
       '"학생", "학생들", "학급", "우리 학급", "우리 반"',
     );
+  });
+
+  it("discards an AI name candidate for a named classroom project", async () => {
+    const profile = teacherProfileFixture();
+    profile.shortSummary = "프로젝트 이름은 질문나무다.";
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.shortSummary",
+                category: "person_name",
+                text: profile.shortSummary,
+                reason: "질문나무를 사람 이름으로 판단했습니다.",
+                suggestedRewrite: "프로젝트 명칭을 제거합니다.",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(reviewProfileWithAI(profile)).resolves.toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+  });
+
+  it.each([
+    "제 이름은 김민수예요.",
+    "제 이름은 김민수이에요.",
+    "제 이름은 김민수라고 합니다.",
+    "제 이름은 김민수라고 해요.",
+  ])(
+    "keeps an AI name candidate for an explicit labeled name: %s",
+    async (text) => {
+      const profile = teacherProfileFixture();
+      profile.shortSummary = text;
+      setOpenAIClientForTests({
+        responses: {
+          parse: vi.fn().mockResolvedValue({
+            output_parsed: {
+              items: [
+                {
+                  path: "profile.shortSummary",
+                  category: "person_name",
+                  text,
+                  reason: "이름 표지와 실명이 함께 있습니다.",
+                  suggestedRewrite: "실명을 제거합니다.",
+                },
+              ],
+            },
+            usage: null,
+          }),
+        },
+      } as unknown as OpenAI);
+
+      await expect(reviewProfileWithAI(profile)).resolves.toMatchObject({
+        review: { status: "needs_review" },
+      });
+    },
+  );
+
+  it("discards an AI name candidate for an anonymous name label", async () => {
+    const profile = teacherProfileFixture();
+    profile.shortSummary = "교사 이름: 없음";
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.shortSummary",
+                category: "person_name",
+                text: profile.shortSummary,
+                reason: "이름 표지가 있습니다.",
+                suggestedRewrite: "이름을 제거합니다.",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(reviewProfileWithAI(profile)).resolves.toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+  });
+
+  it("discards an AI name candidate for a non-name policy term", async () => {
+    const profile = teacherProfileFixture();
+    profile.shortSummary = "실명제를 도입하지 않습니다.";
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.shortSummary",
+                category: "person_name",
+                text: profile.shortSummary,
+                reason: "실명이라는 단어가 있습니다.",
+                suggestedRewrite: "표현을 제거합니다.",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(reviewProfileWithAI(profile)).resolves.toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
   });
 
   it("discards AI privacy candidates for anonymous sensitive context and labels", async () => {

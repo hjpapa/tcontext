@@ -261,7 +261,7 @@ describe("API route boundaries", () => {
     const firstModule = profile.modules[0];
     if (!firstModule) throw new Error("Missing profile module fixture");
     firstModule.summary =
-      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.";
+      "교사는 보드게임과 사회정서적 주제를 학생의 자발적 학습력으로 연결하는 수업 가능성을 탐색하고 있습니다.";
     vi.mocked(refineProfile).mockResolvedValue(profile);
 
     const response = await refineProfileRoute(

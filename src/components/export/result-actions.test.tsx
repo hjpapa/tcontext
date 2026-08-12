@@ -79,17 +79,19 @@ describe("ResultActions", () => {
 
     render(<ResultActions profile={profile} markdown="# Markdown document" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Markdown 복사" }));
+    fireEvent.click(screen.getByRole("button", { name: "전체 컨텍스트 복사" }));
     await waitFor(() =>
       expect(writeText).toHaveBeenLastCalledWith("# Markdown document"),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "AI용 압축본 복사" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "짧은 AI 컨텍스트 복사" }),
+    );
     await waitFor(() =>
       expect(writeText).toHaveBeenLastCalledWith(profileToCompactText(profile)),
     );
     expect(
-      screen.getByRole("button", { name: "AI용 압축본 복사됨" }),
+      screen.getByRole("button", { name: "짧은 AI 컨텍스트 복사됨" }),
     ).toBeVisible();
   });
 

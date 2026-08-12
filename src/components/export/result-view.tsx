@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RotateCcw, ShieldAlert, ShieldCheck } from "lucide-react";
+import {
+  BookOpenCheck,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 
 import { ContributionPanel } from "@/components/consent/contribution-panel";
 import { ResultActions } from "@/components/export/result-actions";
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
+import {
+  AI_EXECUTION_INSTRUCTIONS,
+  LESSON_TASK_CONTEXT_ITEMS,
+  RESULT_USAGE_STEPS,
+} from "@/content/profile-document";
 
 export function ResultView({
   consentVersion,
@@ -81,6 +91,69 @@ export function ResultView({
           </p>
         </div>
       ) : null}
+
+      <section
+        aria-labelledby="lesson-design-usage-title"
+        className="border-primary/25 bg-primary/5 rounded-3xl border p-6 sm:p-8"
+        data-print-section="true"
+      >
+        <div className="flex items-start gap-3">
+          <BookOpenCheck
+            aria-hidden="true"
+            className="text-primary mt-1 size-6 shrink-0"
+          />
+          <div>
+            <h2 id="lesson-design-usage-title" className="text-2xl font-bold">
+              이 문서를 수업 설계에 사용하는 법
+            </h2>
+            <p className="text-muted-foreground mt-2 max-w-3xl leading-7">
+              전체 Markdown에는 아래 교사 프로필과 함께 수업별 작업 양식, AI
+              실행 프롬프트, 생성 결과 점검표가 포함됩니다.
+            </p>
+          </div>
+        </div>
+        <ol className="mt-6 grid gap-4 md:grid-cols-3">
+          {RESULT_USAGE_STEPS.map((step, index) => (
+            <li key={step.title} className="bg-card rounded-2xl border p-5">
+              <p className="text-primary text-sm font-bold">{index + 1}단계</p>
+              <h3 className="mt-1 font-bold">{step.title}</h3>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">
+                {step.description}
+              </p>
+            </li>
+          ))}
+        </ol>
+        <details
+          className="bg-card mt-5 rounded-2xl border p-5"
+          data-print-expanded="true"
+        >
+          <summary className="min-h-11 cursor-pointer font-bold">
+            수업 작업 양식과 AI 실행 원칙 미리 보기
+          </summary>
+          <div className="mt-4 grid gap-6 md:grid-cols-2">
+            <section aria-labelledby="task-context-preview-title">
+              <h3 id="task-context-preview-title" className="font-bold">
+                수업마다 추가할 정보
+              </h3>
+              <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+                {LESSON_TASK_CONTEXT_ITEMS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+            <section aria-labelledby="ai-instruction-preview-title">
+              <h3 id="ai-instruction-preview-title" className="font-bold">
+                AI가 따라야 할 실행 원칙
+              </h3>
+              <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-sm leading-6">
+                {AI_EXECUTION_INSTRUCTIONS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </details>
+      </section>
 
       <ResultActions profile={profile} markdown={markdown} />
 

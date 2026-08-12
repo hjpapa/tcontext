@@ -23,14 +23,20 @@ const KOREAN_SURNAMES =
 
 const LIKELY_KOREAN_FULL_NAME_PATTERN = `[${KOREAN_SURNAMES}][가-힣]{2,3}`;
 const EXPLICIT_KOREAN_NAME_PATTERN = "[가-힣]{2,4}";
+const EXPLICIT_ENGLISH_NAME_PATTERN =
+  "[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){0,2}";
+const LABELED_NAME_CORE_PATTERN = `(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${EXPLICIT_ENGLISH_NAME_PATTERN})(?:\\s*(?:씨|님))?`;
+const LABELED_NAME_ENDING_PATTERN =
+  "(?:입니다|이다|이며|이고|예요|이에요|라고\\s*(?:합니다|해요))";
+const LABELED_NAME_VALUE_PATTERN = `(?!(?:["'“‘「]\\s*)?(?:익명|미상|없음|없다|비공개|가명)(?:\\s*["'”’」])?(?=$|[,.;:!?]))(?:"\\s*${LABELED_NAME_CORE_PATTERN}\\s*"|'\\s*${LABELED_NAME_CORE_PATTERN}\\s*'|“\\s*${LABELED_NAME_CORE_PATTERN}\\s*”|‘\\s*${LABELED_NAME_CORE_PATTERN}\\s*’|「\\s*${LABELED_NAME_CORE_PATTERN}\\s*」|${LABELED_NAME_CORE_PATTERN})(?:\\s*${LABELED_NAME_ENDING_PATTERN})?(?=$|[,.;:!?])`;
 const ENGLISH_FULL_NAME_PATTERN =
   "[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){1,2}";
 const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
 const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
 const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게을를과와도가로,.;:!?])";
-const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}))${NAME_TRAILING_CONTEXT_PATTERN}`;
-const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})|(?:제|내|본인(?:의)?)\\s*이름\\s*(?:은|이|:|：)?\\s*(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}))${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
@@ -194,12 +200,27 @@ function containsValidLabeledDate(match: string) {
 }
 
 function isGenericPrivacyPolicyStatement(match: string) {
-  return /(?:없이|없음|없다|입력하지|공유하지|저장하지|남기지|기록하지|수집하지|포함하지|제공하지)/u.test(
+  return /(?:없이|없음|없다|익명|미상|입력하지|공유하지|저장하지|남기지|기록하지|수집하지|포함하지|제공하지)/u.test(
     match,
   );
 }
 
 function isGenericRoleDescription(match: string) {
+  if (
+    /(?:이름|성명|실명)\s*(?:은|는|이|가|:|：)?\s*(?:익명|미상|없음|없다|비공개|가명)/u.test(
+      match,
+    )
+  ) {
+    return true;
+  }
+  if (
+    /(?:성명|실명)\s*(?:은|는|이|가)\s*(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|표기)/u.test(
+      match,
+    )
+  ) {
+    return true;
+  }
+
   const descriptor =
     match.match(
       /^([가-힣]{2,4})\s*(?:학생|유아|아동|교사|선생님|보호자)/u,
@@ -284,6 +305,16 @@ const PATTERNS: PatternDefinition[] = [
     severity: "high",
     regex: new RegExp(`(?<![가-힣])${NAMED_ADULT_CONTEXT_PATTERN}`, "gu"),
     reason: "교사 또는 개인의 실명으로 보이는 표현이 포함되어 있습니다.",
+    ignore: isGenericRoleDescription,
+  },
+  {
+    type: "person_name",
+    severity: "high",
+    regex: new RegExp(
+      `(?<![가-힣])(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN}`,
+      "gu",
+    ),
+    reason: "개인의 성명 또는 실명으로 보이는 표현이 포함되어 있습니다.",
     ignore: isGenericRoleDescription,
   },
   {

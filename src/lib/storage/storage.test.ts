@@ -98,6 +98,28 @@ describe("session progress", () => {
     expect(restored?.previousCompletedQuestionCount).toBe(1);
   });
 
+  it("restores a bookmark from the legacy ten-question bank by stable id", () => {
+    const currentProgress = toStoredInterviewProgress(stateWithPrivateAnswer());
+    const legacyProgress = {
+      ...currentProgress,
+      currentQuestionId: "common-class-support",
+      currentQuestionIndex: 4,
+      fixedQuestionIds: currentProgress.fixedQuestionIds.filter(
+        (questionId) => questionId !== "common-adaptive-tendency",
+      ),
+    };
+
+    const restored = restoreInterviewProgress(
+      legacyProgress,
+      "2026-07-31T00:00:00.000Z",
+    );
+
+    expect(legacyProgress.fixedQuestionIds).toHaveLength(10);
+    expect(restored?.interview.currentQuestionIndex).toBe(5);
+    expect(restored?.interview.questions[5]?.id).toBe("common-class-support");
+    expect(restored?.interview.answers).toEqual({});
+  });
+
   it("resets to the first current-bank question when an old id cannot be mapped", () => {
     const progress = {
       ...toStoredInterviewProgress(stateWithPrivateAnswer()),

@@ -28,9 +28,9 @@ type CopyStatus = {
 } | null;
 
 const COPY_LABELS: Record<CopyTarget, string> = {
-  markdown: "Markdown",
+  markdown: "전체 컨텍스트",
   plainText: "일반 텍스트",
-  compact: "AI용 압축본",
+  compact: "짧은 AI 컨텍스트",
 };
 
 export function ResultActions({
@@ -100,7 +100,7 @@ export function ResultActions({
           }
         >
           <Download aria-hidden="true" className="size-5" />
-          Markdown 다운로드
+          수업 설계용 Markdown 다운로드
         </Button>
         <Button
           type="button"
@@ -114,7 +114,7 @@ export function ResultActions({
           ) : (
             <Clipboard aria-hidden="true" />
           )}
-          {copied("markdown") ? "Markdown 복사됨" : "Markdown 복사"}
+          {copied("markdown") ? "전체 컨텍스트 복사됨" : "전체 컨텍스트 복사"}
         </Button>
         <Button
           type="button"
@@ -142,7 +142,9 @@ export function ResultActions({
           ) : (
             <Sparkles aria-hidden="true" />
           )}
-          {copied("compact") ? "AI용 압축본 복사됨" : "AI용 압축본 복사"}
+          {copied("compact")
+            ? "짧은 AI 컨텍스트 복사됨"
+            : "짧은 AI 컨텍스트 복사"}
         </Button>
         <Button
           type="button"

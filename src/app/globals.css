@@ -207,6 +207,10 @@
     page-break-inside: avoid;
   }
 
+  details[data-print-expanded="true"] > * {
+    display: block !important;
+  }
+
   main {
     max-width: none !important;
   }

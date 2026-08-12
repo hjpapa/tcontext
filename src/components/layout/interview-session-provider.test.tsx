@@ -106,7 +106,7 @@ describe("InterviewSessionProvider progress restoration", () => {
 
   it("uses opted-in device progress when a new tab has no session progress", () => {
     setLocalResumeEnabled(true);
-    saveLocalProgress(progressedInterview("middle", 4));
+    saveLocalProgress(progressedInterview("middle", 5));
 
     renderProvider();
 
