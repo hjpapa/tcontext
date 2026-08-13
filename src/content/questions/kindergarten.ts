@@ -10,9 +10,9 @@ export const KINDERGARTEN_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["kindergarten"],
     prompt:
-      "놀이에서 다음 일과로 넘어갈 때 유아의 안정적인 참여를 돕는 가장 효과적인 신호는 무엇인가요?",
-    intent: "유아의 안정적인 전환과 참여를 돕는 핵심 신호를 확인합니다.",
-    example: "짧은 전환 노래를 일관된 신호로 사용합니다.",
+      "놀이가 끝나고 다음 활동으로 넘어갈 때, 유아가 편안하게 따라오도록 쓰는 신호 하나는 무엇인가요?",
+    intent: "활동을 바꿀 때 유아의 편안한 참여를 돕는 신호 하나를 확인합니다.",
+    example: "같은 짧은 노래를 매번 전환 신호로 사용합니다.",
     privacyHint: PRIVACY_HINT,
     required: false,
   },

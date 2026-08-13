@@ -2,10 +2,19 @@ import { ShieldCheck, ShieldX } from "lucide-react";
 
 import type { PrivacyReview } from "@/types/profile";
 
+export type PrivacyReviewLocation = {
+  id: string;
+  label: string;
+};
+
 export function PrivacyReviewPanel({
   review,
+  locationsByText,
+  onNavigate,
 }: {
   review: PrivacyReview | null;
+  locationsByText?: ReadonlyMap<string, readonly PrivacyReviewLocation[]>;
+  onNavigate?: (targetId: string) => void;
 }) {
   if (!review) return null;
 
@@ -49,18 +58,43 @@ export function PrivacyReviewPanel({
         </div>
       </div>
       <ul className="mt-4 space-y-4">
-        {review.items.map((item, index) => (
-          <li key={`${item.text}-${index}`} className="bg-white/70 p-4">
-            <p className="font-semibold">검토할 문장</p>
-            <p className="mt-1 text-sm leading-6 break-words">{item.text}</p>
-            <p className="mt-3 text-sm">
-              <strong>이유:</strong> {item.reason}
-            </p>
-            <p className="mt-2 text-sm">
-              <strong>지원 중심 표현 예시:</strong> {item.suggestedRewrite}
-            </p>
-          </li>
-        ))}
+        {review.items.map((item, index) => {
+          const locations = locationsByText?.get(item.text) ?? [];
+
+          return (
+            <li key={`${item.text}-${index}`} className="bg-white/70 p-4">
+              <p className="font-semibold">검토할 문장</p>
+              <p className="mt-1 text-sm leading-6 break-words">{item.text}</p>
+              <p className="mt-3 text-sm">
+                <strong>이유:</strong> {item.reason}
+              </p>
+              <p className="mt-2 text-sm">
+                <strong>지원 중심 표현 예시:</strong> {item.suggestedRewrite}
+              </p>
+              <div className="mt-3 border-t border-[#e6c7c3] pt-3">
+                <p className="text-sm font-semibold">문장 위치</p>
+                {locations.length > 0 && onNavigate ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {locations.map((location) => (
+                      <button
+                        key={location.id}
+                        type="button"
+                        onClick={() => onNavigate(location.id)}
+                        className="min-h-10 rounded-lg border border-[#a6443d] bg-white px-3 py-2 text-left text-sm font-semibold text-[#7a2f2a] underline underline-offset-4 hover:bg-[#fff7f5] focus-visible:ring-2 focus-visible:ring-[#8d352f] focus-visible:ring-offset-2 focus-visible:outline-none"
+                      >
+                        {location.label} 항목으로 이동
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-[#653c38]">
+                    현재 문서에서 위치를 찾지 못했습니다.
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

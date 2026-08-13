@@ -39,6 +39,36 @@ const EXPLICIT_PERSON_NAME_LABEL = new RegExp(
 const GENERIC_EDUCATIONAL_MODIFIER =
   /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
 
+const KOREAN_SYLLABLE_START = 0xac00;
+const KOREAN_SYLLABLE_END = 0xd7a3;
+const KOREAN_JONGSEONG_COUNT = 28;
+
+function hasFinalConsonant(text: string) {
+  const lastSyllable = text.codePointAt(text.length - 1);
+  if (
+    lastSyllable === undefined ||
+    lastSyllable < KOREAN_SYLLABLE_START ||
+    lastSyllable > KOREAN_SYLLABLE_END
+  ) {
+    return null;
+  }
+
+  return (lastSyllable - KOREAN_SYLLABLE_START) % KOREAN_JONGSEONG_COUNT !== 0;
+}
+
+function isCaseMarkedRolePhrase(descriptor: string) {
+  const particle = descriptor.at(-1);
+  if (!particle || !/[은는이가을를과와]/u.test(particle)) return false;
+
+  const stem = descriptor.slice(0, -1);
+  const finalConsonant = hasFinalConsonant(stem);
+  if (finalConsonant === null) return false;
+
+  return finalConsonant
+    ? /[은이을과]/u.test(particle)
+    : /[는가를와]/u.test(particle);
+}
+
 const GENERIC_PERSON_DESCRIPTORS = new Set([
   "학생",
   "학생들",
@@ -159,10 +189,10 @@ function hasPotentialPersonName(text: string) {
 
   const implicitNameMatches = [
     ...text.matchAll(
-      /([가-힣]{3,4})\s+(?:학생|유아|아동|교사|선생님|보호자)/gu,
+      /([\uAC00-\uD7A3]{3,4})\s+(?:학생|유아|아동|교사|선생님|보호자)/gu,
     ),
     ...text.matchAll(
-      /(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{3,4}?)(?=[은는이가의])/gu,
+      /(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{3,4}?)(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))/gu,
     ),
     ...text.matchAll(
       /(?:학생|유아|아동|교사|선생님|보호자)\s+([가-힣]{3,4})(?=$|[,.;:!?])/gu,
@@ -176,6 +206,7 @@ function hasPotentialPersonName(text: string) {
       !GENERIC_PERSON_DESCRIPTORS.has(descriptor) &&
       !isGenericEducationalRoleDescriptor(descriptor) &&
       !GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) &&
+      !isCaseMarkedRolePhrase(descriptor) &&
       !/(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
         descriptor,
       )

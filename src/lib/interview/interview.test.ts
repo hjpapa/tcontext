@@ -62,20 +62,29 @@ describe("question routing", () => {
     });
     const promptFor = (id: string) =>
       questions.find((item) => item.id === id)?.prompt ?? "";
+    const intentFor = (id: string) =>
+      questions.find((item) => item.id === id)?.intent ?? "";
 
-    expect(promptFor("common-role-focus")).toContain("탐구하고 싶은 주제");
-    expect(promptFor("common-good-lesson")).toContain("가장 중요한 행동");
+    expect(promptFor("common-role-focus")).toContain("더 알아보고 싶은");
+    expect(promptFor("common-good-lesson")).toContain("행동 하나");
     expect(promptFor("common-educational-principle")).toContain(
       "지키려는 원칙",
     );
-    expect(promptFor("common-lesson-flow")).toContain("가장 먼저 중심");
-    expect(promptFor("common-adaptive-tendency")).toContain(
-      "가장 먼저 한 행동",
+    expect(promptFor("common-lesson-flow")).toContain("가장 먼저 정하는");
+    expect(promptFor("common-adaptive-tendency")).toContain("운전 습관");
+    expect(intentFor("common-adaptive-tendency")).toContain("둘 사이");
+    expect(intentFor("common-adaptive-tendency")).toContain("상황마다");
+    expect(promptFor("common-class-support")).toContain("갖춰져야 하는 조건");
+    expect(promptFor("common-assessment-feedback")).toContain(
+      "먼저 살펴보나요",
     );
-    expect(promptFor("common-class-support")).toContain("가장 크게 좌우");
-    expect(promptFor("common-assessment-feedback")).toContain("학습의 근거");
-    expect(promptFor("common-environment")).toContain("현실 조건");
-    expect(promptFor("common-ai-boundaries")).toContain("직접 판단");
+    expect(promptFor("common-environment")).toContain("현실 문제");
+    expect(promptFor("common-ai-boundaries")).toContain("확인하고 결정");
+
+    const metaphorQuestions = questions.filter((question) =>
+      /나침반|운전 습관|리셋 버튼/u.test(question.prompt),
+    );
+    expect(metaphorQuestions).toHaveLength(3);
 
     for (const question of questions) {
       expect(question.prompt.match(/\?/gu)).toHaveLength(1);

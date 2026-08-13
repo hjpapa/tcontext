@@ -278,6 +278,36 @@ describe("API route boundaries", () => {
     expect(refineProfile).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    "교육관과 학생관 요약",
+    "배움은 학생이 스스로 의미를 구성하는 과정입니다.",
+    "기다림은 학생의 속도를 존중하는 태도입니다.",
+    "선택권은 학생과 함께 정합니다.",
+    "주도권은 학생에게 넘깁니다.",
+  ])(
+    "refines a module when a summary contains non-identifying student language: %s",
+    async (summary) => {
+      const profile = submissionProfile();
+      const firstModule = profile.modules[0];
+      if (!firstModule) throw new Error("Missing profile module fixture");
+      firstModule.summary = summary;
+      vi.mocked(refineProfile).mockResolvedValue(profile);
+
+      const response = await refineProfileRoute(
+        jsonRequest("/api/profile/refine", {
+          profile,
+          instruction: "실제 수업에서 활용하는 문장으로 작성",
+          moduleId: "educational_philosophy",
+          editableClaimIds: ["claim-2"],
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ profile });
+      expect(refineProfile).toHaveBeenCalledOnce();
+    },
+  );
+
   it("still blocks a likely name in another module summary", async () => {
     const profile = submissionProfile();
     const firstModule = profile.modules[0];
@@ -461,7 +491,7 @@ describe("API route boundaries", () => {
     );
     const nonTargetClaim = nonTargetModule?.claims[0];
     if (!nonTargetClaim) throw new Error("Missing non-target claim fixture");
-    nonTargetClaim.text = "김민수 학생의 전화번호는 010-1234-5678입니다.";
+    nonTargetClaim.text = "학생 김민수의 전화번호는 010-1234-5678입니다.";
     vi.mocked(refineProfile).mockResolvedValue(profile);
 
     const response = await refineProfileRoute(

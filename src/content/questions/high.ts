@@ -10,9 +10,9 @@ export const HIGH_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["high"],
     prompt:
-      "평가 부담이 큰 시기에도 다시 시도할 수 있게 만드는 수업 장치 하나는 무엇인가요?",
-    intent: "평가 부담 속에서도 재시도를 돕는 핵심 수업 장치를 확인합니다.",
-    example: "초안을 제출한 뒤 한 번 수정할 기회를 줍니다.",
+      "시험이나 평가가 많은 때에도 학생들이 다시 고쳐 보게 하는 방법 하나는 무엇인가요?",
+    intent: "평가가 많은 때에도 다시 시도하게 돕는 방법 하나를 확인합니다.",
+    example: "초안을 낸 뒤 한 번 고칠 시간을 줍니다.",
     privacyHint: PRIVACY_HINT,
     required: false,
   },

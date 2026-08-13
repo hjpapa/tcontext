@@ -35,8 +35,8 @@ const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
 const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
 const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게을를과와도가로,.;:!?])";
-const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=[은는이가의])|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
@@ -168,6 +168,43 @@ const MEDICAL_TERM_PATTERN =
 const GENERIC_EDUCATIONAL_MODIFIER =
   /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
 
+const KOREAN_SYLLABLE_START = 0xac00;
+const KOREAN_SYLLABLE_END = 0xd7a3;
+const KOREAN_JONGSEONG_COUNT = 28;
+
+function hasFinalConsonant(text: string) {
+  const lastSyllable = text.codePointAt(text.length - 1);
+  if (
+    lastSyllable === undefined ||
+    lastSyllable < KOREAN_SYLLABLE_START ||
+    lastSyllable > KOREAN_SYLLABLE_END
+  ) {
+    return null;
+  }
+
+  return (lastSyllable - KOREAN_SYLLABLE_START) % KOREAN_JONGSEONG_COUNT !== 0;
+}
+
+/**
+ * Distinguishes a case-marked noun before a role (`배움은 학생이`) from an
+ * unmarked name (`김민수 학생이`). Particle agreement is structural, so this
+ * does not require an ever-growing vocabulary of educational nouns. Names such as
+ * `김다은` and `김가을` remain blocked because removing their final syllable
+ * does not produce a stem that agrees with that syllable as a particle.
+ */
+function isCaseMarkedRolePhrase(descriptor: string) {
+  const particle = descriptor.at(-1);
+  if (!particle || !/[은는이가을를과와]/u.test(particle)) return false;
+
+  const stem = descriptor.slice(0, -1);
+  const finalConsonant = hasFinalConsonant(stem);
+  if (finalConsonant === null) return false;
+
+  return finalConsonant
+    ? /[은이을과]/u.test(particle)
+    : /[는가를와]/u.test(particle);
+}
+
 function isValidCalendarDate(year: number, month: number, day: number) {
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
@@ -220,6 +257,9 @@ function isGenericRoleDescription(match: string) {
   ) {
     return true;
   }
+  // A labeled value is stronger evidence than the coincidental particle-like
+  // ending in `이름은`; do not route it through the generic noun filter.
+  if (/(?:이름|성명|실명)/u.test(match)) return false;
 
   const descriptor =
     match.match(
@@ -232,6 +272,7 @@ function isGenericRoleDescription(match: string) {
     ? SAFE_ROLE_DESCRIPTORS.has(descriptor) ||
         isGenericEducationalRoleDescriptor(descriptor) ||
         GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) ||
+        isCaseMarkedRolePhrase(descriptor) ||
         /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
           descriptor,
         )

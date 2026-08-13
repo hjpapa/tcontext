@@ -39,7 +39,7 @@ test("restores only the question position and explains that answers were not res
   await expect(page.getByText("진행 위치만 복원했어요")).toBeVisible();
   await expect(
     page.getByRole("heading", {
-      name: "수업을 설계할 때 목표·질문·활동·자료 중 가장 먼저 중심에 놓는 것은 무엇인가요?",
+      name: "새 수업을 준비할 때 가장 먼저 정하는 것은 무엇인가요?",
     }),
   ).toBeVisible();
   await expect(

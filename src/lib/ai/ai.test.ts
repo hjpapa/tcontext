@@ -1018,6 +1018,64 @@ describe("OpenAI structured boundary", () => {
     );
   });
 
+  it.each([
+    "교육관과 학생관 요약",
+    "배움은 학생이 스스로 의미를 구성하는 과정입니다.",
+    "기다림은 학생의 속도를 존중하는 태도입니다.",
+    "선택권은 학생과 함께 정합니다.",
+    "주도권은 학생에게 넘깁니다.",
+  ])(
+    "discards an AI name candidate for non-identifying student language: %s",
+    async (text) => {
+      const profile = teacherProfileFixture();
+      profile.shortSummary = text;
+      setOpenAIClientForTests({
+        responses: {
+          parse: vi.fn().mockResolvedValue({
+            output_parsed: {
+              items: [
+                {
+                  path: "profile.shortSummary",
+                  category: "person_name",
+                  text,
+                  reason: "일반 교육 문장을 사람 이름으로 판단했습니다.",
+                  suggestedRewrite: "학생이라는 단어를 삭제합니다.",
+                },
+              ],
+            },
+            usage: null,
+          }),
+        },
+      } as unknown as OpenAI);
+
+      await expect(reviewProfileWithAI(profile)).resolves.toEqual({
+        source: "openai",
+        review: { status: "clear", items: [] },
+      });
+    },
+  );
+
+  it.each([
+    "김민수 학생은 토론을 선호합니다.",
+    "김다은 학생의 선택을 존중합니다.",
+    "박은영 교사는 토론을 선호합니다.",
+    "학생 김민수는 토론을 선호합니다.",
+  ])(
+    "keeps a concrete Korean name out of the AI review request: %s",
+    async (text) => {
+      const profile = teacherProfileFixture();
+      profile.shortSummary = text;
+      const parse = vi.fn();
+      setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+      await expect(reviewProfileWithAI(profile)).resolves.toMatchObject({
+        source: "local",
+        review: { status: "needs_review" },
+      });
+      expect(parse).not.toHaveBeenCalled();
+    },
+  );
+
   it("discards an AI name candidate for a named classroom project", async () => {
     const profile = teacherProfileFixture();
     profile.shortSummary = "프로젝트 이름은 질문나무다.";

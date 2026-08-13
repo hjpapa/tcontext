@@ -456,6 +456,53 @@ test.describe("anonymous teacher-context flow", () => {
     );
     await expect(errorAlert).toContainText("교육관과 학생관 문장 1");
     await expect(errorAlert).not.toContainText("홍길동");
+
+    const locationButton = errorAlert.getByRole("button", {
+      name: "교육관과 학생관 문장 1 항목으로 이동",
+    });
+    await locationButton.click();
+    await expect(philosophyModule.getByLabel("문장 직접 수정")).toBeFocused();
+  });
+
+  test("confirms every non-empty unresolved claim only after explicit bulk confirmation", async ({
+    page,
+  }) => {
+    await page.route("**/api/interview/follow-up", async (route) => {
+      await fulfillJson(route, { needed: false, question: null });
+    });
+    await page.route("**/api/profile/generate", async (route) => {
+      await fulfillJson(route, {
+        profile: generatedProfile,
+        suggestedTags: [
+          { category: "preferredTeachingMethods", tag: "inquiry" },
+        ],
+      });
+    });
+
+    await startElementaryInterview(page);
+    await answerFirstQuestionAndFinishInterview(page);
+
+    await page.getByRole("button", { name: "남은 문장 한 번에 확인" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toContainText("AI 추론 1개");
+    await expect(dialog).toContainText("확인 필요 문장 1개");
+    await dialog.getByRole("button", { name: "2개 모두 확인" }).click();
+
+    const unresolvedCount = page.getByTestId("unresolved-count");
+    await expect(unresolvedCount).toHaveText("확인할 문장 0개");
+    await expect(unresolvedCount).toBeFocused();
+    await expect(
+      page.getByText("AI 추론", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: "탐구" }),
+    ).not.toBeChecked();
+    await expect(
+      page.getByRole("checkbox", { name: /문서 제목, 전체·모듈 요약/ }),
+    ).not.toBeChecked();
+    await expect(
+      page.getByRole("button", { name: "남은 문장 한 번에 확인" }),
+    ).toHaveCount(0);
   });
 
   test("ignores a late AI refinement after the teacher edits the module", async ({
@@ -873,6 +920,11 @@ test.describe("anonymous teacher-context flow", () => {
         exact: true,
       }),
     ).toBeVisible();
+    const privacyLocationButton = page.getByRole("button", {
+      name: "전체 문서 요약 항목으로 이동",
+    });
+    await privacyLocationButton.click();
+    await expect(page.getByLabel("전체 요약 직접 수정")).toBeFocused();
     const continueButton = page.getByRole("button", {
       name: "경고 확인하고 결과 보기",
     });

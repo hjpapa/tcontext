@@ -71,8 +71,15 @@ describe("detectPrivacyRisks", () => {
     expect(containsPrivacyRisk(text)).toBe(false);
   });
 
-  it.each(["김소영 학생", "박은영 학생", "김가람 학생"])(
-    "detects a plausible Korean name in student context: %s",
+  it.each([
+    "김소영 학생",
+    "박은영 학생",
+    "김가람 학생",
+    "학생 김소영",
+    "학생 박은영",
+    "학생 김가람",
+  ])(
+    "detects a plausible Korean name on either side of a student role: %s",
     (text) => {
       expect(
         detectPrivacyRisks(text).matches.some(
@@ -176,6 +183,15 @@ describe("detectPrivacyRisks", () => {
     "기준은 학생과 함께 정합니다.",
     "교사 정체성은 학생의 성장을 지원하는 역할에 가깝습니다.",
     "성찰적 교사는 학생의 반응을 다음 수업에 반영합니다.",
+    "교육관과 학생관 요약",
+    "배움은 학생이 스스로 의미를 구성하는 과정입니다.",
+    "기다림은 학생의 속도를 존중하는 태도입니다.",
+    "선택권은 학생과 함께 정합니다.",
+    "주도권은 학생에게 넘깁니다.",
+    "수업은 학생이 질문하는 시간입니다.",
+    "교실은 학생이 실수해도 안전한 곳입니다.",
+    "관계는 학생과 함께 만듭니다.",
+    "평가는 학생의 성장을 돕습니다.",
     "한 학생의 점수는 85점이다.",
     "학생 한 명의 석차는 3등이다.",
     "한 학생이 ADHD 진단을 받았다.",
@@ -193,6 +209,7 @@ describe("detectPrivacyRisks", () => {
     "이하은 학생에게 단계별 안내를 제공합니다.",
     "박지은 학생은 토론을 선호합니다.",
     "김가을 학생은 토론을 선호합니다.",
+    "학생 김다은의 선택을 존중합니다.",
     "교사 박은영은 토론을 선호합니다.",
     "교사 이름: 오준",
     "성명: 박은영",

@@ -20,9 +20,23 @@ import {
   EvidenceBadge,
   EvidenceLegend,
 } from "@/components/profile/evidence-badge";
-import { PrivacyReviewPanel } from "@/components/privacy/privacy-review-panel";
+import {
+  PrivacyReviewPanel,
+  type PrivacyReviewLocation,
+} from "@/components/privacy/privacy-review-panel";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -166,6 +180,10 @@ type RefineFeedback = {
   fieldPaths: string[];
 };
 
+type ReviewField = PrivacyReviewLocation & {
+  value: string;
+};
+
 async function refineResponseFeedback(
   response: Response,
   fallback: string,
@@ -217,33 +235,138 @@ function updateModule(
   };
 }
 
-function refineFieldLabel(
+function refineFieldLocation(
   path: string,
   profile: TeacherContextProfile,
-): string {
-  if (path.endsWith("instruction")) return "재작성 지시";
-  if (path.endsWith("profileTitle")) return "전체 문서 제목";
-  if (path.endsWith("shortSummary")) return "전체 문서 요약";
+  currentModuleId: ProfileModule["id"],
+): PrivacyReviewLocation | null {
+  if (path === "refine.request.instruction") {
+    return { id: `refine-${currentModuleId}`, label: "재작성 지시" };
+  }
+  if (path === "profile.profileTitle") {
+    return { id: "profile-title", label: "전체 문서 제목" };
+  }
+  if (path === "profile.shortSummary") {
+    return { id: "profile-summary", label: "전체 문서 요약" };
+  }
 
   const moduleMatch = path.match(
-    /modules\.(\d+)\.(title|summary|claims\.(\d+)\.text)$/u,
+    /^profile\.modules\.(\d+)\.(title|summary|claims\.(\d+)\.text)$/u,
   );
   if (moduleMatch) {
     const moduleIndex = Number(moduleMatch[1]);
     const profileModule = profile.modules[moduleIndex];
-    const moduleTitle = profileModule
-      ? PROFILE_MODULE_TITLES[profileModule.id]
-      : `모듈 ${moduleIndex + 1}`;
-    if (moduleMatch[2] === "title") return `${moduleTitle} 제목`;
-    if (moduleMatch[2] === "summary") return `${moduleTitle} 요약`;
-    return `${moduleTitle} 문장 ${Number(moduleMatch[3]) + 1}`;
+    if (!profileModule) return null;
+    const moduleTitle = PROFILE_MODULE_TITLES[profileModule.id];
+    if (moduleMatch[2] === "title") {
+      return {
+        id: `module-title-${profileModule.id}`,
+        label: `${moduleTitle} 제목`,
+      };
+    }
+    if (moduleMatch[2] === "summary") {
+      return {
+        id: `module-summary-${profileModule.id}`,
+        label: `${moduleTitle} 요약`,
+      };
+    }
+    const claimIndex = Number(moduleMatch[3]);
+    const claim = profileModule.claims[claimIndex];
+    return claim
+      ? {
+          id: `claim-${claim.id}`,
+          label: `${moduleTitle} 문장 ${claimIndex + 1}`,
+        }
+      : null;
   }
 
-  const synthesisSection = SYNTHESIS_LIST_SECTIONS.find(({ key }) =>
-    path.includes(key),
+  const synthesisMatch = path.match(
+    /^profile\.(teachingDesignPrinciples|classSupportConsiderations|realisticConstraints|aiCollaborationInstructions)\.(\d+)$/u,
   );
-  if (synthesisSection) return synthesisSection.title;
-  return "문서의 다른 항목";
+  if (!synthesisMatch) return null;
+  const synthesisSection = SYNTHESIS_LIST_SECTIONS.find(
+    ({ key }) => key === synthesisMatch[1],
+  );
+  const itemIndex = Number(synthesisMatch[2]);
+  if (
+    !synthesisSection ||
+    profile[synthesisSection.key][itemIndex] === undefined
+  ) {
+    return null;
+  }
+  return {
+    id: `${synthesisSection.key}-${itemIndex}`,
+    label: `${synthesisSection.title} 문장 ${itemIndex + 1}`,
+  };
+}
+
+function collectReviewFields(profile: TeacherContextProfile): ReviewField[] {
+  return [
+    {
+      id: "profile-title",
+      label: "전체 문서 제목",
+      value: profile.profileTitle,
+    },
+    {
+      id: "profile-summary",
+      label: "전체 문서 요약",
+      value: profile.shortSummary,
+    },
+    ...profile.modules.flatMap((module) => {
+      const moduleTitle = PROFILE_MODULE_TITLES[module.id];
+      return [
+        {
+          id: `module-title-${module.id}`,
+          label: `${moduleTitle} 제목`,
+          value: module.title,
+        },
+        {
+          id: `module-summary-${module.id}`,
+          label: `${moduleTitle} 요약`,
+          value: module.summary,
+        },
+        ...module.claims.map((claim, claimIndex) => ({
+          id: `claim-${claim.id}`,
+          label: `${moduleTitle} 문장 ${claimIndex + 1}`,
+          value: claim.text,
+        })),
+      ];
+    }),
+    ...SYNTHESIS_LIST_SECTIONS.flatMap(({ key, title }) =>
+      profile[key].map((value, index) => ({
+        id: `${key}-${index}`,
+        label: `${title} 문장 ${index + 1}`,
+        value,
+      })),
+    ),
+  ];
+}
+
+function groupReviewLocationsByText(
+  profile: TeacherContextProfile,
+): ReadonlyMap<string, readonly PrivacyReviewLocation[]> {
+  const locations = new Map<string, PrivacyReviewLocation[]>();
+  for (const { value, ...location } of collectReviewFields(profile)) {
+    if (!value.trim()) continue;
+    const existing = locations.get(value) ?? [];
+    if (!existing.some((item) => item.id === location.id)) {
+      existing.push(location);
+      locations.set(value, existing);
+    }
+  }
+  return locations;
+}
+
+function focusReviewField(targetId: string) {
+  const target = document.getElementById(targetId);
+  if (!(target instanceof HTMLElement)) return;
+  target.focus({ preventScroll: true });
+  target.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth",
+    block: "center",
+  });
 }
 
 export function ProfileReview() {
@@ -272,6 +395,8 @@ export function ProfileReview() {
   const [privacyWarningAccepted, setPrivacyWarningAccepted] = useState(false);
   const draftRevisionRef = useRef(0);
   const pendingRefineFocusRef = useRef<ProfileModule["id"] | null>(null);
+  const unresolvedCountRef = useRef<HTMLParagraphElement>(null);
+  const pendingBulkConfirmationFocusRef = useRef(false);
 
   useEffect(() => {
     const moduleId = pendingRefineFocusRef.current;
@@ -294,6 +419,29 @@ export function ProfileReview() {
           ).length,
         0,
       ) ?? 0,
+    [profile],
+  );
+
+  const bulkConfirmationCounts = useMemo(() => {
+    if (!profile) return { total: 0, inferred: 0, needsConfirmation: 0 };
+    return profile.modules.reduce(
+      (counts, module) => {
+        for (const claim of module.claims) {
+          if (claim.confirmedByUser || !claim.text.trim()) continue;
+          counts.total += 1;
+          if (claim.basis === "inferred") counts.inferred += 1;
+          if (claim.basis === "needs_confirmation") {
+            counts.needsConfirmation += 1;
+          }
+        }
+        return counts;
+      },
+      { total: 0, inferred: 0, needsConfirmation: 0 },
+    );
+  }, [profile]);
+
+  const privacyLocationsByText = useMemo(
+    () => (profile ? groupReviewLocationsByText(profile) : new Map()),
     [profile],
   );
 
@@ -378,6 +526,27 @@ export function ProfileReview() {
         ),
       })),
     );
+  };
+
+  const confirmAllUnresolvedClaims = () => {
+    if (busy || refiningModule || bulkConfirmationCounts.total === 0) return;
+    pendingBulkConfirmationFocusRef.current = true;
+    updateDraftProfile({
+      ...profile,
+      modules: profile.modules.map((module) => ({
+        ...module,
+        claims: module.claims.map((claim) => {
+          if (claim.confirmedByUser || !claim.text.trim()) return claim;
+          return {
+            ...claim,
+            basis:
+              claim.basis === "needs_confirmation" ? "direct" : claim.basis,
+            confirmedByUser: true,
+          };
+        }),
+      })),
+    });
+    setError("");
   };
 
   const removeClaim = (moduleId: ProfileModule["id"], claimId: string) => {
@@ -656,13 +825,72 @@ export function ProfileReview() {
           있습니다. AI 추론은 선생님이 승인하기 전까지 확정되지 않습니다.
         </p>
         <EvidenceLegend />
-        <p
-          className="font-semibold"
-          aria-live="polite"
-          data-testid="unresolved-count"
-        >
-          확인할 문장 {unresolvedCount}개
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p
+            ref={unresolvedCountRef}
+            tabIndex={-1}
+            className="font-semibold"
+            aria-live="polite"
+            data-testid="unresolved-count"
+          >
+            확인할 문장 {unresolvedCount}개
+          </p>
+          {bulkConfirmationCounts.total > 0 ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busy || refiningModule !== null}
+                >
+                  <Check aria-hidden="true" />
+                  남은 문장 한 번에 확인
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent
+                onCloseAutoFocus={(event) => {
+                  if (!pendingBulkConfirmationFocusRef.current) return;
+                  event.preventDefault();
+                  pendingBulkConfirmationFocusRef.current = false;
+                  unresolvedCountRef.current?.focus({ preventScroll: true });
+                }}
+              >
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    미확인 문장 {bulkConfirmationCounts.total}개를 모두
+                    확인할까요?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-2 text-left">
+                    <span className="block">
+                      현재 화면의 비어 있지 않은 문장만 한 번에 확인합니다. AI
+                      추론 {bulkConfirmationCounts.inferred}개는 확인 후에도 ‘AI
+                      추론’ 표시가 유지되며, 확인 필요 문장{" "}
+                      {bulkConfirmationCounts.needsConfirmation}
+                      개는 선생님이 승인한 직접 진술로 바뀝니다.
+                    </span>
+                    <span className="block">
+                      빈 문장, 문서 요약과 원칙, 추천 태그, 개인정보 경고는
+                      자동으로 확인하거나 동의하지 않습니다.
+                    </span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>취소</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={
+                      busy ||
+                      refiningModule !== null ||
+                      bulkConfirmationCounts.total === 0
+                    }
+                    onClick={confirmAllUnresolvedClaims}
+                  >
+                    {bulkConfirmationCounts.total}개 모두 확인
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -1103,11 +1331,30 @@ export function ProfileReview() {
                       <div className="mt-2">
                         <p className="font-semibold">먼저 확인할 위치</p>
                         <ul className="mt-1 list-disc pl-5">
-                          {refineFeedback[module.id]?.fieldPaths.map((path) => (
-                            <li key={path}>
-                              {refineFieldLabel(path, profile)}
-                            </li>
-                          ))}
+                          {refineFeedback[module.id]?.fieldPaths.map((path) => {
+                            const location = refineFieldLocation(
+                              path,
+                              profile,
+                              module.id,
+                            );
+                            return (
+                              <li key={path}>
+                                {location ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      focusReviewField(location.id)
+                                    }
+                                    className="min-h-10 text-left font-semibold underline underline-offset-4 hover:text-[#7a2f2a] focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[#8d352f] focus-visible:ring-offset-2 focus-visible:outline-none"
+                                  >
+                                    {location.label} 항목으로 이동
+                                  </button>
+                                ) : (
+                                  "현재 문서에서 위치를 찾지 못했습니다."
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     ) : null}
@@ -1289,7 +1536,11 @@ export function ProfileReview() {
         )}
       </section>
 
-      <PrivacyReviewPanel review={privacyReview} />
+      <PrivacyReviewPanel
+        review={privacyReview}
+        locationsByText={privacyLocationsByText}
+        onNavigate={focusReviewField}
+      />
 
       {privacyReview?.status === "needs_review" ? (
         <section
