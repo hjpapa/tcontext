@@ -22,7 +22,7 @@ import {
   FICTIONAL_PROFILE_BY_SCHOOL_LEVEL,
   FICTIONAL_PROFILES,
 } from "@/content/examples";
-import type { SchoolLevel } from "@/types/profile";
+import { TEACHING_SUBJECT_LABELS, type SchoolLevel } from "@/types/profile";
 
 export const metadata: Metadata = {
   title: "완성 문서 예시",
@@ -321,6 +321,9 @@ export default async function ExamplesPage({
                           }`}
                         >
                           {ROLE_LABELS[profile.metadata.role] ?? "교사 역할"}
+                          {profile.metadata.teachingSubject
+                            ? ` · ${TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject]}`
+                            : ""}
                         </span>
                       </span>
                     </Link>
@@ -349,6 +352,23 @@ export default async function ExamplesPage({
                 <span className="text-muted-foreground text-xs font-medium">
                   {ROLE_LABELS[selectedProfile.metadata.role] ?? "교사 역할"}
                 </span>
+                {selectedProfile.metadata.teachingSubject ? (
+                  <>
+                    <span
+                      className="text-muted-foreground text-xs"
+                      aria-hidden="true"
+                    >
+                      ·
+                    </span>
+                    <span className="text-muted-foreground text-xs font-medium">
+                      {
+                        TEACHING_SUBJECT_LABELS[
+                          selectedProfile.metadata.teachingSubject
+                        ]
+                      }
+                    </span>
+                  </>
+                ) : null}
                 <span className="text-muted-foreground ml-auto font-mono text-[11px]">
                   FICTIONAL PROFILE
                 </span>
@@ -558,14 +578,20 @@ export default async function ExamplesPage({
                       </summary>
                       <div className="mt-4 border-t pt-4">
                         <p className="text-muted-foreground mb-3 text-sm leading-6">
-                          학교급은 프로필에서 자동으로 채워지고, 나머지는 이번
-                          수업에 맞게 입력합니다.
+                          학교급과 선택한 담당 교과는 프로필에서 자동으로
+                          채워지고, 나머지는 이번 수업에 맞게 입력합니다.
                         </p>
                         <p className="sr-only">
                           포함 항목: {LESSON_TASK_CONTEXT_ITEMS.join(", ")}
                         </p>
                         <pre className="bg-secondary/55 max-w-full overflow-x-auto rounded-xl p-4 text-xs leading-6 break-words whitespace-pre-wrap sm:text-sm">
-                          <code>{`school_level: "${SCHOOL_LEVEL_LABELS[selectedSchool]}"\n${LESSON_TASK_CONTEXT_PREVIEW.join("\n")}`}</code>
+                          <code>{`school_level: "${SCHOOL_LEVEL_LABELS[selectedSchool]}"\n${LESSON_TASK_CONTEXT_PREVIEW.map(
+                            (line) =>
+                              line === 'subject: ""' &&
+                              selectedProfile.metadata.teachingSubject
+                                ? `subject: "${TEACHING_SUBJECT_LABELS[selectedProfile.metadata.teachingSubject]}"`
+                                : line,
+                          ).join("\n")}`}</code>
                         </pre>
                       </div>
                     </details>

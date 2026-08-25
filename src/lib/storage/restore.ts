@@ -35,6 +35,7 @@ export function restoreInterviewProgress(
   const interview = createInterviewState({
     schoolLevel: progress.schoolLevel,
     role: progress.role,
+    teachingSubject: progress.teachingSubject,
     privacyNoticeAccepted: progress.privacyNoticeAccepted,
     now: progress.startedAt,
   });

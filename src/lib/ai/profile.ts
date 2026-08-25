@@ -17,6 +17,7 @@ import {
   profileRefineOutputSchema,
   type SuggestedTag,
 } from "@/lib/ai/schemas/profile";
+import { assertSafeGeneratedCharacters } from "@/lib/ai/text-quality";
 import type {
   profileGenerateRequestSchema,
   profileRefineRequestSchema,
@@ -60,11 +61,15 @@ function emptyConfirmedTags(): ConfirmedTags {
 function trustedMetadata(input: {
   schoolLevel: TeacherContextProfile["metadata"]["schoolLevel"];
   role: string;
+  teachingSubject?: TeacherContextProfile["metadata"]["teachingSubject"];
   modelName: string;
 }) {
   return {
     schoolLevel: input.schoolLevel,
     role: input.role,
+    ...(input.teachingSubject === undefined
+      ? {}
+      : { teachingSubject: input.teachingSubject }),
     generatedAt: new Date().toISOString(),
     schemaVersion: PROFILE_SCHEMA_VERSION,
     modelName: input.modelName,
@@ -96,7 +101,7 @@ function parseAIProfile(value: unknown): TeacherContextProfile {
 }
 
 function assertEvidenceQuestionIds(
-  profile: TeacherContextProfile,
+  profile: Pick<TeacherContextProfile, "modules">,
   input: GenerateInput,
 ): void {
   const answerQuestionIds = new Set(
@@ -131,11 +136,13 @@ export async function generateProfile(input: GenerateInput): Promise<{
     input: JSON.stringify({
       schoolLevel: input.schoolLevel,
       role: input.role,
+      teachingSubject: input.teachingSubject ?? null,
       answers: input.answers,
       metadataRequirements: {
         schemaVersion: PROFILE_SCHEMA_VERSION,
         modelName: OPENAI_MODELS.profile,
         promptVersion: PROMPT_VERSION,
+        teachingSubject: input.teachingSubject ?? null,
       },
     }),
     schema: profileGenerationOutputSchema,
@@ -144,6 +151,7 @@ export async function generateProfile(input: GenerateInput): Promise<{
     retryMaxOutputTokens: PROFILE_GENERATION_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
+  assertSafeGeneratedCharacters(output);
   assertEvidenceQuestionIds(output.profile, input);
 
   const draft = parseAIProfile({
@@ -151,6 +159,7 @@ export async function generateProfile(input: GenerateInput): Promise<{
     metadata: trustedMetadata({
       schoolLevel: input.schoolLevel,
       role: input.role,
+      teachingSubject: input.teachingSubject,
       modelName: OPENAI_MODELS.profile,
     }),
     confirmedTags: emptyConfirmedTags(),
@@ -319,6 +328,7 @@ async function refineSingleModule(
     retryMaxOutputTokens: MODULE_REFINE_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
+  assertSafeGeneratedCharacters(output.module);
 
   if (output.module.id !== input.moduleId) {
     throw new ApiError(
@@ -370,6 +380,7 @@ export async function refineProfile(
     retryMaxOutputTokens: PROFILE_REFINE_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
+  assertSafeGeneratedCharacters(output.profile);
 
   const generatedById = new Map(
     output.profile.modules.map((module) => [module.id, module]),

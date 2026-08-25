@@ -34,7 +34,13 @@ import type {
   TeacherRole,
 } from "@/types/interview";
 import type { PrivacyScanResult } from "@/types/privacy";
-import type { ProfileModuleId, SchoolLevel } from "@/types/profile";
+import {
+  TEACHING_SUBJECT_LABELS,
+  TEACHING_SUBJECTS,
+  type ProfileModuleId,
+  type SchoolLevel,
+  type TeachingSubject,
+} from "@/types/profile";
 
 type SetupStep = "privacy" | "setup" | "questions";
 
@@ -114,6 +120,9 @@ export function InterviewFlow() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [schoolLevel, setSchoolLevel] = useState<SchoolLevel>("elementary");
   const [role, setRole] = useState<TeacherRole>("homeroom_teacher");
+  const [teachingSubject, setTeachingSubject] = useState<TeachingSubject | "">(
+    "",
+  );
   const [answer, setAnswer] = useState(() => {
     if (!interview) return "";
     const question = interview.questions[interview.currentQuestionIndex];
@@ -121,6 +130,7 @@ export function InterviewFlow() {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [setupError, setSetupError] = useState("");
   const [privacyRisks, setPrivacyRisks] = useState<PrivacyScanResult | null>(
     null,
   );
@@ -145,15 +155,24 @@ export function InterviewFlow() {
   }
 
   const startInterview = () => {
+    const subjectRequired = schoolLevel === "middle" || schoolLevel === "high";
+    if (subjectRequired && !teachingSubject) {
+      setSetupError("중학교와 고등학교는 담당 교과를 선택해 주세요.");
+      document.getElementById("teaching-subject")?.focus();
+      return;
+    }
+
     const next = createInterviewState({
       schoolLevel,
       role,
+      ...(subjectRequired && teachingSubject ? { teachingSubject } : {}),
       privacyNoticeAccepted: privacyAccepted,
     });
     clearBrowserRecords();
     setInterview(next);
     setAnswer("");
     setError("");
+    setSetupError("");
     setPrivacyRisks(null);
     setStep("questions");
   };
@@ -189,6 +208,7 @@ export function InterviewFlow() {
         body: JSON.stringify({
           schoolLevel: state.schoolLevel,
           role: state.role,
+          teachingSubject: state.teachingSubject,
           current: exchangeFrom(state, question, answerText),
           previousAnswers: previousExchanges(state).filter(
             (item) => item.questionId !== question.id,
@@ -259,6 +279,7 @@ export function InterviewFlow() {
       body: JSON.stringify({
         schoolLevel: state.schoolLevel,
         role: state.role,
+        teachingSubject: state.teachingSubject,
         answers: exchanges,
       }),
     });
@@ -370,7 +391,13 @@ export function InterviewFlow() {
                     name="school-level"
                     value={value}
                     checked={schoolLevel === value}
-                    onChange={() => setSchoolLevel(value)}
+                    onChange={() => {
+                      setSchoolLevel(value);
+                      setSetupError("");
+                      if (value !== "middle" && value !== "high") {
+                        setTeachingSubject("");
+                      }
+                    }}
                     className="accent-primary size-5"
                   />
                   <span className="font-semibold">
@@ -381,6 +408,46 @@ export function InterviewFlow() {
             )}
           </div>
         </fieldset>
+
+        {schoolLevel === "middle" || schoolLevel === "high" ? (
+          <div className="max-w-xl space-y-3">
+            <Label htmlFor="teaching-subject" className="text-xl font-bold">
+              담당 교과
+            </Label>
+            <p
+              id="teaching-subject-help"
+              className="text-muted-foreground leading-7"
+            >
+              담임 여부와 관계없이 현재 주로 가르치는 교과를 선택해 주세요. 교과
+              수업을 맡지 않는 역할도 선택할 수 있습니다.
+            </p>
+            <select
+              id="teaching-subject"
+              value={teachingSubject}
+              onChange={(event) => {
+                setTeachingSubject(event.target.value as TeachingSubject | "");
+                setSetupError("");
+              }}
+              aria-describedby="teaching-subject-help"
+              aria-invalid={Boolean(setupError)}
+              className="border-input bg-card focus-visible:ring-primary min-h-14 w-full rounded-xl border px-4 py-3 text-base font-semibold outline-none focus-visible:ring-2"
+            >
+              <option value="">담당 교과를 선택해 주세요</option>
+              {TEACHING_SUBJECTS.map((subject) => (
+                <option key={subject} value={subject}>
+                  {TEACHING_SUBJECT_LABELS[subject]}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+
+        {setupError ? (
+          <Alert variant="destructive" role="alert" className="max-w-xl">
+            <AlertTitle>담당 교과를 확인해 주세요</AlertTitle>
+            <AlertDescription>{setupError}</AlertDescription>
+          </Alert>
+        ) : null}
 
         <fieldset className="space-y-4">
           <legend className="text-xl font-bold">현재 역할</legend>
@@ -447,7 +514,11 @@ export function InterviewFlow() {
                   ? "이 탭에 임시 저장된"
                   : "이 기기에 저장된"}{" "}
                 질문 {restoredProgress.restoredQuestionNumber} 위치와
-                학교급·역할 설정을 복원했습니다.
+                학교급·역할
+                {interview.teachingSubject
+                  ? `·담당 교과(${TEACHING_SUBJECT_LABELS[interview.teachingSubject]})`
+                  : ""}{" "}
+                설정을 복원했습니다.
               </p>
               <p>
                 답변 원문은 저장하지 않으므로
@@ -553,12 +624,13 @@ export function InterviewFlow() {
             maxLength={MAX_INTERVIEW_ANSWER_LENGTH}
             aria-describedby="answer-length-help answer-privacy-help question-privacy-guidance"
             className="bg-card border-input min-h-48 resize-y p-4 text-lg leading-8"
-            placeholder="예: 먼저 짧은 질문으로 생각을 꺼내고, 개인 메모 뒤 모둠에서 나누도록 합니다…"
+            placeholder="예: 한 반은 20명대이고 모둠마다 기기 한 대를 함께 씁니다. 짧게 안내한 뒤 역할을 나누면 참여가 안정됩니다."
           />
           <div className="text-muted-foreground flex flex-col justify-between gap-2 text-sm sm:flex-row">
             <div className="space-y-1">
               <p id="answer-privacy-help">
-                이름·학교명·반·연락처·성적·진단명은 적지 마세요.
+                학교급·학년·교과·대략적인 인원과 집단 경향은 적어도 됩니다. 사람
+                이름·연락처·식별번호·정확한 학교와 반의 고유명은 빼 주세요.
               </p>
               <details className="text-[#653f20]">
                 <summary className="min-h-8 cursor-pointer py-1 font-semibold underline underline-offset-4">

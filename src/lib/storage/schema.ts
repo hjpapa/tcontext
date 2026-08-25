@@ -1,13 +1,14 @@
 import { z } from "zod";
 
 import { teacherRoleSchema, type InterviewState } from "@/types/interview";
-import { schoolLevelSchema } from "@/types/profile";
+import { schoolLevelSchema, teachingSubjectSchema } from "@/types/profile";
 
 export const storedInterviewProgressSchema = z
   .object({
     version: z.literal("1.0"),
     schoolLevel: schoolLevelSchema,
     role: teacherRoleSchema,
+    teachingSubject: teachingSubjectSchema.optional(),
     currentQuestionId: z.string().min(1),
     currentQuestionIndex: z.number().int().nonnegative(),
     fixedQuestionIds: z.array(z.string().min(1)),
@@ -40,6 +41,9 @@ export function toStoredInterviewProgress(
     version: "1.0",
     schoolLevel: state.schoolLevel,
     role: state.role,
+    ...(state.teachingSubject === undefined
+      ? {}
+      : { teachingSubject: state.teachingSubject }),
     currentQuestionId: currentQuestion.id,
     currentQuestionIndex: state.currentQuestionIndex,
     fixedQuestionIds: state.questions

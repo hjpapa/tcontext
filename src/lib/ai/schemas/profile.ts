@@ -4,6 +4,7 @@ import {
   CONTROLLED_TAGS,
   PROFILE_MODULE_IDS,
   profileModuleOutputSchema,
+  teachingSubjectSchema,
   teacherContextProfileOutputSchema,
 } from "@/types/profile";
 
@@ -50,8 +51,21 @@ const generatedProfileModuleSchema = profileModuleOutputSchema.extend({
   claims: profileModuleOutputSchema.shape.claims.min(1).max(4),
 });
 
-const generatedTeacherContextProfileSchema =
+// OpenAI Structured Outputs requires every object property to be required.
+// The canonical profile keeps this additive field optional for legacy
+// documents, while AI output always returns either a controlled value or null.
+const structuredProfileMetadataSchema =
+  teacherContextProfileOutputSchema.shape.metadata.extend({
+    teachingSubject: teachingSubjectSchema.nullable(),
+  });
+
+const structuredTeacherContextProfileSchema =
   teacherContextProfileOutputSchema.extend({
+    metadata: structuredProfileMetadataSchema,
+  });
+
+const generatedTeacherContextProfileSchema =
+  structuredTeacherContextProfileSchema.extend({
     modules: z
       .array(generatedProfileModuleSchema)
       .length(PROFILE_MODULE_IDS.length),
@@ -82,7 +96,7 @@ export const profileGenerationOutputSchema = z
 
 export const profileRefineOutputSchema = z
   .object({
-    profile: teacherContextProfileOutputSchema,
+    profile: structuredTeacherContextProfileSchema,
   })
   .strict();
 

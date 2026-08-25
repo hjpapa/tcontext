@@ -37,6 +37,8 @@ const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게을를과와도가로,.;:!?])";
 const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:(?:한|그|해당|특정|개별)\\s*${STUDENT_ROLE_PATTERN}|${STUDENT_ROLE_PATTERN}\\s*한\\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\\s*${STUDENT_ROLE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|${ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN})`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
   "일부",
   "여러",
@@ -164,7 +166,19 @@ const GENERIC_CLASS_PREFIXES = new Set([
   "나침",
 ]);
 const MEDICAL_TERM_PATTERN =
-  "(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단받|치료\\s*중|약(?:을|을\\s*)?\\s*복용|상담을\\s*받)";
+  "(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단(?:명|받)|치료\\s*중|약(?:을|을\\s*)?\\s*복용|건강\\s*정보|병력|상담\\s*(?:을\\s*받|기록|내용|이력)|가정\\s*환경|생활기록부)";
+const RARE_IDENTIFYING_EVENT_PATTERN =
+  /(?:단독|유일|수상|입상|대회|전학|전입|전출|입학|졸업|사고|징계|퇴학|학교폭력|피해|가해|입원|응급|실종|구조)/u;
+const SINGULAR_STUDENT_REFERENCE =
+  /(?:(?:한|그|해당|특정|개별)\s*(?:학생|유아|아동)|(?:학생|유아|아동)\s*한\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\s*(?:학생|유아|아동))/u;
+
+function hasSingularStudentReference(text: string) {
+  return (
+    SINGULAR_STUDENT_REFERENCE.test(text) ||
+    /(?:단독|유일)[^.!?\n]{0,30}(?:학생|유아|아동)(?!들)/u.test(text) ||
+    /(?:학생|유아|아동)(?!들)[^.!?\n]{0,30}(?:단독|유일)/u.test(text)
+  );
+}
 const GENERIC_EDUCATIONAL_MODIFIER =
   /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
 
@@ -234,6 +248,70 @@ function containsValidLabeledDate(match: string) {
   if (!date) return false;
 
   return isValidCalendarDate(Number(date[1]), Number(date[2]), Number(date[3]));
+}
+
+function containsExactCalendarDate(text: string) {
+  for (const match of text.matchAll(
+    /((?:19|20)\d{2})(?:년|[-/.])\s*(0?[1-9]|1[0-2])(?:월|[-/.])\s*(0?[1-9]|[12]\d|3[01])일?/gu,
+  )) {
+    if (
+      isValidCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]))
+    ) {
+      return true;
+    }
+  }
+
+  for (const match of text.matchAll(
+    /(?<!\d)(0?[1-9]|1[0-2])\s*월\s*(0?[1-9]|[12]\d|3[01])\s*일/gu,
+  )) {
+    // A leap year keeps the month/day check permissive without treating an
+    // impossible date such as 2월 30일 as an identifying clue.
+    if (isValidCalendarDate(2000, Number(match[1]), Number(match[2]))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function detectHighConfidenceCombinationRisks(text: string): PrivacyMatch[] {
+  const findings: PrivacyMatch[] = [];
+
+  for (const sentenceMatch of text.matchAll(/[^.!?\n]+(?:[.!?]|$)/gu)) {
+    const sentence = sentenceMatch[0];
+    const start = sentenceMatch.index;
+    if (start === undefined || sentence.trim().length === 0) continue;
+
+    const hasExactDate = containsExactCalendarDate(sentence);
+    const hasGradeOrAge = /(?<!\d)\d{1,2}\s*(?:학년|세)(?!\d)/u.test(sentence);
+    const hasSingularStudent = hasSingularStudentReference(sentence);
+    const hasRareEvent = RARE_IDENTIFYING_EVENT_PATTERN.test(sentence);
+    const clueCount = [
+      hasExactDate,
+      hasGradeOrAge,
+      hasSingularStudent,
+      hasRareEvent,
+    ].filter(Boolean).length;
+
+    // Generic dates, grades, class activities and group-level trends remain
+    // usable. A rare event tied to one student needs at least one additional
+    // exact clue before it crosses the pre-AI safety boundary.
+    if (!hasSingularStudent || !hasRareEvent || clueCount < 3) continue;
+
+    findings.push({
+      type: "student_name",
+      severity: "high",
+      start,
+      end: start + sentence.length,
+      matchedText: sentence,
+      reason:
+        "정확한 날짜·학년 또는 나이·단일 학생·희귀 사건 단서가 결합되어 개인을 추정할 수 있습니다.",
+      suggestedRewrite:
+        "정확한 날짜·학년·사건을 제거하고, '일부 학생의 참여를 돕기 위해'처럼 집단 수준의 수업 지원으로 적어 주세요.",
+    });
+  }
+
+  return findings;
 }
 
 function isGenericPrivacyPolicyStatement(match: string) {
@@ -320,6 +398,14 @@ const PATTERNS: PatternDefinition[] = [
     ignore: (match) => !isStructurallyValidResidentNumber(match),
   },
   {
+    type: "resident_registration_number",
+    severity: "high",
+    regex:
+      /(?:여권번호|운전면허(?:증)?번호|외국인등록번호|국가식별번호|학번|학생번호|교직원번호|사번)(?:은|는|이|가|:|：)?\s*[A-Z0-9][A-Z0-9-]{5,19}/giu,
+    reason:
+      "여권·운전면허·외국인등록번호 등 공적 식별번호가 포함되어 있습니다.",
+  },
+  {
     type: "birth_date",
     severity: "high",
     regex:
@@ -362,28 +448,49 @@ const PATTERNS: PatternDefinition[] = [
     type: "individual_score",
     severity: "high",
     regex: new RegExp(
-      `(?<![가-힣])${NAMED_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:개별\\s*)?점수(?:는|가|:|：)?\\s*)?\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)`,
+      `(?<![가-힣])${INDIVIDUAL_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:개별\\s*)?점수(?:는|가|:|：)?\\s*)?\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)`,
       "gu",
     ),
-    reason: "실명과 결합된 개별 점수로 보이는 정보가 포함되어 있습니다.",
+    reason: "특정 학생에게 연결된 개별 점수로 보이는 정보가 포함되어 있습니다.",
+  },
+  {
+    type: "individual_score",
+    severity: "high",
+    regex: new RegExp(
+      `(?<!\\d)\\d{1,3}(?:\\.\\d+)?\\s*점(?!검|\\s*만점)[^.!?\\n]{0,30}(?<![가-힣])${INDIVIDUAL_STUDENT_CONTEXT_PATTERN}`,
+      "gu",
+    ),
+    reason: "특정 학생에게 연결된 개별 점수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "rank",
     severity: "high",
     regex: new RegExp(
-      `(?<![가-힣])${NAMED_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)`,
+      `(?<![가-힣])${INDIVIDUAL_STUDENT_CONTEXT_PATTERN}(?:의|은|는|이|가)?[^.!?\\n]{0,30}?(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)`,
       "gu",
     ),
-    reason: "실명과 결합된 개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
+    reason:
+      "특정 학생에게 연결된 개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
+  },
+  {
+    type: "rank",
+    severity: "high",
+    regex: new RegExp(
+      `(?<!\\d)(?:(?:석차|순위)(?:는|가|:|：)?\\s*\\d{1,4}(?:\\s*\\/\\s*\\d{1,4})?|\\d{1,4}\\s*(?:등|위)(?:\\s*\\/\\s*\\d{1,4})?)[^.!?\\n]{0,30}(?<![가-힣])${INDIVIDUAL_STUDENT_CONTEXT_PATTERN}`,
+      "gu",
+    ),
+    reason:
+      "특정 학생에게 연결된 개별 석차나 등수로 보이는 정보가 포함되어 있습니다.",
   },
   {
     type: "medical_or_counseling",
     severity: "high",
     regex: new RegExp(
-      `(?:${NAMED_STUDENT_CONTEXT_PATTERN})[^.!?\\n]{0,50}${MEDICAL_TERM_PATTERN}|${MEDICAL_TERM_PATTERN}[^.!?\\n]{0,30}(?:${NAMED_STUDENT_CONTEXT_PATTERN})`,
+      `(?:${INDIVIDUAL_STUDENT_CONTEXT_PATTERN})[^.!?\\n]{0,50}${MEDICAL_TERM_PATTERN}|${MEDICAL_TERM_PATTERN}[^.!?\\n]{0,30}(?:${INDIVIDUAL_STUDENT_CONTEXT_PATTERN})`,
       "giu",
     ),
-    reason: "실명과 결합된 의료·진단·상담 정보가 포함되어 있습니다.",
+    reason:
+      "특정 학생에게 연결된 의료·진단·상담·가정 정보가 포함되어 있습니다.",
   },
   {
     type: "school_name",
@@ -457,6 +564,8 @@ export function detectPrivacyRisks(text: string): PrivacyScanResult {
       });
     }
   }
+
+  matches.push(...detectHighConfidenceCombinationRisks(text));
 
   const deduplicated = matches
     .sort((a, b) => a.start - b.start || b.end - a.end)

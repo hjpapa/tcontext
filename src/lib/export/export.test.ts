@@ -53,6 +53,24 @@ describe("profile export", () => {
     expect(markdown).not.toContain("psychological_safety");
   });
 
+  it("exports a controlled secondary teaching subject without changing legacy documents", () => {
+    const secondary = fictionalProfile(2);
+    secondary.metadata.teachingSubject = "science";
+
+    const markdown = profileToMarkdown(secondary);
+    expect(markdown).toContain('teaching_subject: "과학"');
+    expect(markdown).toContain('subject: "과학"');
+    expect(profileToPlainText(secondary)).toContain("담당 교과: 과학");
+    expect(profileToCompactText(secondary)).toContain(
+      "[학교급·역할·담당 교과] 중학교 · 교과전담 또는 교과교사 · 과학",
+    );
+
+    const legacy = fictionalProfile(1);
+    const legacyMarkdown = profileToMarkdown(legacy);
+    expect(legacyMarkdown).not.toContain("teaching_subject:");
+    expect(legacyMarkdown).toContain('subject: ""');
+  });
+
   it("warns about unresolved claims while keeping download possible", () => {
     const profile = fictionalProfile(0);
     const claim = profile.modules[0]?.claims[0];

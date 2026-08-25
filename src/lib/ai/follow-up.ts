@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai/models";
 import { INTERVIEW_FOLLOW_UP_INSTRUCTIONS } from "@/lib/ai/prompts/interview";
 import { followUpDecisionSchema } from "@/lib/ai/schemas/follow-up";
+import { hasUnsupportedGeneratedCharacters } from "@/lib/ai/text-quality";
 import type { z } from "zod";
 import type { followUpRequestSchema } from "@/lib/ai/schemas/requests";
 import type { FollowUpQuestion } from "@/types/interview";
@@ -26,6 +27,7 @@ export async function decideFollowUp(input: FollowUpInput): Promise<{
     input: JSON.stringify({
       schoolLevel: input.schoolLevel,
       role: input.role,
+      teachingSubject: input.teachingSubject ?? null,
       current: input.current,
       previousAnswers: input.previousAnswers,
       remainingFollowUps: Math.max(0, 4 - input.followUpCount),
@@ -38,7 +40,11 @@ export async function decideFollowUp(input: FollowUpInput): Promise<{
     timeoutMs: OPENAI_TIMEOUT_MS.interview,
   });
 
-  if (!result.needed || !result.question) {
+  if (
+    !result.needed ||
+    !result.question ||
+    hasUnsupportedGeneratedCharacters(result.question)
+  ) {
     return { needed: false, question: null };
   }
 

@@ -6,6 +6,7 @@ import {
   schoolLevelSchema,
   type ProfileModuleId,
   type SchoolLevel,
+  type TeachingSubject,
 } from "@/types/profile";
 
 export const TEACHER_ROLES = [
@@ -84,6 +85,7 @@ export type InterviewState = {
   version: "1.0";
   schoolLevel: SchoolLevel;
   role: TeacherRole;
+  teachingSubject?: TeachingSubject;
   questions: InterviewQuestion[];
   currentQuestionIndex: number;
   /** In-memory only. Storage serializers intentionally discard this map. */

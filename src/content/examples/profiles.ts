@@ -6,12 +6,14 @@ import {
   type ConfirmedTags,
   type ProfileModuleId,
   type SchoolLevel,
+  type TeachingSubject,
   type TeacherContextProfile,
 } from "@/types/profile";
 
 type ExampleSeed = {
   schoolLevel: SchoolLevel;
   role: string;
+  teachingSubject?: TeachingSubject;
   profileTitle: string;
   shortSummary: string;
   schoolLevelEvidenceQuestionId: string;
@@ -50,10 +52,13 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
     metadata: {
       schoolLevel: seed.schoolLevel,
       role: seed.role,
+      ...(seed.teachingSubject === undefined
+        ? {}
+        : { teachingSubject: seed.teachingSubject }),
       generatedAt: "2026-07-30T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "fictional-example",
-      promptVersion: "1.7",
+      promptVersion: "1.8",
     },
     profileTitle: seed.profileTitle,
     shortSummary: seed.shortSummary,
@@ -301,6 +306,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
   buildExample({
     schoolLevel: "middle",
     role: "subject_teacher",
+    teachingSubject: "social_studies",
     profileTitle: "선택과 근거 있는 대화를 설계하는 중학교 교사 컨텍스트",
     shortSummary:
       "여러 학급에서 예측 가능한 수업 구조를 유지하며, 학생의 선택과 소규모 대화를 통해 참여 격차를 줄인다.",
@@ -371,6 +377,7 @@ export const FICTIONAL_PROFILES: TeacherContextProfile[] = [
   buildExample({
     schoolLevel: "high",
     role: "subject_teacher",
+    teachingSubject: "science",
     profileTitle:
       "교과의 깊이와 실행 가능성을 함께 보는 고등학교 교사 컨텍스트",
     shortSummary:

@@ -10,6 +10,51 @@ export const SCHOOL_LEVELS = [
 export const schoolLevelSchema = z.enum(SCHOOL_LEVELS);
 export type SchoolLevel = z.infer<typeof schoolLevelSchema>;
 
+export const TEACHING_SUBJECTS = [
+  "korean_language",
+  "mathematics",
+  "english",
+  "social_studies",
+  "history",
+  "ethics",
+  "science",
+  "technology_home_economics",
+  "informatics",
+  "physical_education",
+  "music",
+  "visual_arts",
+  "second_foreign_language",
+  "classical_chinese",
+  "career_education",
+  "vocational",
+  "other",
+  "not_applicable",
+] as const;
+
+export const teachingSubjectSchema = z.enum(TEACHING_SUBJECTS);
+export type TeachingSubject = z.infer<typeof teachingSubjectSchema>;
+
+export const TEACHING_SUBJECT_LABELS: Record<TeachingSubject, string> = {
+  korean_language: "국어",
+  mathematics: "수학",
+  english: "영어",
+  social_studies: "사회",
+  history: "역사",
+  ethics: "도덕·윤리",
+  science: "과학",
+  technology_home_economics: "기술·가정",
+  informatics: "정보",
+  physical_education: "체육",
+  music: "음악",
+  visual_arts: "미술",
+  second_foreign_language: "제2외국어",
+  classical_chinese: "한문",
+  career_education: "진로",
+  vocational: "전문교과",
+  other: "기타 교과",
+  not_applicable: "교과 수업을 맡지 않음",
+};
+
 export const PROFILE_MODULE_IDS = [
   "identity_and_role",
   "educational_philosophy",
@@ -262,6 +307,7 @@ const profileMetadataSchema = z
   .object({
     schoolLevel: schoolLevelSchema,
     role: nonBlankText,
+    teachingSubject: teachingSubjectSchema.optional(),
     generatedAt: z.iso.datetime(),
     schemaVersion: nonBlankText,
     modelName: nonBlankText,

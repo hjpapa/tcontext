@@ -231,6 +231,12 @@ describe("security boundaries", () => {
     "학생 김민수는 토론을 선호합니다.",
     "박은영 교사는 토론을 선호합니다.",
     "Alex Kim 학생은 토론을 선호합니다.",
+    "한 학생의 점수는 85점입니다.",
+    "한 학생이 ADHD 진단을 받았습니다.",
+    "학생 한 명의 석차는 3등입니다.",
+    "학생 한 명의 상담 내용은 외부에 공유되었습니다.",
+    "그 학생의 상담 내용: 최근 불안으로 치료 중입니다.",
+    "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생입니다.",
   ])("blocks identifiable context before an OpenAI boundary: %s", (text) => {
     expect(() =>
       assertSafeForAI([{ path: "answers.0", value: text }]),
@@ -238,11 +244,6 @@ describe("security boundaries", () => {
   });
 
   it.each([
-    "한 학생의 점수는 85점입니다.",
-    "한 학생이 ADHD 진단을 받았습니다.",
-    "학생 한 명의 석차는 3등입니다.",
-    "학생 한 명의 상담 내용은 외부에 공유되었습니다.",
-    "그 학생의 상담 내용: 최근 불안으로 치료 중입니다.",
     "상담 내용은 보호자에게 제공하거나 교내에 기록합니다.",
     "산만한 학생에게 짧은 활동 순서를 안내합니다.",
     "현재 교사는 토론 수업을 준비합니다.",
@@ -253,6 +254,9 @@ describe("security boundaries", () => {
     "최대한 학생 참여를 지원합니다.",
     "이전의 학생 반응을 다음 수업에 반영합니다.",
     "성적별 학생 지원 자료를 준비합니다.",
+    "중학교 2학년 국어 수업을 담당합니다.",
+    "학급 인원은 20명대이고 기기는 모둠별로 공유합니다.",
+    "여러 학급에서 읽기 속도와 발표 부담의 차이가 크게 나타납니다.",
   ])("allows non-identifying context before an OpenAI boundary: %s", (text) => {
     expect(() =>
       assertSafeForAI([{ path: "answers.0", value: text }]),

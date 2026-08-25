@@ -6,6 +6,7 @@ import {
 import { TEACHER_ROLE_LABELS, teacherRoleSchema } from "@/types/interview";
 import {
   PROFILE_MODULE_IDS,
+  TEACHING_SUBJECT_LABELS,
   hasUnresolvedClaims,
   teacherContextProfileSchema,
   type TeacherContextProfile,
@@ -38,6 +39,11 @@ export function profileToPlainText(input: TeacherContextProfile): string {
     "적용 원칙: 교과·단원·성취기준·시간 등 현재 수업 정보가 이 프로필과 다르면 현재 수업 정보를 우선함",
     `학교급: ${SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel]}`,
     `역할: ${roleLabel(profile.metadata.role)}`,
+    ...(profile.metadata.teachingSubject === undefined
+      ? []
+      : [
+          `담당 교과: ${TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject]}`,
+        ]),
     profile.privacyReview.status === "needs_review"
       ? "개인정보 상태: 경고를 확인한 로컬 문서 — 식별 가능 정보가 남아 있을 수 있음"
       : "개인정보 상태: 자동 검사 통과",
@@ -102,6 +108,13 @@ export function profileToPlainText(input: TeacherContextProfile): string {
  */
 export function profileToCompactText(input: TeacherContextProfile): string {
   const profile = teacherContextProfileSchema.parse(input);
+  const setupContext = [
+    SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel],
+    roleLabel(profile.metadata.role),
+    ...(profile.metadata.teachingSubject === undefined
+      ? []
+      : [TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject]]),
+  ].join(" · ");
   const confirmedContextByModule = profile.modules.flatMap((module) => {
     const claims = module.claims
       .filter(
@@ -121,6 +134,7 @@ export function profileToCompactText(input: TeacherContextProfile): string {
           "[개인정보 경고] 식별 가능 정보가 남아 있을 수 있어 외부 서비스에 붙여 넣기 전에 직접 확인해야 합니다.",
         ]
       : []),
+    `[학교급·역할·담당 교과] ${setupContext}`,
     `[교사 컨텍스트] ${clean(profile.shortSummary)}`,
     "[적용 원칙] 현재 수업의 교과·단원·성취기준·시간 정보가 프로필과 다르면 현재 수업 정보를 우선하세요.",
     `[수업 원칙] ${profile.teachingDesignPrinciples.map(clean).join(" / ") || "별도 확인 필요"}`,

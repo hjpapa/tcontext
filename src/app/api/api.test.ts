@@ -173,6 +173,37 @@ describe("API route boundaries", () => {
     expect(decideFollowUp).not.toHaveBeenCalled();
   });
 
+  it("accepts a controlled teaching subject and rejects arbitrary subject text", async () => {
+    vi.mocked(decideFollowUp).mockResolvedValue({
+      needed: false,
+      question: null,
+    });
+    const validBody = {
+      schoolLevel: "middle",
+      role: "subject_teacher",
+      teachingSubject: "science",
+      current: safeExchange,
+      previousAnswers: [],
+      followUpCount: 0,
+    };
+
+    const accepted = await followUp(
+      jsonRequest("/api/interview/follow-up", validBody),
+    );
+    expect(accepted.status).toBe(200);
+    expect(decideFollowUp).toHaveBeenCalledWith(validBody);
+
+    vi.mocked(decideFollowUp).mockClear();
+    const rejected = await followUp(
+      jsonRequest("/api/interview/follow-up", {
+        ...validBody,
+        teachingSubject: "직접 입력한 교과",
+      }),
+    );
+    expect(rejected.status).toBe(400);
+    expect(decideFollowUp).not.toHaveBeenCalled();
+  });
+
   it("accepts a 2,000-character answer and rejects anything longer", async () => {
     vi.mocked(decideFollowUp).mockResolvedValue({
       needed: false,
@@ -225,6 +256,30 @@ describe("API route boundaries", () => {
     );
     expect(response.status).toBe(504);
     expect((await response.json()).error.code).toBe("ai_timeout");
+  });
+
+  it("passes a controlled teaching subject through profile generation", async () => {
+    const profile = submissionProfile();
+    profile.metadata.schoolLevel = "middle";
+    profile.metadata.role = "subject_teacher";
+    profile.metadata.teachingSubject = "history";
+    vi.mocked(generateProfile).mockResolvedValue({
+      profile,
+      suggestedTags: [],
+    });
+    const body = {
+      schoolLevel: "middle",
+      role: "subject_teacher",
+      teachingSubject: "history",
+      answers: [safeExchange],
+    } as const;
+
+    const response = await generateProfileRoute(
+      jsonRequest("/api/profile/generate", body),
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateProfile).toHaveBeenCalledWith(body);
   });
 
   it("refines a module when the AI-bound natural language is generic", async () => {

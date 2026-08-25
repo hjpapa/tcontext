@@ -17,12 +17,20 @@ import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
 import {
   profileGenerationOutputSchema,
   profileModuleRefineOutputSchema,
+  profileRefineOutputSchema,
 } from "@/lib/ai/schemas/profile";
 import {
   PROFILE_MODULE_IDS,
   type ProfileModule,
+  type TeachingSubject,
   type TeacherContextProfile,
 } from "@/types/profile";
+
+type StructuredAIProfile = Omit<TeacherContextProfile, "metadata"> & {
+  metadata: Omit<TeacherContextProfile["metadata"], "teachingSubject"> & {
+    teachingSubject: TeachingSubject | null;
+  };
+};
 
 function teacherProfileFixture(): TeacherContextProfile {
   return {
@@ -66,28 +74,40 @@ function teacherProfileFixture(): TeacherContextProfile {
   };
 }
 
-function generatedProfileFixture(): TeacherContextProfile {
+function generatedProfileFixture(): StructuredAIProfile {
   const profile = teacherProfileFixture();
-  profile.modules = profile.modules.map((module, index) => ({
-    ...module,
-    claims: [
-      {
-        ...module.claims[0]!,
-        confirmedByUser: false,
-      },
-      {
-        id: `${module.id}-inferred-${index + 1}`,
-        text: `Grounded inference ${index + 1}`,
-        basis: "inferred",
-        evidenceQuestionIds: ["q-1"],
-        confirmedByUser: false,
-      },
+  return {
+    ...profile,
+    metadata: { ...profile.metadata, teachingSubject: null },
+    modules: profile.modules.map((module, index) => ({
+      ...module,
+      claims: [
+        {
+          ...module.claims[0]!,
+          confirmedByUser: false,
+        },
+        {
+          id: `${module.id}-inferred-${index + 1}`,
+          text: `Grounded inference ${index + 1}`,
+          basis: "inferred",
+          evidenceQuestionIds: ["q-1"],
+          confirmedByUser: false,
+        },
+      ],
+    })),
+    teachingDesignPrinciples: [
+      ...profile.teachingDesignPrinciples,
+      "Connect feedback to revision.",
     ],
-  }));
-  profile.teachingDesignPrinciples.push("Connect feedback to revision.");
-  profile.classSupportConsiderations.push("Keep participation low risk.");
-  profile.aiCollaborationInstructions.push("Show reasoning for review.");
-  return profile;
+    classSupportConsiderations: [
+      ...profile.classSupportConsiderations,
+      "Keep participation low risk.",
+    ],
+    aiCollaborationInstructions: [
+      ...profile.aiCollaborationInstructions,
+      "Show reasoning for review.",
+    ],
+  };
 }
 
 describe("OpenAI structured boundary", () => {
@@ -288,6 +308,66 @@ describe("OpenAI structured boundary", () => {
     expect(parse).toHaveBeenCalledTimes(1);
   });
 
+  it("includes a controlled teaching subject in follow-up context", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { needed: false, question: null },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    await decideFollowUp({
+      schoolLevel: "high",
+      role: "subject_teacher",
+      teachingSubject: "history",
+      current: {
+        questionId: "q-1",
+        moduleId: "identity_and_role",
+        question: "수업에서 중요하게 보는 것은 무엇인가요?",
+        answer: "자료의 근거를 비교하고 생각을 고치게 합니다.",
+      },
+      previousAnswers: [],
+      followUpCount: 0,
+    });
+
+    const request = parse.mock.calls[0]?.[0] as { input?: string } | undefined;
+    expect(JSON.parse(request?.input ?? "{}").teachingSubject).toBe("history");
+  });
+
+  it("drops a follow-up that contains hanja or broken characters", async () => {
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: {
+        needed: true,
+        question: {
+          prompt: "최근 \u5B78\u7FD2 장면에서 무엇을 바꾸었나요?",
+          intent: "수업 조정 행동 하나를 확인합니다.",
+          example: "활동 순서를 바꾸었습니다.",
+          privacyHint: "사람 이름은 적지 마세요.",
+        },
+      },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    await expect(
+      decideFollowUp({
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        current: {
+          questionId: "q-1",
+          moduleId: "preferred_teaching",
+          question: "수업을 어떻게 조정하나요?",
+          answer: "학생 반응을 보고 활동 순서를 바꿉니다.",
+        },
+        previousAnswers: [],
+        followUpCount: 0,
+      }),
+    ).resolves.toEqual({ needed: false, question: null });
+  });
+
   it("keeps missing structured profile and privacy responses as errors", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const parse = vi.fn().mockResolvedValue({
@@ -444,6 +524,36 @@ describe("OpenAI structured boundary", () => {
     ).not.toThrow();
   });
 
+  it("keeps optional canonical subjects required and nullable at the AI boundary", () => {
+    const generated = generatedProfileFixture();
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: generated,
+        suggestedTags: [],
+      }).success,
+    ).toBe(true);
+    expect(
+      profileRefineOutputSchema.safeParse({ profile: generated }).success,
+    ).toBe(true);
+    expect(() =>
+      zodTextFormat(
+        profileGenerationOutputSchema,
+        "tcontext_profile_generation_subject_test",
+      ),
+    ).not.toThrow();
+
+    const missingSubject = structuredClone(generated) as unknown as {
+      metadata: Record<string, unknown>;
+    };
+    delete missingSubject.metadata.teachingSubject;
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: missingSubject,
+        suggestedTags: [],
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects generated evidence IDs that were not supplied as answers", async () => {
     const generated = generatedProfileFixture();
     const generatedClaim = generated.modules[0]?.claims[0];
@@ -518,6 +628,73 @@ describe("OpenAI structured boundary", () => {
       "identity_and_role:claim:1",
       "identity_and_role:claim:2",
     ]);
+  });
+
+  it("passes a controlled teaching subject to the model and trusts the request value", async () => {
+    const generated = generatedProfileFixture();
+    generated.metadata.teachingSubject = null;
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { profile: generated, suggestedTags: [] },
+      usage: null,
+    });
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await generateProfile({
+      schoolLevel: "middle",
+      role: "subject_teacher",
+      teachingSubject: "science",
+      answers: [
+        {
+          questionId: "q-1",
+          moduleId: "identity_and_role",
+          question: "What guides your lesson design?",
+          answer: "I connect evidence, discussion, and revision.",
+        },
+      ],
+    });
+
+    expect(result.profile.metadata.teachingSubject).toBe("science");
+    const request = parse.mock.calls[0]?.[0] as { input?: string } | undefined;
+    const requestInput = JSON.parse(request?.input ?? "{}") as {
+      teachingSubject?: unknown;
+      metadataRequirements?: { teachingSubject?: unknown };
+    };
+    expect(requestInput.teachingSubject).toBe("science");
+    expect(requestInput.metadataRequirements?.teachingSubject).toBe("science");
+  });
+
+  it("rejects generated profiles that contain hanja or broken characters", async () => {
+    const generated = generatedProfileFixture();
+    generated.shortSummary = "학생의 \u5B78\u7FD2을 지원합니다.";
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: { profile: generated, suggestedTags: [] },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(
+      generateProfile({
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        answers: [
+          {
+            questionId: "q-1",
+            moduleId: "identity_and_role",
+            question: "수업에서 무엇을 중요하게 보나요?",
+            answer: "학생이 자기 생각을 말할 시간을 중요하게 봅니다.",
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: "ai_invalid_response",
+      status: 502,
+      message: expect.stringContaining("읽기 어려운 문자나 한자"),
+    });
   });
 
   it("maps invalid generated module composition to an AI response error", async () => {
@@ -795,7 +972,13 @@ describe("OpenAI structured boundary", () => {
         },
       ],
     };
-    const generated = structuredClone(original);
+    const generated = {
+      ...structuredClone(original),
+      metadata: {
+        ...original.metadata,
+        teachingSubject: original.metadata.teachingSubject ?? null,
+      },
+    };
     generated.privacyReview = { status: "clear", items: [] };
     const parse = vi.fn().mockResolvedValue({
       output_parsed: { profile: generated },
@@ -881,6 +1064,34 @@ describe("OpenAI structured boundary", () => {
     expect(request?.input).not.toContain("teacher@example.com");
     expect(request?.input).not.toContain("010-1234-5678");
     expect(request?.input).not.toContain("stale@example.com");
+  });
+
+  it("rejects privacy-review explanations with hanja or broken characters", async () => {
+    const profile = teacherProfileFixture();
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: {
+            items: [
+              {
+                path: "profile.shortSummary",
+                category: "person_name",
+                text: profile.shortSummary,
+                reason: "\u500B\u4EBA을 특정할 수 있습니다.",
+                suggestedRewrite: "일반적인 표현으로 바꿔 주세요.",
+              },
+            ],
+          },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(reviewProfileWithAI(profile)).rejects.toMatchObject({
+      code: "ai_invalid_response",
+      status: 502,
+      message: expect.stringContaining("읽기 어려운 문자나 한자"),
+    });
   });
 
   it("stops locally detected authored personal data before OpenAI", async () => {
@@ -1195,14 +1406,14 @@ describe("OpenAI structured boundary", () => {
     });
   });
 
-  it("discards AI privacy candidates for anonymous sensitive context and labels", async () => {
+  it("discards AI privacy candidates for aggregate context and support labels", async () => {
     const profile = teacherProfileFixture();
     const firstModule = profile.modules[0];
     const firstClaim = firstModule?.claims[0];
     if (!firstModule || !firstClaim)
       throw new Error("fixture claim is missing");
-    profile.shortSummary = "한 학생의 점수는 85점이다.";
-    firstModule.summary = "그 학생이 ADHD 진단을 받았다.";
+    profile.shortSummary = "학급 평균은 85점이고 기기는 모둠별로 공유한다.";
+    firstModule.summary = "집중과 활동 전환 지원이 필요한 학생이 일부 있다.";
     firstClaim.text = "산만한 학생에게 짧은 활동 순서를 안내한다.";
 
     const parse = vi.fn().mockResolvedValue({
@@ -1212,15 +1423,15 @@ describe("OpenAI structured boundary", () => {
             path: "profile.shortSummary",
             category: "identifiable_sensitive_context",
             text: profile.shortSummary,
-            reason: "개별 점수가 있습니다.",
-            suggestedRewrite: "학급 수준 점수 설명으로 바꿉니다.",
+            reason: "학급 평균이 있습니다.",
+            suggestedRewrite: "점수를 제거합니다.",
           },
           {
             path: "profile.modules.0.summary",
             category: "identifiable_sensitive_context",
             text: firstModule.summary,
-            reason: "진단 정보가 있습니다.",
-            suggestedRewrite: "지원 요구로 바꿉니다.",
+            reason: "지원이 필요한 학생이 있습니다.",
+            suggestedRewrite: "집단 표현을 제거합니다.",
           },
           {
             path: "profile.modules.0.claims.0.text",
@@ -1245,12 +1456,28 @@ describe("OpenAI structured boundary", () => {
     });
     const request = parse.mock.calls[0]?.[0] as
       { instructions?: string } | undefined;
-    expect(request?.instructions).toContain(
-      '"한 학생", "그 학생", "해당 학생", "학생 한 명"',
-    );
-    expect(request?.instructions).toContain(
-      "그 표현만으로는 개인정보 후보가 아니다",
-    );
+    expect(request?.instructions).toContain('"20명대"');
+    expect(request?.instructions).toContain("집단 수준의 참여·학습 경향");
+  });
+
+  it("stops an individual student's score and diagnosis locally before AI", async () => {
+    const profile = teacherProfileFixture();
+    const firstModule = profile.modules[0];
+    if (!firstModule) throw new Error("fixture module is missing");
+    profile.shortSummary = "한 학생의 점수는 85점이다.";
+    firstModule.summary = "그 학생이 ADHD 진단을 받았다.";
+    const parse = vi.fn();
+    setOpenAIClientForTests({
+      responses: { parse },
+    } as unknown as OpenAI);
+
+    const result = await reviewProfileWithAI(profile);
+
+    expect(result).toMatchObject({
+      source: "local",
+      review: { status: "needs_review" },
+    });
+    expect(parse).not.toHaveBeenCalled();
   });
 
   it("stops an explicit name and sensitive context locally before AI", async () => {
@@ -1270,35 +1497,20 @@ describe("OpenAI structured boundary", () => {
     expect(parse).not.toHaveBeenCalled();
   });
 
-  it("discards a combination candidate without a direct personal identifier", async () => {
+  it("stops a strong quasi-identifier combination locally before AI", async () => {
     const profile = teacherProfileFixture();
     profile.shortSummary =
       "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생의 참여를 지원한다.";
-    setOpenAIClientForTests({
-      responses: {
-        parse: vi.fn().mockResolvedValue({
-          output_parsed: {
-            items: [
-              {
-                path: "profile.shortSummary",
-                category: "combination_risk",
-                text: profile.shortSummary,
-                reason: "구체적인 단서의 조합으로 개인을 추정할 수 있습니다.",
-                suggestedRewrite: "개인을 특정하지 않는 학급 수준 설명",
-              },
-            ],
-          },
-          usage: null,
-        }),
-      },
-    } as unknown as OpenAI);
+    const parse = vi.fn();
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
 
     const result = await reviewProfileWithAI(profile);
 
-    expect(result).toEqual({
-      source: "openai",
-      review: { status: "clear", items: [] },
+    expect(result).toMatchObject({
+      source: "local",
+      review: { status: "needs_review" },
     });
+    expect(parse).not.toHaveBeenCalled();
   });
 
   it("stops a combination with a direct identifier locally before AI", async () => {

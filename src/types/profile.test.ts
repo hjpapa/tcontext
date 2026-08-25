@@ -24,6 +24,20 @@ describe("teacherContextProfileSchema", () => {
     }
   });
 
+  it("keeps legacy profiles valid while accepting only controlled teaching subjects", () => {
+    const legacy = fictionalProfile(2);
+    delete legacy.metadata.teachingSubject;
+    expect(legacy.metadata.teachingSubject).toBeUndefined();
+    expect(teacherContextProfileSchema.safeParse(legacy).success).toBe(true);
+
+    legacy.metadata.teachingSubject = "science";
+    expect(teacherContextProfileSchema.safeParse(legacy).success).toBe(true);
+
+    const raw = legacy as unknown as { metadata: Record<string, unknown> };
+    raw.metadata.teachingSubject = "직접 입력한 교과";
+    expect(teacherContextProfileSchema.safeParse(raw).success).toBe(false);
+  });
+
   it("uses evidence question IDs that exist in each fictional interview path", () => {
     const commonEvidenceByModule = {
       identity_and_role: "common-role-focus",

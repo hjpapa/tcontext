@@ -8,13 +8,14 @@ import {
   type InterviewState,
   type TeacherRole,
 } from "@/types/interview";
-import type { SchoolLevel } from "@/types/profile";
+import type { SchoolLevel, TeachingSubject } from "@/types/profile";
 
 const nowIso = (): string => new Date().toISOString();
 
 export type CreateInterviewStateInput = {
   schoolLevel: SchoolLevel;
   role: TeacherRole;
+  teachingSubject?: TeachingSubject;
   privacyNoticeAccepted: boolean;
   now?: string;
 };
@@ -22,6 +23,7 @@ export type CreateInterviewStateInput = {
 export function createInterviewState({
   schoolLevel,
   role,
+  teachingSubject,
   privacyNoticeAccepted,
   now = nowIso(),
 }: CreateInterviewStateInput): InterviewState {
@@ -29,6 +31,7 @@ export function createInterviewState({
     version: "1.0",
     schoolLevel,
     role,
+    ...(teachingSubject === undefined ? {} : { teachingSubject }),
     questions: buildInterviewQuestions({ schoolLevel, role }),
     currentQuestionIndex: 0,
     answers: {},

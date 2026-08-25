@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  COMMON_QUESTIONS,
+  ELEMENTARY_QUESTIONS,
+  HIGH_QUESTIONS,
+  KINDERGARTEN_QUESTIONS,
+  MIDDLE_QUESTIONS,
+  ROLE_QUESTIONS,
+} from "@/content/questions";
 import { buildInterviewQuestions } from "./router";
 import {
   addFollowUpQuestion,
@@ -71,24 +79,58 @@ describe("question routing", () => {
       "지키려는 원칙",
     );
     expect(promptFor("common-lesson-flow")).toContain("가장 먼저 정하는");
-    expect(promptFor("common-adaptive-tendency")).toContain("운전 습관");
+    expect(promptFor("common-adaptive-tendency")).toContain("계획을 바꾸는 편");
+    expect(promptFor("common-adaptive-tendency")).not.toContain("운전 습관");
     expect(intentFor("common-adaptive-tendency")).toContain("둘 사이");
     expect(intentFor("common-adaptive-tendency")).toContain("상황마다");
-    expect(promptFor("common-class-support")).toContain("갖춰져야 하는 조건");
+    expect(promptFor("common-class-support")).toContain("학급의 상황 하나");
     expect(promptFor("common-assessment-feedback")).toContain(
-      "먼저 살펴보나요",
+      "가장 먼저 무엇을 살펴보나요",
     );
-    expect(promptFor("common-environment")).toContain("현실 문제");
+    expect(promptFor("common-environment")).toContain("학교의 현실 조건");
     expect(promptFor("common-ai-boundaries")).toContain("확인하고 결정");
 
     const metaphorQuestions = questions.filter((question) =>
-      /나침반|운전 습관|리셋 버튼/u.test(question.prompt),
+      /나침반|리셋 버튼/u.test(question.prompt),
     );
-    expect(metaphorQuestions).toHaveLength(3);
+    expect(metaphorQuestions).toHaveLength(2);
 
     for (const question of questions) {
       expect(question.prompt.match(/\?/gu)).toHaveLength(1);
-      expect(question.example.length).toBeLessThanOrEqual(80);
+      expect(question.example.match(/[.!?](?:\s|$)/gu)).toHaveLength(2);
+      expect(question.example.length).toBeLessThanOrEqual(160);
+    }
+  });
+
+  it("keeps every authored question normalized and free of broken text or hanja", () => {
+    const questions = [
+      ...COMMON_QUESTIONS,
+      ...KINDERGARTEN_QUESTIONS,
+      ...ELEMENTARY_QUESTIONS,
+      ...MIDDLE_QUESTIONS,
+      ...HIGH_QUESTIONS,
+      ...Object.values(ROLE_QUESTIONS),
+    ];
+    const fixedTextFields = [
+      "prompt",
+      "intent",
+      "example",
+      "privacyHint",
+    ] as const;
+    const unsafeText =
+      /[\uFFFD\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]|\u00C3|\u00C2|\u00E2\u20AC|\u00EF\u00BF\u00BD/u;
+
+    for (const question of questions) {
+      for (const field of fixedTextFields) {
+        const value = question[field];
+        expect(value, `${question.id}.${field} must use NFC`).toBe(
+          value.normalize("NFC"),
+        );
+        expect(
+          value,
+          `${question.id}.${field} contains unsafe text`,
+        ).not.toMatch(unsafeText);
+      }
     }
   });
 });
@@ -155,5 +197,18 @@ describe("interview runtime state", () => {
       current: 1,
       total: 11,
     });
+  });
+
+  it("keeps an optional controlled teaching subject in runtime state", () => {
+    const state = createInterviewState({
+      schoolLevel: "high",
+      role: "subject_teacher",
+      teachingSubject: "mathematics",
+      privacyNoticeAccepted: true,
+      now: "2026-07-30T00:00:00.000Z",
+    });
+
+    expect(state.teachingSubject).toBe("mathematics");
+    expect(state.questions).toHaveLength(11);
   });
 });

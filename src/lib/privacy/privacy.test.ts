@@ -27,6 +27,9 @@ describe("detectPrivacyRisks", () => {
     ["teacher@example.com", "email"],
     ["010-1234-5678", "phone"],
     ["120101-3123456", "resident_registration_number"],
+    ["여권번호 M12345678", "resident_registration_number"],
+    ["운전면허번호: 11-12-123456-78", "resident_registration_number"],
+    ["학번: 20261234", "resident_registration_number"],
     ["생년월일은 2012년 3월 4일", "birth_date"],
     ["서울특별시 종로구 세종대로 1", "address"],
     ["김소영 학생은 발표를 어려워한다", "student_name"],
@@ -37,8 +40,14 @@ describe("detectPrivacyRisks", () => {
     ["Alex Kim 학생은 토론을 선호한다", "student_name"],
     ["학생 Alex Kim은 토론을 선호한다", "student_name"],
     ["김가람 학생의 점수는 43점이다", "individual_score"],
+    ["한 학생의 점수는 85점이다", "individual_score"],
+    ["85점을 받은 한 학생이다", "individual_score"],
     ["김소영 학생의 석차는 3이다", "rank"],
+    ["학생 한 명의 석차는 3등이다", "rank"],
+    ["3등인 학생 한 명이다", "rank"],
     ["박은영 학생은 ADHD 진단을 받았다", "medical_or_counseling"],
+    ["한 학생이 ADHD 진단을 받았다", "medical_or_counseling"],
+    ["그 학생의 상담 내용은 외부에 공유되었다", "medical_or_counseling"],
     ["푸른하늘초등학교에서 근무한다", "school_name"],
     ["한빛교육지원청에서 근무한다", "school_name"],
     ["3학년 2반 학생들과 토론한다", "school_name"],
@@ -192,17 +201,41 @@ describe("detectPrivacyRisks", () => {
     "교실은 학생이 실수해도 안전한 곳입니다.",
     "관계는 학생과 함께 만듭니다.",
     "평가는 학생의 성장을 돕습니다.",
-    "한 학생의 점수는 85점이다.",
-    "학생 한 명의 석차는 3등이다.",
-    "한 학생이 ADHD 진단을 받았다.",
-    "학생 한 명의 상담 내용은 외부에 공유되었다.",
-    "그 학생의 상담 내용: 최근 불안으로 치료 중이다.",
     "상담 내용은 보호자에게 제공하거나 교내에 기록한다.",
     "산만한 학생에게 짧은 활동 순서를 안내한다.",
     "수학을 못하는 학생에게 단계별 예시를 제공한다.",
   ])("keeps generic dates, metrics, and support guidance clear: %s", (text) => {
     expect(containsPrivacyRisk(text)).toBe(false);
   });
+
+  it.each([
+    "중학교 2학년 국어 수업을 담당합니다.",
+    "학급 인원은 20명대이고 기기는 모둠별로 공유합니다.",
+    "농산어촌 학교에서 네트워크가 불안정한 경우를 대비합니다.",
+    "여러 학급에서 읽기 속도와 발표 부담의 차이가 크게 나타납니다.",
+    "집중과 활동 전환 지원이 필요한 학생이 일부 있습니다.",
+  ])("keeps useful anonymous school and class context clear: %s", (text) => {
+    expect(containsPrivacyRisk(text)).toBe(false);
+  });
+
+  it.each([
+    "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생의 참여를 지원한다.",
+    "6학년 한 학생이 전학한 후 수업 참여를 돕는다.",
+    "A 학생이 2026년 4월 12일 대회에서 수상했다.",
+  ])("blocks a strong combination of quasi-identifying clues: %s", (text) => {
+    expect(containsPrivacyRisk(text)).toBe(true);
+  });
+
+  it.each([
+    "4월 12일 5학년 학생들이 과학대회에 참여했다.",
+    "4월 12일 한 학생이 탐구 활동에 참여했다.",
+    "5학년 한 학생이 수업에 참여했다.",
+  ])(
+    "does not block an incomplete quasi-identifier combination: %s",
+    (text) => {
+      expect(containsPrivacyRisk(text)).toBe(false);
+    },
+  );
 
   it.each([
     "김다은 학생의 선택을 존중합니다.",

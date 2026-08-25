@@ -8,6 +8,7 @@ import {
   machineIdentifierSchema,
   profileModuleIdSchema,
   schoolLevelSchema,
+  teachingSubjectSchema,
   teacherContextProfileSchema,
 } from "@/types/profile";
 import { profileContributionSchema } from "@/types/submission";
@@ -28,6 +29,7 @@ export const followUpRequestSchema = z
   .object({
     schoolLevel: schoolLevelSchema,
     role: teacherRoleSchema,
+    teachingSubject: teachingSubjectSchema.optional(),
     current: interviewExchangeSchema,
     previousAnswers: z.array(interviewExchangeSchema).max(40).default([]),
     followUpCount: z.number().int().min(0).max(4),
@@ -38,6 +40,7 @@ export const profileGenerateRequestSchema = z
   .object({
     schoolLevel: schoolLevelSchema,
     role: teacherRoleSchema,
+    teachingSubject: teachingSubjectSchema.optional(),
     answers: z.array(interviewExchangeSchema).min(1).max(40),
   })
   .strict();

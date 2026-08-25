@@ -222,6 +222,47 @@ async function approveDraftAndFinishReview(page: Page) {
 }
 
 test.describe("anonymous teacher-context flow", () => {
+  test("requires and sends a controlled subject for middle and high school", async ({
+    page,
+  }) => {
+    let followUpPayload: Record<string, unknown> | null = null;
+    await page.route("**/api/interview/follow-up", async (route) => {
+      followUpPayload = (await route.request().postDataJSON()) as Record<
+        string,
+        unknown
+      >;
+      await fulfillJson(route, { needed: false, question: null });
+    });
+
+    await page.goto("/interview");
+    await page
+      .getByRole("checkbox", { name: /개인정보를 입력하지 않으며/ })
+      .click();
+    await page
+      .getByRole("button", { name: "확인하고 학교급 선택하기" })
+      .click();
+    await page.getByRole("radio", { name: "중학교" }).click();
+
+    const subjectSelect = page.getByRole("combobox", { name: "담당 교과" });
+    await expect(subjectSelect).toBeVisible();
+    await page.getByRole("radio", { name: "고등학교" }).click();
+    await expect(subjectSelect).toBeVisible();
+    await page.getByRole("button", { name: "인터뷰 시작하기" }).click();
+    await expect(page.locator("main").getByRole("alert")).toContainText(
+      "담당 교과를 선택해 주세요",
+    );
+
+    await subjectSelect.selectOption("science");
+    await page.getByRole("button", { name: "인터뷰 시작하기" }).click();
+    await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
+    await page.getByRole("button", { name: "다음 질문" }).click();
+
+    expect(followUpPayload).toMatchObject({
+      schoolLevel: "high",
+      teachingSubject: "science",
+    });
+  });
+
   test("continues when the optional AI follow-up service is unavailable", async ({
     page,
   }) => {

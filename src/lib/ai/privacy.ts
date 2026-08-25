@@ -9,6 +9,7 @@ import {
   privacyReviewCandidatesOutputSchema,
   type PrivacyReviewCandidate,
 } from "@/lib/ai/schemas/privacy";
+import { assertSafeGeneratedCharacters } from "@/lib/ai/text-quality";
 import {
   collectProfileAuthoredTextFields,
   localAuthoredProfilePrivacyReview,
@@ -173,6 +174,62 @@ const GENERIC_CLASS_PREFIXES = new Set([
   "학습지원",
   "나침",
 ]);
+const SINGULAR_STUDENT_REFERENCE =
+  /(?:(?:한|그|해당|특정|개별)\s*(?:학생|유아|아동)|(?:학생|유아|아동)\s*한\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\s*(?:학생|유아|아동))/u;
+const RARE_IDENTIFYING_EVENT =
+  /(?:단독|유일|수상|입상|대회|전학|전입|전출|입학|졸업|사고|징계|퇴학|학교폭력|피해|가해|입원|응급|실종|구조)/u;
+
+function hasSingularStudentReference(text: string) {
+  return (
+    SINGULAR_STUDENT_REFERENCE.test(text) ||
+    /(?:단독|유일)[^.!?\n]{0,30}(?:학생|유아|아동)(?!들)/u.test(text) ||
+    /(?:학생|유아|아동)(?!들)[^.!?\n]{0,30}(?:단독|유일)/u.test(text)
+  );
+}
+
+function isValidCalendarDate(year: number, month: number, day: number) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function hasExactCalendarDate(text: string) {
+  for (const match of text.matchAll(
+    /((?:19|20)\d{2})(?:년|[-/.])\s*(0?[1-9]|1[0-2])(?:월|[-/.])\s*(0?[1-9]|[12]\d|3[01])일?/gu,
+  )) {
+    if (
+      isValidCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]))
+    ) {
+      return true;
+    }
+  }
+
+  for (const match of text.matchAll(
+    /(?<!\d)(0?[1-9]|1[0-2])\s*월\s*(0?[1-9]|[12]\d|3[01])\s*일/gu,
+  )) {
+    if (isValidCalendarDate(2000, Number(match[1]), Number(match[2]))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function hasStrongQuasiIdentifierCombination(text: string) {
+  const hasSingularStudent = hasSingularStudentReference(text);
+  const hasRareEvent = RARE_IDENTIFYING_EVENT.test(text);
+  const clueCount = [
+    hasExactCalendarDate(text),
+    /(?<!\d)\d{1,2}\s*(?:학년|세)(?!\d)/u.test(text),
+    hasSingularStudent,
+    hasRareEvent,
+  ].filter(Boolean).length;
+
+  return hasSingularStudent && hasRareEvent && clueCount >= 3;
+}
 
 function hasPotentialPersonName(text: string) {
   if (
@@ -219,7 +276,7 @@ function hasPotentialPersonName(text: string) {
 }
 
 function hasGovernmentIdentifier(text: string) {
-  return /(?:주민등록번호|외국인등록번호|여권번호|운전면허번호)\s*(?:은|는|이|가|:|：)?\s*[A-Z0-9-]{6,}/iu.test(
+  return /(?:주민등록번호|외국인등록번호|여권번호|운전면허(?:증)?번호|학번|학생번호|교직원번호|사번)\s*(?:은|는|이|가|:|：)?\s*[A-Z0-9-]{6,}/iu.test(
     text,
   );
 }
@@ -287,15 +344,20 @@ function hasDirectPersonalIdentifier(text: string) {
   );
 }
 
+function hasIndividualStudentReference(text: string) {
+  return hasPotentialPersonName(text) || SINGULAR_STUDENT_REFERENCE.test(text);
+}
+
 function hasIdentifiableSensitiveContext(text: string) {
   const hasSensitiveDetail =
-    /(?:개별\s*)?(?:점수|성적|석차|등수|순위)|ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단(?:명|받)|치료\s*중|약\s*복용|상담\s*(?:기록|내용)|건강\s*정보|병력|가정환경|생활기록부/iu.test(
+    /(?:개별\s*)?(?:점수|성적|석차|등수|순위)|ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단(?:명|받)|치료\s*중|약\s*복용|상담\s*(?:을\s*받|기록|내용|이력)|건강\s*정보|병력|가정\s*환경|생활기록부/iu.test(
       text,
     );
-  return hasSensitiveDetail && hasDirectPersonalIdentifier(text);
+  return hasSensitiveDetail && hasIndividualStudentReference(text);
 }
 
 function hasCombinationRisk(text: string) {
+  if (hasStrongQuasiIdentifierCombination(text)) return true;
   if (!hasDirectPersonalIdentifier(text)) return false;
 
   const contextualClues = [
@@ -405,6 +467,12 @@ export async function reviewProfileWithAI(
   }
 
   const output = await runPrivacyReviewCandidates(fields);
+  assertSafeGeneratedCharacters(
+    output.items.map(({ reason, suggestedRewrite }) => ({
+      reason,
+      suggestedRewrite,
+    })),
+  );
 
   return {
     source: "openai",

@@ -72,6 +72,21 @@ describe("session progress", () => {
     expect(loadSessionProgress(storage)?.completedQuestionCount).toBe(1);
   });
 
+  it("round-trips a controlled teaching subject as non-sensitive progress metadata", () => {
+    const state = createInterviewState({
+      schoolLevel: "middle",
+      role: "subject_teacher",
+      teachingSubject: "science",
+      privacyNoticeAccepted: true,
+      now: "2026-07-30T00:00:00.000Z",
+    });
+    const progress = toStoredInterviewProgress(state);
+    const restored = restoreInterviewProgress(progress);
+
+    expect(progress.teachingSubject).toBe("science");
+    expect(restored?.interview.teachingSubject).toBe("science");
+  });
+
   it("removes malformed stored progress", () => {
     const storage = new MemoryStorage();
     storage.setItem(SESSION_PROGRESS_KEY, '{"answers":{"secret":"raw"}}');

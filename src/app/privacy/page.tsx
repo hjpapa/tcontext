@@ -137,14 +137,21 @@ export default function PrivacyPage() {
 
         <section aria-labelledby="limits-title" className="feature-card">
           <h2 id="limits-title" className="text-2xl font-bold">
-            자동 검사의 한계
+            적어도 되는 맥락과 자동 검사의 한계
           </h2>
           <p className="text-muted-foreground mt-3 max-w-4xl leading-7">
+            학교급·학년·교과, 대략적인 학급 규모, 수업 시간과 공간, 기기 환경,
+            익명 집단의 참여 경향과 필요한 지원은 적어도 됩니다. 이런 정보는
+            실제 수업에 쓸 수 있는 컨텍스트를 만드는 데 필요합니다.
+          </p>
+          <p className="text-muted-foreground mt-3 max-w-4xl leading-7">
             규칙 기반 검사와 AI 검사를 함께 사용하지만 모든 개인정보를 완벽히
-            찾을 수는 없습니다. 이름, 구체적인 학교·반명, 연락처, 정부 식별번호,
-            상세 주소처럼 개인을 직접 식별하는 정보가 없는지 전송과 다운로드
-            전에 직접 확인해 주세요. 익명인 “한 학생”의 점수·진단·상담
-            맥락만으로 검사를 막지는 않지만, 직접 식별정보와 함께 적지 마세요.
+            찾을 수는 없습니다. 사람 이름, 연락처, 생년월일, 식별번호, 상세
+            주소, 실제 학교·정확한 반의 고유명, 개인에게 연결된
+            성적·진단·건강·상담 정보가 없는지 전송과 다운로드 전에 직접 확인해
+            주세요. 정확한 날짜, 학년, 희귀한 사건처럼 여러 단서를 조합해 한
+            사람을 쉽게 알아볼 수 있는 설명도 일반적인 표현으로 바꾸는 것이
+            안전합니다.
           </p>
         </section>
 

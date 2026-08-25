@@ -83,7 +83,7 @@ Preview와 Production에는 서로 독립된 비밀값을 설정한다. 운영 S
 1. GitHub 저장소를 `tcontext` 프로젝트에 연결한다.
 2. Framework Preset을 Next.js, Install Command를 `pnpm install`로 둔다.
 3. Preview와 Production 환경 변수를 각각 설정한다.
-4. Preview를 배포해 랜딩, 개인정보 안내, 학교급·역할 선택, 인터뷰, 생성·검토, 다운로드, 저장 거부, 선택 저장·삭제, `/admin/login` 인증과 관리자 열람을 스모크 테스트한다.
+4. Preview를 배포해 랜딩, 개인정보 안내, 학교급·역할·중고등학교 담당 교과 선택, 인터뷰, 생성·검토, 다운로드, 저장 거부, 선택 저장·삭제, `/admin/login` 인증과 관리자 열람을 스모크 테스트한다.
 5. 통과한 커밋을 Production에 배포한다.
 
 `vercel.json`은 매일 한국 시간 오전 3시 17분에 삭제 대상 정리 API를 호출한다. API는 `CRON_SECRET` 또는 Vercel Cron 인증을 검증해야 한다. 일일 실행 실패가 발생하면 최대 보유기간을 넘길 수 있으므로 즉시 수동 정리를 수행하고 스케줄을 복구한다.

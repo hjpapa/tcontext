@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,14 +40,33 @@ export function PrivacyNotice({
           <div>
             <h2 className="text-lg font-bold">입력하지 말아야 할 정보</h2>
             <ul className="mt-3 grid gap-2 text-base leading-7 sm:grid-cols-2">
-              <li>학생·교직원 이름, 학교명, 반·학급명</li>
-              <li>연락처, 주소, 생년월일, 사진</li>
-              <li>개별 성적, 생활기록부, 상담 기록</li>
-              <li>진단명·건강 정보 등 민감한 정보</li>
+              <li>학생·교직원 이름과 학생번호</li>
+              <li>전화번호·이메일·생년월일·식별번호</li>
+              <li>상세 주소와 실제 학교·반의 고유한 이름</li>
+              <li>개인에게 연결된 성적·진단·건강·상담 기록</li>
             </ul>
             <p className="mt-4 font-medium">
-              “한 학생은…” 대신 “일부 학생에게는 단계별 안내가 필요합니다”처럼
-              지원 중심으로 표현해 주세요.
+              한 사람을 설명하기보다 “일부 학생에게 단계별 안내가
+              필요합니다”처럼 집단의 상황과 필요한 지원을 적어 주세요.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-l-4 border-[#28684c] bg-[#edf7f1] p-5 sm:p-6">
+        <div className="flex gap-3">
+          <ShieldCheck
+            aria-hidden="true"
+            className="mt-1 size-6 shrink-0 text-[#28684c]"
+          />
+          <div>
+            <h2 className="text-lg font-bold">
+              수업에 필요한 맥락은 적어도 됩니다
+            </h2>
+            <p className="mt-3 text-base leading-7">
+              학교급·학년·교과, 대략적인 학급 규모, 수업 시간과 공간, 기기 환경,
+              익명 집단의 참여 경향과 필요한 지원은 컨텍스트에 도움이 됩니다.
+              정확한 학교명·반 번호·반 이름은 일반적인 표현으로 바꿔 주세요.
             </p>
           </div>
         </div>

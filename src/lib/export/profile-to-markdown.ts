@@ -9,6 +9,7 @@ import {
 import { TEACHER_ROLE_LABELS, teacherRoleSchema } from "@/types/interview";
 import {
   PROFILE_MODULE_IDS,
+  TEACHING_SUBJECT_LABELS,
   hasUnresolvedClaims,
   teacherContextProfileSchema,
   type ProfileClaim,
@@ -52,6 +53,11 @@ function frontMatter(profile: TeacherContextProfile): string {
     `language: ${yamlQuoted("ko-KR")}`,
     `school_level: ${yamlQuoted(SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel])}`,
     `role: ${yamlQuoted(roleLabel(profile.metadata.role))}`,
+    ...(profile.metadata.teachingSubject === undefined
+      ? []
+      : [
+          `teaching_subject: ${yamlQuoted(TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject])}`,
+        ]),
     `schema_version: ${yamlQuoted(profile.metadata.schemaVersion)}`,
     `prompt_version: ${yamlQuoted(profile.metadata.promptVersion)}`,
     `created_at: ${yamlQuoted(profile.metadata.generatedAt)}`,
@@ -82,13 +88,19 @@ function claimSections(claims: readonly ProfileClaim[]): string[] {
 }
 
 function lessonTaskContext(profile: TeacherContextProfile): string[] {
+  const defaultSubject =
+    profile.metadata.teachingSubject === undefined ||
+    profile.metadata.teachingSubject === "not_applicable"
+      ? ""
+      : TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject];
+
   return [
     "```yaml",
     "# 개인 학생 정보, 학교명, 특정 학급명, 진단·상담·개별 성적은 입력하지 마세요.",
     'task_type: "수업 설계 | 슬라이드 | 활동지 | 평가 | 수업 검토"',
     `school_level: ${yamlQuoted(SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel])}`,
     'grade: ""',
-    'subject: ""',
+    `subject: ${yamlQuoted(defaultSubject)}`,
     'unit_or_topic: ""',
     'achievement_standard: ""',
     "lesson_duration_minutes: 40",
