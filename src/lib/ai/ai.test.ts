@@ -13,6 +13,7 @@ import {
 import { decideFollowUp } from "@/lib/ai/follow-up";
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { generateProfile, refineProfile } from "@/lib/ai/profile";
+import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
 import {
   profileGenerationOutputSchema,
@@ -485,7 +486,7 @@ describe("OpenAI structured boundary", () => {
     ).not.toThrow();
   });
 
-  it("allows one grounded claim for sparse answers and caps modules at four", () => {
+  it("allows empty unsupported areas for sparse answers and caps modules at four", () => {
     const generated = generatedProfileFixture();
     expect(
       profileGenerationOutputSchema.safeParse({
@@ -503,6 +504,18 @@ describe("OpenAI structured boundary", () => {
     ).toBe(true);
 
     const firstClaim = generated.modules[0]!.claims[0]!;
+    generated.modules[0]!.claims = [];
+    generated.teachingDesignPrinciples = [];
+    generated.classSupportConsiderations = [];
+    generated.realisticConstraints = [];
+    generated.aiCollaborationInstructions = [];
+    expect(
+      profileGenerationOutputSchema.safeParse({
+        profile: generated,
+        suggestedTags: [],
+      }).success,
+    ).toBe(true);
+
     generated.modules[0]!.claims = Array.from({ length: 5 }, (_, index) => ({
       ...firstClaim,
       id: `identity-claim-${index + 1}`,
@@ -552,6 +565,80 @@ describe("OpenAI structured boundary", () => {
         suggestedTags: [],
       }).success,
     ).toBe(false);
+  });
+
+  it("retains cross-module inferences and actionable guidance from one short answer", async () => {
+    const generated = generatedProfileFixture();
+    generated.modules = generated.modules.map((module) => ({
+      ...module,
+      claims: [],
+    }));
+    const direct = "스스로 생각하는 배움을 중요하게 여긴다.";
+    const inference =
+      "정답보다 생각을 꺼낼 질문과 시간을 먼저 설계하는 것이 적합하다.";
+    const hypothesis = "모둠 토론을 우선할지는 확인이 필요하다.";
+    const guidance =
+      "[AI 해석] 완성 답안보다 사고를 돕는 질문과 단계별 힌트를 우선 제안한다.";
+    generated.modules[1]!.claims = [
+      {
+        id: "value",
+        text: direct,
+        basis: "direct",
+        evidenceQuestionIds: ["short-answer"],
+        confirmedByUser: false,
+      },
+    ];
+    generated.modules[2]!.claims = [
+      {
+        id: "design",
+        text: inference,
+        basis: "inferred",
+        evidenceQuestionIds: ["short-answer"],
+        confirmedByUser: false,
+      },
+      {
+        id: "discussion",
+        text: hypothesis,
+        basis: "needs_confirmation",
+        evidenceQuestionIds: ["short-answer"],
+        confirmedByUser: false,
+      },
+    ];
+    generated.aiCollaborationInstructions = [guidance];
+    const parse = vi.fn().mockResolvedValue({
+      output_parsed: { profile: generated, suggestedTags: [] },
+      usage: null,
+    });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    const { profile } = await generateProfile({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+      answers: [
+        {
+          questionId: "short-answer",
+          moduleId: "educational_philosophy",
+          question: "어떤 배움을 중요하게 여기나요?",
+          answer: "스스로 생각하는 게 중요해요.",
+        },
+      ],
+    });
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(profile.modules[2]!.claims.map((claim) => claim.basis)).toEqual([
+      "inferred",
+      "needs_confirmation",
+    ]);
+    expect(
+      profile.modules[2]!.claims.every(
+        (claim) =>
+          !claim.confirmedByUser &&
+          claim.evidenceQuestionIds[0] === "short-answer",
+      ),
+    ).toBe(true);
+    const markdown = profileToMarkdown(profile);
+    for (const text of [direct, inference, hypothesis, guidance])
+      expect(markdown).toContain(text);
+    expect(markdown).toContain("AI가 답변을 종합해 해석한 내용");
+    expect(markdown).toContain("확인하거나 수정할 내용");
   });
 
   it("rejects generated evidence IDs that were not supplied as answers", async () => {

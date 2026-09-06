@@ -55,25 +55,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               교사가 모든 문장을 검토하고 수정한 뒤 완성합니다.
             </p>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold md:justify-end">
-            <Link
-              className="hover:text-primary underline-offset-4 hover:underline"
-              href="/examples"
-            >
-              문서 예시
-            </Link>
-            <Link
-              className="hover:text-primary underline-offset-4 hover:underline"
-              href="/privacy"
-            >
-              개인정보 처리 안내
-            </Link>
-            <Link
-              className="hover:text-primary underline-offset-4 hover:underline"
-              href="/delete"
-            >
-              기여 데이터 삭제
-            </Link>
+          <div className="space-y-4 md:text-right">
+            <p className="text-muted-foreground text-xs font-semibold tracking-wide">
+              만든 사람{" "}
+              <span className="text-foreground">jjpapa(docsusil)</span>
+            </p>
+            <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold md:justify-end">
+              <Link
+                className="hover:text-primary underline-offset-4 hover:underline"
+                href="/examples"
+              >
+                문서 예시
+              </Link>
+              <Link
+                className="hover:text-primary underline-offset-4 hover:underline"
+                href="/privacy"
+              >
+                개인정보 처리 안내
+              </Link>
+              <Link
+                className="hover:text-primary underline-offset-4 hover:underline"
+                href="/delete"
+              >
+                기여 데이터 삭제
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

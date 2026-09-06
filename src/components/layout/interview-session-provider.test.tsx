@@ -86,8 +86,8 @@ describe("InterviewSessionProvider progress restoration", () => {
 
   it("restores same-tab session position first and never recreates answers", () => {
     setLocalResumeEnabled(true);
-    saveLocalProgress(progressedInterview("middle", 5));
-    saveSessionProgress(progressedInterview("elementary", 3));
+    saveLocalProgress(progressedInterview("middle", 6));
+    saveSessionProgress(progressedInterview("elementary", 4));
 
     renderProvider();
 
@@ -106,7 +106,7 @@ describe("InterviewSessionProvider progress restoration", () => {
 
   it("uses opted-in device progress when a new tab has no session progress", () => {
     setLocalResumeEnabled(true);
-    saveLocalProgress(progressedInterview("middle", 5));
+    saveLocalProgress(progressedInterview("middle", 6));
 
     renderProvider();
 

@@ -30,8 +30,11 @@ test.describe("public pages", () => {
     ).toBeVisible();
     await expect(page.getByRole("main")).toHaveCount(1);
     await expect(page.getByRole("contentinfo")).toHaveCount(1);
+    await expect(page.getByRole("contentinfo")).toContainText(
+      "만든 사람 jjpapa(docsusil)",
+    );
 
-    const hero = sectionWithHeading(page, /교사의 수업 맥락을/);
+    const hero = sectionWithHeading(page, /교사인 나의 맥락을/);
     await expect(hero.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(
       hero.getByRole("link", { name: "인터뷰 시작하기" }),
@@ -86,7 +89,7 @@ test.describe("public pages", () => {
 
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { level: 1 })).toHaveText(
-      /열한 번의 답변이/,
+      /열네 번의 답변이/,
     );
 
     const schoolNavigation = page.getByRole("navigation", {

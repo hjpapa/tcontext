@@ -27,7 +27,7 @@ import { TEACHING_SUBJECT_LABELS, type SchoolLevel } from "@/types/profile";
 export const metadata: Metadata = {
   title: "완성 문서 예시",
   description:
-    "공통 9개, 학교급 1개, 역할 1개의 인터뷰 답변이 검토 가능한 교사 컨텍스트 문서가 되는 과정을 살펴봅니다.",
+    "공통 12개, 학교급 1개, 역할 1개의 인터뷰 답변이 검토 가능한 교사 컨텍스트 문서가 되는 과정을 살펴봅니다.",
 };
 
 const SCHOOL_LEVEL_LABELS: Record<SchoolLevel, string> = {
@@ -44,9 +44,9 @@ const ROLE_LABELS: Record<string, string> = {
 
 const INTERVIEW_STRUCTURE = [
   {
-    count: "9",
+    count: "12",
     label: "공통 질문",
-    description: "교육관, 수업 흐름, 판단 성향, 평가와 AI 활용",
+    description: "개인적 가치, 교육관, 수업 흐름, 평가와 AI 활용",
   },
   {
     count: "1",
@@ -139,7 +139,7 @@ export default async function ExamplesPage({
           <div className="flex flex-col justify-center px-5 py-16 sm:px-8 sm:py-20 lg:min-h-[660px] lg:px-12 xl:px-16">
             <p className="eyebrow">완성 문서 미리보기</p>
             <h1 className="mt-5 max-w-3xl text-[clamp(2.75rem,6vw,5.25rem)] leading-[1.04] font-semibold tracking-[-0.055em] text-balance">
-              열한 번의 답변이
+              열네 번의 답변이
               <span className="text-primary mt-2 block">
                 수업을 위한 맥락이 됩니다
               </span>
@@ -180,7 +180,7 @@ export default async function ExamplesPage({
                 </span>
               </div>
 
-              <ol className="mt-7 space-y-3" aria-label="열한 개 질문의 구성">
+              <ol className="mt-7 space-y-3" aria-label="열네 개 질문의 구성">
                 {INTERVIEW_STRUCTURE.map((item) => (
                   <li
                     className="bg-background grid grid-cols-[3.25rem_1fr] gap-4 rounded-xl border p-4"
@@ -202,7 +202,7 @@ export default async function ExamplesPage({
               <div className="bg-primary text-primary-foreground mt-4 flex items-center gap-4 rounded-xl p-4">
                 <FileText className="size-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm leading-6">
-                  <strong className="font-semibold">총 11개 질문</strong>에서
+                  <strong className="font-semibold">총 14개 질문</strong>에서
                   검토 가능한 7개 모듈의 문서가 만들어집니다.
                 </p>
               </div>
@@ -683,8 +683,8 @@ export default async function ExamplesPage({
             <br />내 수업의 장면을 들려주세요
           </h2>
           <p className="mt-6 max-w-2xl leading-7 text-white/70">
-            공통 9개, 학교급 1개, 역할 1개 질문에 답하면 AI가 검토 가능한 초안을
-            만듭니다. 로그인이나 데이터 기여 없이 Markdown으로 가져갈 수
+            공통 12개, 학교급 1개, 역할 1개 질문에 답하면 AI가 검토 가능한
+            초안을 만듭니다. 로그인이나 데이터 기여 없이 Markdown으로 가져갈 수
             있습니다.
           </p>
           <Button

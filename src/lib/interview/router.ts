@@ -2,6 +2,7 @@ import {
   COMMON_QUESTIONS,
   ELEMENTARY_QUESTIONS,
   HIGH_QUESTIONS,
+  KINDERGARTEN_COMMON_QUESTION_OVERRIDES,
   KINDERGARTEN_QUESTIONS,
   MIDDLE_QUESTIONS,
   ROLE_QUESTIONS,
@@ -27,14 +28,23 @@ export type InterviewContext = {
 
 /**
  * Returns the deterministic, semi-structured interview. The bank is always
- * 11 fixed questions: 9 common, 1 school-level, and 1 role question.
+ * 14 fixed questions: 12 common, 1 school-level, and 1 role question.
  */
 export function buildInterviewQuestions({
   schoolLevel,
   role,
 }: InterviewContext): InterviewQuestion[] {
+  const commonQuestions = COMMON_QUESTIONS.map((question) => {
+    const kindergartenCopy =
+      schoolLevel === "kindergarten"
+        ? KINDERGARTEN_COMMON_QUESTION_OVERRIDES[question.id]
+        : undefined;
+
+    return kindergartenCopy ? { ...question, ...kindergartenCopy } : question;
+  });
+
   const questions = [
-    ...COMMON_QUESTIONS,
+    ...commonQuestions,
     ...SCHOOL_QUESTIONS[schoolLevel],
     ROLE_QUESTIONS[role],
   ].map((question) => interviewQuestionSchema.parse(question));
@@ -43,17 +53,18 @@ export function buildInterviewQuestions({
   if (new Set(ids).size !== ids.length) {
     throw new Error("인터뷰 질문 id는 고유해야 합니다.");
   }
-  if (questions.length !== 11) {
-    throw new Error("고정 인터뷰는 11개 질문으로 구성되어야 합니다.");
+  if (questions.length !== 14) {
+    throw new Error("고정 인터뷰는 14개 질문으로 구성되어야 합니다.");
   }
   if (
-    questions.filter((question) => question.source === "common").length !== 9 ||
+    questions.filter((question) => question.source === "common").length !==
+      12 ||
     questions.filter((question) => question.source === "school_level")
       .length !== 1 ||
     questions.filter((question) => question.source === "role").length !== 1
   ) {
     throw new Error(
-      "고정 인터뷰는 공통 9개, 학교급 1개, 역할 1개로 구성되어야 합니다.",
+      "고정 인터뷰는 공통 12개, 학교급 1개, 역할 1개로 구성되어야 합니다.",
     );
   }
 

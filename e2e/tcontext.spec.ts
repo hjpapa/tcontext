@@ -130,7 +130,7 @@ const generatedProfile = {
 
 const safeAnswer =
   "짧은 안내 뒤 개인 생각과 짝 대화를 연결하고, 수정할 시간을 제공합니다.";
-const fixedQuestionCount = 11;
+const fixedQuestionCount = 14;
 const teacherEditedSummary =
   "교사가 직접 확인한 요약으로, 짧은 안내와 수정 기회를 우선합니다.";
 
@@ -166,6 +166,9 @@ async function startElementaryInterview(page: Page) {
   await page.getByRole("button", { name: "인터뷰 시작하기" }).click();
 
   await expect(page.getByText(`질문 1 / ${fixedQuestionCount}`)).toBeVisible();
+  await expect(page.locator("#interview-answer")).not.toHaveAttribute(
+    "placeholder",
+  );
   await expect(
     page.getByText("개인정보 없이 답하는 방법", { exact: true }),
   ).toBeVisible();

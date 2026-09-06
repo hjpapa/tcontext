@@ -63,15 +63,15 @@ export default function Home() {
                 로그인 없이, 저장 없이
               </Badge>
               <h1 className="max-w-3xl text-[clamp(2.75rem,6vw,5.5rem)] leading-[1.03] font-semibold tracking-[-0.055em] text-balance">
-                교사의 수업 맥락을,
+                교사인 나의 맥락을,
                 <span className="text-primary mt-2 block">
                   AI가 이해할 문서로.
                 </span>
               </h1>
               <p className="text-muted-foreground mt-8 max-w-2xl text-lg leading-8 text-pretty sm:text-xl">
-                11개의 핵심 질문을 따라 나의 교육관, 수업 방식, 판단 성향과 학급
-                맥락을 13–20분 동안 정리합니다. 교사가 검토한 결과만 여러 생성형
-                AI에서 활용할 수 있는 Markdown 문서로 완성됩니다.
+                14개의 핵심 질문을 따라 나의 교육관, 개인적 가치, 수업 방식과
+                AI 협업 선호를 약 20분 동안 정리합니다. 교사가 검토한 결과만 여러
+                생성형 AI에서 활용할 수 있는 Markdown 문서로 완성됩니다.
               </p>
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="h-13 px-6 text-base">
@@ -93,7 +93,7 @@ export default function Home() {
                 {[
                   "회원가입 없음",
                   "원본 답변 미저장",
-                  "11개 맞춤 질문",
+                  "14개 맞춤 질문",
                   "범용 Markdown",
                 ].map((item) => (
                   <span className="flex items-center gap-2" key={item}>
@@ -247,7 +247,7 @@ export default function Home() {
         <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
           <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-end">
             <div>
-              <p className="eyebrow">11개 질문 · 13–20분의 흐름</p>
+              <p className="eyebrow">14개 질문 · 약 20분의 흐름</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.035em] sm:text-5xl">
                 답하고,
                 <br />

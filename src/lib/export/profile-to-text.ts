@@ -1,6 +1,7 @@
 import {
   CONTEXT_DOCUMENT_TITLE,
   LESSON_DESIGN_SELF_CHECKS,
+  PROFILE_INTERPRETATION_RULES,
   SCHOOL_LEVEL_DISPLAY_LABELS,
 } from "@/content/profile-document";
 import { TEACHER_ROLE_LABELS, teacherRoleSchema } from "@/types/interview";
@@ -37,6 +38,7 @@ export function profileToPlainText(input: TeacherContextProfile): string {
     CONTEXT_DOCUMENT_TITLE,
     "용도: 수업안·활동지·평가·수업 자료를 설계하거나 기존 수업을 검토할 때 반복해서 사용하는 기본 컨텍스트",
     "적용 원칙: 교과·단원·성취기준·시간 등 현재 수업 정보가 이 프로필과 다르면 현재 수업 정보를 우선함",
+    ...PROFILE_INTERPRETATION_RULES.map((rule) => `해석 원칙: ${rule}`),
     `학교급: ${SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel]}`,
     `역할: ${roleLabel(profile.metadata.role)}`,
     ...(profile.metadata.teachingSubject === undefined
@@ -104,7 +106,7 @@ export function profileToPlainText(input: TeacherContextProfile): string {
 
 /**
  * Compact, vendor-neutral context suitable for pasting into an AI request.
- * Evidence metadata and analytics tags are intentionally omitted.
+ * Keeps evidence labels while omitting raw question IDs and analytics tags.
  */
 export function profileToCompactText(input: TeacherContextProfile): string {
   const profile = teacherContextProfileSchema.parse(input);
@@ -121,7 +123,10 @@ export function profileToCompactText(input: TeacherContextProfile): string {
         (claim) =>
           claim.confirmedByUser && claim.basis !== "needs_confirmation",
       )
-      .map((claim) => clean(claim.text));
+      .map(
+        (claim) =>
+          `${claim.basis === "inferred" ? "[AI 해석]" : "[직접 진술]"} ${clean(claim.text)}`,
+      );
 
     return claims.length > 0
       ? [`[확인된 맥락 · ${clean(module.title)}] ${claims.join(" / ")}`]
@@ -136,6 +141,7 @@ export function profileToCompactText(input: TeacherContextProfile): string {
       : []),
     `[학교급·역할·담당 교과] ${setupContext}`,
     `[교사 컨텍스트] ${clean(profile.shortSummary)}`,
+    ...PROFILE_INTERPRETATION_RULES.map((rule) => `[해석 원칙] ${rule}`),
     "[적용 원칙] 현재 수업의 교과·단원·성취기준·시간 정보가 프로필과 다르면 현재 수업 정보를 우선하세요.",
     `[수업 원칙] ${profile.teachingDesignPrinciples.map(clean).join(" / ") || "별도 확인 필요"}`,
     `[지원 고려] ${profile.classSupportConsiderations.map(clean).join(" / ") || "별도 확인 필요"}`,

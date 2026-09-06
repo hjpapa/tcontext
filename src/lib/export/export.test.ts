@@ -19,6 +19,34 @@ function fictionalProfile(index: number) {
 }
 
 describe("profile export", () => {
+  it("preserves personal values, AI preferences and inference labels across reusable exports", () => {
+    const profile = fictionalProfile(1);
+    const claim = profile.modules[0]!.claims[0]!;
+    claim.text = "자율성을 중요하게 여기며 활동 방법을 선택할 기회를 둡니다.";
+    claim.basis = "inferred";
+    claim.confirmedByUser = true;
+    profile.aiCollaborationInstructions = [
+      "대안 두 가지의 장단점을 짧게 비교해 주세요.",
+    ];
+    for (const render of [
+      profileToMarkdown,
+      profileToPlainText,
+      profileToCompactText,
+    ]) {
+      const text = render(profile);
+      expect(text).toContain(claim.text);
+      expect(text).toContain(profile.aiCollaborationInstructions[0]);
+      expect(text).toContain("조건과 예외");
+      expect(text).toContain("확정된 개인 특성으로 취급하지 않는다");
+    }
+    expect(profileToCompactText(profile)).toContain(`[AI 해석] ${claim.text}`);
+    expect(profileToMarkdown(profile)).toContain(
+      "lesson_duration_minutes: null",
+    );
+    profile.modules[0]!.claims = [];
+    expect(profileToMarkdown(profile)).not.toContain(claim.text);
+    expect(profileToCompactText(profile)).not.toContain(claim.text);
+  });
   it("generates the V2 lesson-design document with all seven canonical modules", () => {
     const markdown = profileToMarkdown(fictionalProfile(1));
     expect(markdown).toMatch(/^---\ndocument_type: "teacher_profile_context"/);

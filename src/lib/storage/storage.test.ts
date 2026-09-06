@@ -97,7 +97,7 @@ describe("session progress", () => {
   it("maps the saved question id to the current bank without restoring answers", () => {
     const original = {
       ...stateWithPrivateAnswer(),
-      currentQuestionIndex: 3,
+      currentQuestionIndex: 4,
       updatedAt: "2026-07-30T00:02:00.000Z",
     };
     const restored = restoreInterviewProgress(
@@ -105,8 +105,8 @@ describe("session progress", () => {
       "2026-07-31T00:00:00.000Z",
     );
 
-    expect(restored?.interview.currentQuestionIndex).toBe(3);
-    expect(restored?.interview.questions[3]?.id).toBe("common-lesson-flow");
+    expect(restored?.interview.currentQuestionIndex).toBe(4);
+    expect(restored?.interview.questions[4]?.id).toBe("common-lesson-flow");
     expect(restored?.interview.answers).toEqual({});
     expect(restored?.interview.followUps).toEqual([]);
     expect(restored?.interview.followUpCount).toBe(0);
@@ -120,7 +120,11 @@ describe("session progress", () => {
       currentQuestionId: "common-class-support",
       currentQuestionIndex: 4,
       fixedQuestionIds: currentProgress.fixedQuestionIds.filter(
-        (questionId) => questionId !== "common-adaptive-tendency",
+        (questionId) =>
+          questionId !== "common-adaptive-tendency" &&
+          questionId !== "common-ai-task" &&
+          questionId !== "common-ai-response" &&
+          questionId !== "common-personal-value",
       ),
     };
 
@@ -130,8 +134,8 @@ describe("session progress", () => {
     );
 
     expect(legacyProgress.fixedQuestionIds).toHaveLength(10);
-    expect(restored?.interview.currentQuestionIndex).toBe(5);
-    expect(restored?.interview.questions[5]?.id).toBe("common-class-support");
+    expect(restored?.interview.currentQuestionIndex).toBe(6);
+    expect(restored?.interview.questions[6]?.id).toBe("common-class-support");
     expect(restored?.interview.answers).toEqual({});
   });
 

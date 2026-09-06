@@ -371,9 +371,10 @@ export function InterviewFlow() {
             지금의 학교급과 역할을 알려주세요.
           </h1>
           <p className="text-muted-foreground text-lg leading-8">
-            기본 질문은 11개입니다. 답을 더 이해할 필요가 있을 때만 짧은 AI 후속
-            질문이 최대 4개 추가되며, 결과에는 고정 유형이나 점수를 붙이지
-            않습니다.
+            한두 문장으로 답해도 괜찮습니다. AI가 답변의 의미를 연결해 수업
+            원칙과 협업 지침으로 확장합니다. 기본 질문은 14개입니다. 답을 더
+            이해할 필요가 있을 때만 짧은 AI 후속 질문이 최대 4개 추가되며,
+            결과에는 고정 유형이나 점수를 붙이지 않습니다.
           </p>
         </div>
 
@@ -624,7 +625,6 @@ export function InterviewFlow() {
             maxLength={MAX_INTERVIEW_ANSWER_LENGTH}
             aria-describedby="answer-length-help answer-privacy-help question-privacy-guidance"
             className="bg-card border-input min-h-48 resize-y p-4 text-lg leading-8"
-            placeholder="예: 한 반은 20명대이고 모둠마다 기기 한 대를 함께 씁니다. 짧게 안내한 뒤 역할을 나누면 참여가 안정됩니다."
           />
           <div className="text-muted-foreground flex flex-col justify-between gap-2 text-sm sm:flex-row">
             <div className="space-y-1">

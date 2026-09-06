@@ -58,7 +58,7 @@ function buildExample(seed: ExampleSeed): TeacherContextProfile {
       generatedAt: "2026-07-30T00:00:00.000Z",
       schemaVersion: "1.0",
       modelName: "fictional-example",
-      promptVersion: "1.8",
+      promptVersion: "1.9",
     },
     profileTitle: seed.profileTitle,
     shortSummary: seed.shortSummary,

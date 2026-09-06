@@ -16,6 +16,19 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     required: true,
   },
   {
+    id: "common-personal-value",
+    moduleId: "identity_and_role",
+    source: "common",
+    prompt:
+      "사람으로서 중요하게 여기는 가치 하나가 수업에서 어떤 선택으로 드러나나요?",
+    intent:
+      "성격을 유형화하지 않고, 선생님이 중요하게 여기는 개인적 가치 하나를 확인합니다.",
+    example:
+      "저는 약속을 지키는 것을 중요하게 여깁니다. 수업에서도 안내한 기준과 시간을 지키려고 합니다.",
+    privacyHint: PRIVACY_HINT,
+    required: true,
+  },
+  {
     id: "common-good-lesson",
     moduleId: "educational_philosophy",
     source: "common",
@@ -32,10 +45,10 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "educational_philosophy",
     source: "common",
     prompt:
-      "수업의 나침반처럼, 어떤 상황에서도 지키려는 원칙 하나는 무엇인가요?",
+      "수업의 나침반처럼 지키려는 원칙이 다른 요구와 부딪힐 때, 무엇을 기준으로 결정하나요?",
     intent: "수업에서 선택해야 할 때 기준이 되는 원칙 하나를 확인합니다.",
     example:
-      "학생이 먼저 생각할 시간을 주려고 합니다. 수업이 급할 때도 짧게라도 기다립니다.",
+      "진도보다 학생이 먼저 생각할 시간을 지키려고 합니다. 시간이 부족하면 생각하는 시간 대신 문제 수를 줄입니다.",
     privacyHint: PRIVACY_HINT,
     required: true,
   },
@@ -55,11 +68,11 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "preferred_teaching",
     source: "common",
     prompt:
-      "수업이 예상과 다르게 흘러갈 때, 보통 처음 계획을 이어 가는 편인가요, 학생 반응에 맞춰 계획을 바꾸는 편인가요?",
+      "수업이 예상과 다르게 흘러갈 때, 계획을 유지하거나 바꾸기로 판단하는 신호는 무엇인가요?",
     intent:
-      "예상 밖 상황에서 계획을 유지하거나 조정하는 수업 운영 경향을 확인합니다. 둘 사이이거나 상황마다 다르다고 답해도 괜찮습니다.",
+      "고정된 유형 대신 상황마다 계획을 유지하거나 조정하는 기준을 확인합니다.",
     example:
-      "처음 세운 목표는 유지하는 편입니다. 학생들이 막히면 설명 방식이나 활동 순서는 바꿉니다.",
+      "짧은 확인 질문에 이유를 설명하기 어려워하면 다음 활동으로 넘어가지 않습니다. 목표는 유지하고 예시를 바꿔 다시 설명합니다.",
     privacyHint: PRIVACY_HINT,
     required: true,
   },
@@ -98,6 +111,31 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
       "한 차시 안에 준비와 정리까지 해야 합니다. 긴 탐구 활동은 두 차시로 나누어 진행합니다.",
     privacyHint: PRIVACY_HINT,
     required: true,
+  },
+  {
+    id: "common-ai-task",
+    moduleId: "environment_and_ai",
+    source: "common",
+    prompt:
+      "교사로서 반복하는 일 중 AI의 도움을 가장 먼저 받고 싶은 작업 하나는 무엇인가요?",
+    intent:
+      "교사의 현재 관심사와 구분하여 AI에게 실제로 맡길 작업을 확인합니다. 사용 경험이 없어도 바라는 도움을 말할 수 있습니다.",
+    example:
+      "수업 뒤 제 설명을 돌아볼 질문을 만드는 데 도움받고 싶습니다. AI가 대안을 제안하면 다음 수업에서 시도할 것을 고르겠습니다.",
+    privacyHint: PRIVACY_HINT,
+    required: false,
+  },
+  {
+    id: "common-ai-response",
+    moduleId: "environment_and_ai",
+    source: "common",
+    prompt: "AI가 어떤 방식으로 답해 주면 선생님이 검토하고 활용하기 편한가요?",
+    intent:
+      "답변의 형식·길이·말투·대안 비교·되묻기 중 본인에게 중요한 협업 방식 하나를 확인합니다. 아직 모르면 건너뛰어도 됩니다.",
+    example:
+      "긴 완성본보다 대안 두 가지의 장단점을 짧게 비교해 주면 좋겠습니다. 제 생각과 다른 의견도 이유와 함께 알려 주면 좋겠습니다.",
+    privacyHint: PRIVACY_HINT,
+    required: false,
   },
   {
     id: "common-ai-boundaries",

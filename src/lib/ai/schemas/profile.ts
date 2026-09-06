@@ -48,7 +48,7 @@ export const suggestedTagSchema = z.discriminatedUnion("category", [
 ]);
 
 const generatedProfileModuleSchema = profileModuleOutputSchema.extend({
-  claims: profileModuleOutputSchema.shape.claims.min(1).max(4),
+  claims: profileModuleOutputSchema.shape.claims.max(4),
 });
 
 // OpenAI Structured Outputs requires every object property to be required.
@@ -70,21 +70,15 @@ const generatedTeacherContextProfileSchema =
       .array(generatedProfileModuleSchema)
       .length(PROFILE_MODULE_IDS.length),
     teachingDesignPrinciples:
-      teacherContextProfileOutputSchema.shape.teachingDesignPrinciples
-        .min(1)
-        .max(6),
+      teacherContextProfileOutputSchema.shape.teachingDesignPrinciples.max(6),
     classSupportConsiderations:
-      teacherContextProfileOutputSchema.shape.classSupportConsiderations
-        .min(1)
-        .max(6),
+      teacherContextProfileOutputSchema.shape.classSupportConsiderations.max(6),
     realisticConstraints:
-      teacherContextProfileOutputSchema.shape.realisticConstraints
-        .min(1)
-        .max(5),
+      teacherContextProfileOutputSchema.shape.realisticConstraints.max(5),
     aiCollaborationInstructions:
-      teacherContextProfileOutputSchema.shape.aiCollaborationInstructions
-        .min(1)
-        .max(6),
+      teacherContextProfileOutputSchema.shape.aiCollaborationInstructions.max(
+        6,
+      ),
   });
 
 export const profileGenerationOutputSchema = z

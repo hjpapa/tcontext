@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  COMMON_QUESTIONS,
-  ELEMENTARY_QUESTIONS,
-  HIGH_QUESTIONS,
-  KINDERGARTEN_QUESTIONS,
-  MIDDLE_QUESTIONS,
-  ROLE_QUESTIONS,
-} from "@/content/questions";
 import { buildInterviewQuestions } from "./router";
 import {
   addFollowUpQuestion,
@@ -23,21 +15,21 @@ import {
 import { PROFILE_MODULE_IDS, SCHOOL_LEVELS } from "@/types/profile";
 
 describe("question routing", () => {
-  it("builds a concise 11-question interview for every level and role", () => {
+  it("builds a concise 14-question interview for every level and role", () => {
     for (const schoolLevel of SCHOOL_LEVELS) {
       for (const role of TEACHER_ROLES) {
         const questions = buildInterviewQuestions({ schoolLevel, role });
-        expect(questions).toHaveLength(11);
+        expect(questions).toHaveLength(14);
         expect(
           questions.filter((item) => item.source === "common"),
-        ).toHaveLength(9);
+        ).toHaveLength(12);
         expect(
           questions.filter((item) => item.source === "school_level"),
         ).toHaveLength(1);
         expect(questions.filter((item) => item.source === "role")).toHaveLength(
           1,
         );
-        expect(new Set(questions.map((item) => item.id)).size).toBe(11);
+        expect(new Set(questions.map((item) => item.id)).size).toBe(14);
 
         for (const moduleId of PROFILE_MODULE_IDS) {
           expect(
@@ -74,14 +66,18 @@ describe("question routing", () => {
       questions.find((item) => item.id === id)?.intent ?? "";
 
     expect(promptFor("common-role-focus")).toContain("더 알아보고 싶은");
+    expect(promptFor("common-personal-value")).toContain(
+      "사람으로서 중요하게 여기는 가치",
+    );
+    expect(intentFor("common-personal-value")).toContain("유형화하지 않고");
     expect(promptFor("common-good-lesson")).toContain("행동 하나");
     expect(promptFor("common-educational-principle")).toContain(
       "지키려는 원칙",
     );
     expect(promptFor("common-lesson-flow")).toContain("가장 먼저 정하는");
-    expect(promptFor("common-adaptive-tendency")).toContain("계획을 바꾸는 편");
+    expect(promptFor("common-adaptive-tendency")).toContain("판단하는 신호");
     expect(promptFor("common-adaptive-tendency")).not.toContain("운전 습관");
-    expect(intentFor("common-adaptive-tendency")).toContain("둘 사이");
+    expect(intentFor("common-adaptive-tendency")).toContain("고정된 유형 대신");
     expect(intentFor("common-adaptive-tendency")).toContain("상황마다");
     expect(promptFor("common-class-support")).toContain("학급의 상황 하나");
     expect(promptFor("common-assessment-feedback")).toContain(
@@ -89,6 +85,16 @@ describe("question routing", () => {
     );
     expect(promptFor("common-environment")).toContain("학교의 현실 조건");
     expect(promptFor("common-ai-boundaries")).toContain("확인하고 결정");
+    expect(promptFor("common-personal-value")).toContain("어떤 선택");
+    expect(promptFor("common-educational-principle")).toContain("부딪힐 때");
+    expect(promptFor("common-ai-task")).toContain("작업 하나");
+    expect(promptFor("common-ai-response")).toContain("어떤 방식");
+    for (const id of ["common-ai-task", "common-ai-response"]) {
+      expect(questions.find((question) => question.id === id)).toMatchObject({
+        moduleId: "environment_and_ai",
+        required: false,
+      });
+    }
 
     const metaphorQuestions = questions.filter((question) =>
       /나침반|리셋 버튼/u.test(question.prompt),
@@ -102,15 +108,32 @@ describe("question routing", () => {
     }
   });
 
+  it("adapts every common question to kindergarten language", () => {
+    const questions = buildInterviewQuestions({
+      schoolLevel: "kindergarten",
+      role: "homeroom_teacher",
+    });
+    const commonQuestions = questions.filter(
+      (question) => question.source === "common",
+    );
+
+    expect(commonQuestions).toHaveLength(12);
+    expect(commonQuestions.map((question) => question.id)).toContain(
+      "common-personal-value",
+    );
+
+    for (const question of commonQuestions) {
+      expect(question.prompt).not.toMatch(/학생|과제|교과/u);
+      expect(question.prompt).toMatch(/유아|놀이|일과|유치원/u);
+    }
+  });
+
   it("keeps every authored question normalized and free of broken text or hanja", () => {
-    const questions = [
-      ...COMMON_QUESTIONS,
-      ...KINDERGARTEN_QUESTIONS,
-      ...ELEMENTARY_QUESTIONS,
-      ...MIDDLE_QUESTIONS,
-      ...HIGH_QUESTIONS,
-      ...Object.values(ROLE_QUESTIONS),
-    ];
+    const questions = SCHOOL_LEVELS.flatMap((schoolLevel) =>
+      TEACHER_ROLES.flatMap((role) =>
+        buildInterviewQuestions({ schoolLevel, role }),
+      ),
+    );
     const fixedTextFields = [
       "prompt",
       "intent",
@@ -195,7 +218,7 @@ describe("interview runtime state", () => {
     expect(answered.answers[questionId]?.text).toContain("자료");
     expect(calculateInterviewProgress(answered)).toMatchObject({
       current: 1,
-      total: 11,
+      total: 14,
     });
   });
 
@@ -209,6 +232,6 @@ describe("interview runtime state", () => {
     });
 
     expect(state.teachingSubject).toBe("mathematics");
-    expect(state.questions).toHaveLength(11);
+    expect(state.questions).toHaveLength(14);
   });
 });
