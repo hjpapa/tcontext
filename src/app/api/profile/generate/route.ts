@@ -9,7 +9,7 @@ import {
 } from "@/lib/security/api-error";
 import {
   assertSafeForAI,
-  collectTextFields,
+  collectInterviewAnswerFields,
 } from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const input = parseJsonBody(
       profileGenerateRequestSchema.safeParse(await readJsonRequest(request)),
     );
-    assertSafeForAI(collectTextFields(input.answers, "answers"));
+    assertSafeForAI(collectInterviewAnswerFields(input.answers, "answers"));
 
     const result = await generateProfile(input);
     return NextResponse.json(result, {
