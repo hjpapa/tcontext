@@ -139,6 +139,30 @@ const PREDICATE_MODIFIERS = [
   "규칙을 유지해 유아가 낮은 부담으로 참여한다.",
 ];
 
+// Grouping `별` and progressive `중` nouns whose stems are listed in
+// name-context.ts. Given names ending in 별 or 중 stay blocked (see
+// GROUPING_OR_PROGRESSIVE_ENDING_GIVEN_NAMES).
+const GROUPING_AND_PROGRESSIVE_NOUNS = [
+  "성적별 학생 지원 자료를 준비한다.",
+  "모둠별 학생 활동을 기록한다.",
+  "연령별 유아 놀이 공간을 나눈다.",
+  "성향별 학생에게 다른 질문을 건넨다.",
+  "진로별 학생 모임을 운영한다.",
+  "전공별 교사 협의회를 연다.",
+  "연차별 교사 연수를 계획한다.",
+  "지역별 보호자 모임에 안내문을 보낸다.",
+  "이해도별 학생 활동을 준비한다.",
+  "소그룹별 유아 놀이를 관찰한다.",
+  "학생 성적별로 자료를 나누지 않는다.",
+  "유아 연령별로 놀이 공간을 나눈다.",
+  "연수중 교사에게 자료를 보낸다.",
+  "육아중 교사도 참여할 수 있게 시간을 조정한다.",
+  "공부중 학생이 질문할 수 있게 한다.",
+  "이동중 학생이 길을 잃지 않게 안내한다.",
+  "방학중 학생에게 읽기 과제를 안내한다.",
+  "교사 연수중이라 답장이 늦다.",
+];
+
 // Ordinary words that start like the compound surnames 사공, 독고, and 동방.
 const COMPOUND_SURNAME_LOOKALIKES = [
   "독고다이 교사로 일하지 않도록 동료와 협력한다.",
@@ -154,6 +178,7 @@ const MUST_PASS = [
   ...GENERIC_CLASS_TYPES,
   ...RELATED_WORDING,
   ...PREDICATE_MODIFIERS,
+  ...GROUPING_AND_PROGRESSIVE_NOUNS,
   ...COMPOUND_SURNAME_LOOKALIKES,
 ];
 
@@ -180,6 +205,14 @@ const MUST_BLOCK = [
   "유지한 학생이 발표를 준비한다.",
   "고요한 학생은 토론을 선호한다.",
   "정다운 교사와 협의한다.",
+  "김한별 학생이 발표를 준비한다.",
+  "학생 김한별은 토론을 선호한다.",
+  "이은별 교사와 협의한다.",
+  "보호자 박샛별에게 연락한다.",
+  "김재중 선생님께 자료를 보낸다.",
+  "학생 이태중의 선택을 존중한다.",
+  "남궁한별 학생이 발표를 준비한다.",
+  "학생 사공재중의 선택을 존중한다.",
 ];
 
 // Common given names, several of which end in syllables or start with stems
@@ -271,6 +304,54 @@ const PREDICATE_ENDING_GIVEN_NAMES = [
   "정인",
 ];
 
+// Given names whose last syllable matches the grouping `별` (`성적별`) or the
+// progressive `중` (`연수중`). A stem added to name-context.ts must not spell
+// any of these after a common surname.
+const GROUPING_OR_PROGRESSIVE_ENDING_GIVEN_NAMES = [
+  "한별",
+  "은별",
+  "샛별",
+  "새별",
+  "하별",
+  "예별",
+  "다별",
+  "초별",
+  "아별",
+  "해별",
+  "수별",
+  "혜별",
+  "윤별",
+  "채별",
+  "재중",
+  "영중",
+  "태중",
+  "상중",
+  "기중",
+  "형중",
+  "성중",
+  "현중",
+  "원중",
+  "석중",
+  "용중",
+  "경중",
+  "정중",
+  "진중",
+  "병중",
+  "승중",
+  "범중",
+  "준중",
+  "호중",
+  "규중",
+  "창중",
+  "철중",
+  "대중",
+  "세중",
+  "희중",
+  "윤중",
+  "인중",
+  "종중",
+];
+
 const COMMON_SURNAMES = [
   ..."김이박최정강조윤장임한오서신권황안송전홍유고문양손",
 ];
@@ -353,8 +434,11 @@ describe("privacy detector false-positive corpus", () => {
     },
   );
 
-  it.each(PREDICATE_ENDING_GIVEN_NAMES)(
-    "still blocks a given name ending like a modifier after common surnames: %s",
+  it.each([
+    ...PREDICATE_ENDING_GIVEN_NAMES,
+    ...GROUPING_OR_PROGRESSIVE_ENDING_GIVEN_NAMES,
+  ])(
+    "still blocks a given name ending like a modifier or suffixed noun after common surnames: %s",
     (givenName) => {
       const clear = COMMON_SURNAMES.flatMap((surname) =>
         namedRoleSentences(`${surname}${givenName}`),

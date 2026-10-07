@@ -3,6 +3,7 @@ import {
   isAdnominalPredicate,
   isEducationalCompoundNoun,
   isGenericEducationalRoleDescriptor,
+  isGroupingOrProgressiveNoun,
 } from "./name-context";
 
 import type {
@@ -464,7 +465,8 @@ function isGenericRoleDescription(match: string, text = match, start = 0) {
         GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) ||
         isCaseMarkedRolePhrase(descriptor) ||
         isAdnominalPredicate(descriptor) ||
-        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|된|는|할|했던|로운|스러운)$/u.test(
+        isGroupingOrProgressiveNoun(descriptor) ||
+        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|반|된|는|할|했던|로운|스러운)$/u.test(
           descriptor,
         ) ||
         isCompoundAfterRole(match, text, start)

@@ -162,6 +162,36 @@ const COPULA_STATUS_NOUNS = wordSet(`
   장남 장녀 장애 전담 주임 차남 차녀 한국 현직
 `);
 
+/**
+ * Classification nouns that take `별` ("by") before a role (`성적별 학생`,
+ * `연령별 유아`, `전공별 교사`). Given names ending in `별` (`한별`, `은별`,
+ * `샛별`) are common, so other two-syllable stems stay blocked.
+ */
+const BYEOL_CLASSIFIER_STEMS = wordSet(`
+  공간 구역 국가 국적 권역 기간 기관 기능 기준 나이 남녀 도구 모둠 문제 문항
+  반응 방법 방식 선택 선호 성격 성과 성적 성취 성향 신청 여부 연도 연령 연차
+  유무 유형 인원 전공 정도 조건 주간 주제 주차 지역 진도 진로 차시
+`);
+
+/**
+ * Activity nouns that take the progressive `중` before a role (`연수중
+ * 교사`, `공부중 학생`). Given names ending in `중` (`재중`, `태중`, `성중`)
+ * stay blocked. A stem whose `중` form is rare before a role but also spells
+ * a plausible name, such as `이용` (이 + 용중), `조정` (조 + 정중), `지원`,
+ * `추진`, or `하원`, is left out.
+ */
+const JUNG_PROGRESSIVE_STEMS = wordSet(`
+  강의 고려 고민 공부 공사 구직 기록 기획 노력 도전 모집 반성 방문 방학 변화
+  선택 설명 성장 소통 신청 심사 안내 양육 여행 연가 연결 연구 연수 연습 유예
+  유학 육아 이동 이수 임신 전환 정리 정비 정학 제작 조사 조율 조퇴 지각 지도
+  진단 진료 진행 채점 하교
+`);
+
+const GROUPING_OR_PROGRESSIVE_STEMS = new Map([
+  ["별", BYEOL_CLASSIFIER_STEMS],
+  ["중", JUNG_PROGRESSIVE_STEMS],
+]);
+
 /** Two-syllable surnames that start a four-syllable full name (`남궁지한`). */
 const COMPOUND_SURNAME = /^(?:남궁|황보|제갈|선우|서문|독고|사공|동방)/u;
 
@@ -257,4 +287,21 @@ export function isAdnominalPredicate(descriptor: string) {
   if (ending === "한") return HAN_MODIFIER_STEMS.has(stem);
   if (ending === "운") return UN_MODIFIER_STEMS.has(stem);
   return COPULA_STATUS_NOUNS.has(stem) || stem.endsWith("적");
+}
+
+/**
+ * Recognizes the grouping suffix `별` (`성적별`) and the progressive `중`
+ * (`연수중`) before a role. As in isAdnominalPredicate, a three-syllable word
+ * needs a listed stem, so `김한별` and `이재중` stay blocked, and a
+ * four-syllable word (`이해도별`, `소그룹별`) is generic unless it starts with
+ * a compound surname. Only stems starting with a surname-like syllable reach
+ * this check, so `수준별` and `수업중` need no entry.
+ */
+export function isGroupingOrProgressiveNoun(descriptor: string) {
+  const stems = GROUPING_OR_PROGRESSIVE_STEMS.get(descriptor.at(-1) ?? "");
+  if (!stems) return false;
+
+  const stem = descriptor.slice(0, -1);
+  if (stem.length >= 3) return !COMPOUND_SURNAME.test(stem);
+  return stems.has(stem);
 }
