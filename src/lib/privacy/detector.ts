@@ -25,7 +25,18 @@ type PatternDefinition = {
 const KOREAN_SURNAMES =
   "김이박최정강조윤장임한오서신권황안송전홍유고문양손배백허남심노하곽성차주우구민류나진지엄채원천방공현함변염여추도소석선설마길연위표명기반왕금옥육인맹제모탁국어은편용";
 
-const LIKELY_KOREAN_FULL_NAME_PATTERN = `[${KOREAN_SURNAMES}][가-힣]{2,3}`;
+// Compound surnames whose first syllable is not itself in KOREAN_SURNAMES;
+// `남궁`, `선우`, and the like already match through `남`, `선`. `독고다이`
+// (working alone) and `동방박사` (the Magi) are ordinary words.
+const COMPOUND_KOREAN_SURNAMES = "(?:사공|독고(?!다이)|동방(?!박사))";
+
+function likelyKoreanFullNamePattern(quantifierSuffix: "" | "?") {
+  return `(?:${COMPOUND_KOREAN_SURNAMES}[가-힣]{1,2}${quantifierSuffix}|[${KOREAN_SURNAMES}][가-힣]{2,3}${quantifierSuffix})`;
+}
+
+const LIKELY_KOREAN_FULL_NAME_PATTERN = likelyKoreanFullNamePattern("");
+// Lazy so a role-first name stops before its particle (`학생 김민수는`).
+const LAZY_KOREAN_FULL_NAME_PATTERN = likelyKoreanFullNamePattern("?");
 const EXPLICIT_KOREAN_NAME_PATTERN = "[가-힣]{2,4}";
 const EXPLICIT_ENGLISH_NAME_PATTERN =
   "[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){0,2}";
@@ -39,8 +50,8 @@ const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
 const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
 const NAME_TRAILING_CONTEXT_PATTERN =
   "(?=$|[은이는의에게께을를과와도가로,.;:!?])";
-const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LAZY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LAZY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:(?:한|그|해당|특정|개별)\\s*${STUDENT_ROLE_PATTERN}|${STUDENT_ROLE_PATTERN}\\s*한\\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\\s*${STUDENT_ROLE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|${ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN})`;
 const SAFE_ROLE_DESCRIPTORS = new Set([

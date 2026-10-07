@@ -139,6 +139,13 @@ const PREDICATE_MODIFIERS = [
   "규칙을 유지해 유아가 낮은 부담으로 참여한다.",
 ];
 
+// Ordinary words that start like the compound surnames 사공, 독고, and 동방.
+const COMPOUND_SURNAME_LOOKALIKES = [
+  "독고다이 교사로 일하지 않도록 동료와 협력한다.",
+  "동방박사 유아가 선물을 전하는 역할극을 한다.",
+  "뱃놀이에서 사공은 학생이 맡는다.",
+];
+
 const MUST_PASS = [
   ...CONNECTIVE_VERB_SENTENCES,
   ...SURNAME_INITIAL_EDUCATIONAL_TERMS,
@@ -147,6 +154,7 @@ const MUST_PASS = [
   ...GENERIC_CLASS_TYPES,
   ...RELATED_WORDING,
   ...PREDICATE_MODIFIERS,
+  ...COMPOUND_SURNAME_LOOKALIKES,
 ];
 
 const MUST_BLOCK = [
@@ -164,6 +172,9 @@ const MUST_BLOCK = [
   "남궁지한 학생이 발표를 준비한다.",
   "학생 선우해인의 선택을 존중한다.",
   "황보지운 선생님께 자료를 보낸다.",
+  "사공지한 학생이 발표를 준비한다.",
+  "학생 독고해인의 선택을 존중한다.",
+  "동방지운 교사와 협의한다.",
   // These also spell a modifier, but one rarely put before a role, so the
   // full-name reading (유 + 지한, 고 + 요한, 정 + 다운) wins.
   "유지한 학생이 발표를 준비한다.",
@@ -214,6 +225,10 @@ const PLAUSIBLE_NAMES = [
   "김한결",
   "기보배",
   "남궁민수",
+  "사공민수",
+  "독고서연",
+  "동방지우",
+  "독고준",
 ];
 
 // Given names whose last syllable matches an adjective (`조용한`), an
