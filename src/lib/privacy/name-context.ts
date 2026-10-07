@@ -144,8 +144,11 @@ const HAN_MODIFIER_STEMS = wordSet(`
 
 /**
  * Stems of the closed class of `ㅂ`-irregular adjectives (`어렵다` -> `어려운`)
- * plus `지새우다`. Given names ending in `운` (`지운`, `태운`) stay blocked.
- * `정다운` is left out because it is also a common full name.
+ * plus `지새우다`. Given names ending in `운` (`지운`, `태운`, `로운`) stay
+ * blocked. `정다운` is left out because it is also a common full name, and
+ * `이로운` (이롭다) because it is rare right before a role while 이 + 로운 is a
+ * plausible name. Longer `-롭다` forms (`지혜로운`, `조화로운`) have a
+ * three-syllable stem and need no entry.
  */
 const UN_MODIFIER_STEMS = wordSet(`
   고마 노여 마려 반가 서러 손쉬 어두 어려 우스 정겨 지겨 지새 차가
@@ -274,9 +277,10 @@ export function isGenericEducationalRoleDescriptor(descriptor: string) {
  * Recognizes an adnominal `한` (`조용한`, `성장한`), `운` (`어려운`), or copula
  * `인` (`신규인`, `지적인`) before a role. Most full names are a surname plus a
  * two-syllable given name, so a three-syllable word is a modifier only when
- * its stem is listed above; `김지한`, `이지운`, and `정해인` stay blocked. A
- * four-syllable word has a three-syllable stem (`고학년인`, `구체화한`,
- * `안타까운`), which a name matches only after a compound surname.
+ * its stem is listed above; `김지한`, `이지운`, `김로운`, and `정해인` stay
+ * blocked. A four-syllable word has a three-syllable stem (`고학년인`,
+ * `구체화한`, `안타까운`, `지혜로운`), which a name matches only after a
+ * compound surname.
  */
 export function isAdnominalPredicate(descriptor: string) {
   const ending = descriptor.at(-1);
