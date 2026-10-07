@@ -1,5 +1,6 @@
 import { rewriteStudentDescription, suggestionForRisk } from "./rewrite";
 import {
+  isAdnominalPredicate,
   isEducationalCompoundNoun,
   isGenericEducationalRoleDescriptor,
 } from "./name-context";
@@ -256,8 +257,10 @@ export function hasSingularStudentReference(text: string) {
     /(?:학생|유아|아동)(?!들)[^.!?\n]{0,30}(?:단독|유일)/u.test(text)
   );
 }
+// `유지` keeps only its connective form: `유지한` is also the full name 유 +
+// 지한, and its other forms already end in a generic suffix.
 const GENERIC_EDUCATIONAL_MODIFIER =
-  /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류|유지|안내|제시|연결|조정|제공|선별|구분|운영|진행|반영|활용|마련|조절|전환|존중|허용|강조|소개|제한|지도|배치|수용)(?:한|하는|했던|할|해)|고른|마친|고친|배운)$/u;
+  /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류|안내|제시|연결|조정|제공|선별|구분|운영|진행|반영|활용|마련|조절|전환|존중|허용|강조|소개|제한|지도|배치|수용)(?:한|하는|했던|할|해)|유지해|고른|마친|고친|배운)$/u;
 const ROLE_FIRST_PATTERN = /^(?:학생|유아|아동|교사|선생님|보호자)\s+/u;
 const TRAILING_PARTICLE =
   /(?:에게|에서|으로|은|는|이|가|의|을|를|과|와|도|만|로)$/u;
@@ -449,7 +452,8 @@ function isGenericRoleDescription(match: string, text = match, start = 0) {
         isGenericEducationalRoleDescriptor(descriptor) ||
         GENERIC_EDUCATIONAL_MODIFIER.test(descriptor) ||
         isCaseMarkedRolePhrase(descriptor) ||
-        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
+        isAdnominalPredicate(descriptor) ||
+        /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|된|는|할|했던|로운|스러운)$/u.test(
           descriptor,
         ) ||
         isCompoundAfterRole(match, text, start)

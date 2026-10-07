@@ -110,6 +110,61 @@ const ROLE_NOUN_CONJUNCTION =
  */
 const CLAUSE_ENDING = /(?:면|면서|도록|는데|려고|어서|해서|하여|하게|적)$/u;
 
+function wordSet(words: string) {
+  return new Set(words.trim().split(/\s+/u));
+}
+
+/**
+ * Two-syllable stems whose `한` form describes a person or a completed action
+ * (`조용한`, `신중한`, `성장한`, `함께한`). A surname plus a given name ending in
+ * `한` (`김지한`, `이서한`) has the same shape, so only these stems are read as
+ * modifiers. When a common modifier also spells a plausible name (`진지한`,
+ * `이상한`), the modifier reading wins; a stem whose modifier is rare before a
+ * role but whose name is plausible, such as `고요` (고요한) or `강요` (강요한),
+ * is left out. Action stems already in detector.ts's
+ * GENERIC_EDUCATIONAL_MODIFIER are not repeated, and only stems starting with a
+ * surname-like syllable can reach this check.
+ */
+const HAN_MODIFIER_STEMS = wordSet(`
+  강력 강인 강직 고독 공손 공정 공평 기묘 기발 기특 나약 노련 마땅 명랑 명석
+  명확 모호 민감 민첩 박식 서먹 서운 성급 성숙 성실 소란 소박 소심 소중 소탈
+  소홀 신기 신비 신선 신속 신중 심각 심심 안락 안전 양호 어눌 어떠 어색 엄격
+  엄밀 엄숙 연약 오만 왕성 용감 우수 우울 원만 원숙 원활 위험 유능 유리 유사
+  유순 유약 유연 유용 유익 유일 유창 유쾌 이러 이상 인색 인자 정당 정중 정직
+  정확 조급 조숙 조용 지루 진솔 진실 진정 진중 진지 차분 천진 최대 최소 탁월
+  편리 편안 한가 허약 현명 황당
+
+  강의 강화 고려 고생 공감 공부 공헌 권장 기억 기여 기획 노력 도달 도입 모방
+  문의 반대 반복 반성 반응 방문 방해 배려 변화 선발 설계 설득 성공 성장 성찰
+  성취 소통 신고 신뢰 안심 안착 양보 연구 연락 염려 오해 우려 위반 은퇴 이동
+  이사 이수 이용 이직 이탈 인솔 인식 인정 장려 전공 전념 전달 전담 전입 전출
+  전학 정착 제외 제작 조언 조율 조직 조퇴 주관 주도 주목 주장 주저 지각 지속
+  지적 지향 진급 진입 진출 진학 채점 추가 추구 추천 편입 표현 하교 함께 허락
+`);
+
+/**
+ * Stems of the closed class of `ㅂ`-irregular adjectives (`어렵다` -> `어려운`)
+ * plus `지새우다`. Given names ending in `운` (`지운`, `태운`) stay blocked.
+ * `정다운` is left out because it is also a common full name.
+ */
+const UN_MODIFIER_STEMS = wordSet(`
+  고마 노여 마려 반가 서러 손쉬 어두 어려 우스 정겨 지겨 지새 차가
+`);
+
+/**
+ * Status nouns that take the copula `인` before a role (`신규인 교사`,
+ * `듣기가 강점인 학생`). Given names ending in `인` (`해인`, `서인`, `다인`)
+ * are common, so other two-syllable stems stay blocked. This list replaces
+ * isEducationalCompoundNoun here because its stem `정서` would clear `정서인`.
+ */
+const COPULA_STATUS_NOUNS = wordSet(`
+  강사 강점 남성 남자 노인 선배 성인 신규 신입 어른 엄마 여성 여자 원감 원장
+  장남 장녀 장애 전담 주임 차남 차녀 한국 현직
+`);
+
+/** Two-syllable surnames that start a four-syllable full name (`남궁지한`). */
+const COMPOUND_SURNAME = /^(?:남궁|황보|제갈|선우|서문|독고|사공|동방)/u;
+
 const KOREAN_CASE_PARTICLE = /(?:은|는|이|가|을|를|도|만)$/u;
 const KOREAN_OBJECT_PARTICLE = /(?<particle>을|를)$/u;
 const KOREAN_SYLLABLE_START = 0xac00;
@@ -183,4 +238,23 @@ export function isGenericEducationalRoleDescriptor(descriptor: string) {
 
   const stem = descriptor.replace(KOREAN_CASE_PARTICLE, "");
   return stem !== descriptor && isEducationalCompoundNoun(stem);
+}
+
+/**
+ * Recognizes an adnominal `한` (`조용한`, `성장한`), `운` (`어려운`), or copula
+ * `인` (`신규인`, `지적인`) before a role. Most full names are a surname plus a
+ * two-syllable given name, so a three-syllable word is a modifier only when
+ * its stem is listed above; `김지한`, `이지운`, and `정해인` stay blocked. A
+ * four-syllable word has a three-syllable stem (`고학년인`, `구체화한`,
+ * `안타까운`), which a name matches only after a compound surname.
+ */
+export function isAdnominalPredicate(descriptor: string) {
+  const ending = descriptor.at(-1);
+  if (ending !== "한" && ending !== "운" && ending !== "인") return false;
+
+  const stem = descriptor.slice(0, -1);
+  if (stem.length >= 3) return !COMPOUND_SURNAME.test(stem);
+  if (ending === "한") return HAN_MODIFIER_STEMS.has(stem);
+  if (ending === "운") return UN_MODIFIER_STEMS.has(stem);
+  return COPULA_STATUS_NOUNS.has(stem) || stem.endsWith("적");
 }
