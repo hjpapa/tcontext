@@ -369,6 +369,68 @@ describe("OpenAI structured boundary", () => {
     ).resolves.toEqual({ needed: false, question: null });
   });
 
+  const followUpInput: Parameters<typeof decideFollowUp>[0] = {
+    schoolLevel: "elementary",
+    role: "homeroom_teacher",
+    current: {
+      questionId: "q-1",
+      moduleId: "class_context",
+      question: "학급에서 참여를 돕는 방법은 무엇인가요?",
+      answer: "고학년 학생이 먼저 질문을 적게 합니다.",
+    },
+    previousAnswers: [],
+    followUpCount: 0,
+  };
+  const generatedFollowUp = {
+    prompt: "말씀하신 고학년 학생이 질문을 적은 뒤 무엇이 달라졌나요?",
+    intent: "참여 방식의 변화를 확인합니다.",
+    example: "발표 전에 질문을 고르는 시간이 생겼습니다.",
+    privacyHint: "사람 이름이나 정확한 학교와 반 이름은 적지 마세요.",
+  };
+
+  it("keeps a generated follow-up whose wording is ordinary teacher language", async () => {
+    setOpenAIClientForTests({
+      responses: {
+        parse: vi.fn().mockResolvedValue({
+          output_parsed: { needed: true, question: generatedFollowUp },
+          usage: null,
+        }),
+      },
+    } as unknown as OpenAI);
+
+    await expect(decideFollowUp(followUpInput)).resolves.toMatchObject({
+      needed: true,
+      question: { ...generatedFollowUp, basedOnQuestionId: "q-1" },
+    });
+  });
+
+  it.each([
+    ["prompt", "김민수 학생은 그때 어떻게 반응했나요?"],
+    ["intent", "햇살반에서 달라진 점을 확인합니다."],
+    ["example", "한빛초등학교에서는 질문 카드를 썼습니다."],
+    ["privacyHint", "연락처 010-1234-5678처럼 적지 마세요."],
+  ] as const)(
+    "skips a generated follow-up whose %s trips the privacy detector",
+    async (field, text) => {
+      setOpenAIClientForTests({
+        responses: {
+          parse: vi.fn().mockResolvedValue({
+            output_parsed: {
+              needed: true,
+              question: { ...generatedFollowUp, [field]: text },
+            },
+            usage: null,
+          }),
+        },
+      } as unknown as OpenAI);
+
+      await expect(decideFollowUp(followUpInput)).resolves.toEqual({
+        needed: false,
+        question: null,
+      });
+    },
+  );
+
   it("keeps missing structured profile and privacy responses as errors", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const parse = vi.fn().mockResolvedValue({

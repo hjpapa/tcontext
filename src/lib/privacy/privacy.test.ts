@@ -290,7 +290,7 @@ describe("detectPrivacyRisks", () => {
     ).toBe(false);
   });
 
-  it("keeps every authored question prompt, intent, and example clear of privacy-risk patterns", () => {
+  it("keeps every authored question prompt, intent, example, and privacy hint clear of privacy-risk patterns", () => {
     const questions = [
       ...COMMON_QUESTIONS,
       ...KINDERGARTEN_QUESTIONS,
@@ -300,7 +300,7 @@ describe("detectPrivacyRisks", () => {
       ...Object.values(ROLE_QUESTIONS),
     ];
     const blocked = questions.flatMap((question) =>
-      (["prompt", "intent", "example"] as const)
+      (["prompt", "intent", "example", "privacyHint"] as const)
         .filter((field) => containsPrivacyRisk(question[field]))
         .map((field) => `${question.id}.${field}`),
     );

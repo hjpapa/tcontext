@@ -9,11 +9,31 @@ import {
 import { INTERVIEW_FOLLOW_UP_INSTRUCTIONS } from "@/lib/ai/prompts/interview";
 import { followUpDecisionSchema } from "@/lib/ai/schemas/follow-up";
 import { hasUnsupportedGeneratedCharacters } from "@/lib/ai/text-quality";
+import { containsPrivacyRisk } from "@/lib/privacy/detector";
 import type { z } from "zod";
 import type { followUpRequestSchema } from "@/lib/ai/schemas/requests";
 import type { FollowUpQuestion } from "@/types/interview";
 
 type FollowUpInput = z.output<typeof followUpRequestSchema>;
+
+/**
+ * The generated prompt is shown to the teacher and echoed back as the
+ * `question` of later requests, so a follow-up whose wording trips the
+ * detector is skipped rather than shown.
+ */
+function hasDetectedPrivacyRisk(
+  question: Pick<
+    FollowUpQuestion,
+    "prompt" | "intent" | "example" | "privacyHint"
+  >,
+) {
+  return [
+    question.prompt,
+    question.intent,
+    question.example,
+    question.privacyHint,
+  ].some(containsPrivacyRisk);
+}
 
 export async function decideFollowUp(input: FollowUpInput): Promise<{
   needed: boolean;
@@ -43,7 +63,8 @@ export async function decideFollowUp(input: FollowUpInput): Promise<{
   if (
     !result.needed ||
     !result.question ||
-    hasUnsupportedGeneratedCharacters(result.question)
+    hasUnsupportedGeneratedCharacters(result.question) ||
+    hasDetectedPrivacyRisk(result.question)
   ) {
     return { needed: false, question: null };
   }
