@@ -1,6 +1,5 @@
 import "server-only";
 
-import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import {
   APP_VERSION,
@@ -19,6 +18,7 @@ import {
   hashDeletionToken,
 } from "@/lib/security/hash-token";
 import { localProfilePrivacyReview } from "@/lib/security/privacy-guard";
+import { verifyPrivacyReviewToken } from "@/lib/security/privacy-review-token";
 import { insertSubmission } from "@/lib/supabase/submissions";
 import {
   hasUnresolvedClaims,
@@ -130,17 +130,10 @@ export function validateContribution(input: SubmissionRequest) {
 
 export async function contributeProfile(input: SubmissionRequest) {
   const { profile, profileMarkdown } = validateContribution(input);
-  const serverReview = await reviewProfileWithAI(profile);
-  if (
-    serverReview.source !== "openai" ||
-    serverReview.review.status !== "clear"
-  ) {
-    throw new ApiError(
-      "privacy_review_required",
-      422,
-      "개인정보 최종 검토를 통과하지 못했습니다. 내용을 수정한 뒤 다시 검토해 주세요.",
-    );
-  }
+  // The signed token proves OpenAI found exactly this profile clear within the
+  // last hour. Re-running the non-deterministic review here could reject a
+  // document the teacher already saw pass, and would double the OpenAI cost.
+  verifyPrivacyReviewToken(input.privacyReviewToken, profile);
 
   const consentedAt = new Date();
   const retentionUntil = calculateRetentionUntil(consentedAt);

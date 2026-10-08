@@ -303,6 +303,38 @@ export const privacyReviewSchema = privacyReviewOutputSchema.superRefine(
 );
 export type PrivacyReview = z.infer<typeof privacyReviewSchema>;
 
+/**
+ * Marks a document whose final AI privacy review could not finish because of
+ * a rate limit, timeout, outage, or truncated answer. It stays "needs_review"
+ * so every export warning and contribution guard remains closed; only the
+ * wording shown to the teacher differs from a real finding.
+ */
+export const UNVERIFIED_PRIVACY_REVIEW: PrivacyReview = {
+  status: "needs_review",
+  items: [
+    {
+      text: "AI 개인정보 최종 검사를 마치지 못한 문서",
+      reason: "AI 서비스가 바쁘거나 응답이 늦어 최종 검사를 마치지 못했습니다.",
+      suggestedRewrite:
+        "공유하기 전에 이름·연락처·학교명·개별 학생 정보가 없는지 직접 확인해 주세요.",
+    },
+  ],
+};
+
+export function isUnverifiedPrivacyReview(review: PrivacyReview): boolean {
+  const [item, ...rest] = review.items;
+  const [expected] = UNVERIFIED_PRIVACY_REVIEW.items;
+  return (
+    review.status === "needs_review" &&
+    rest.length === 0 &&
+    item !== undefined &&
+    expected !== undefined &&
+    item.text === expected.text &&
+    item.reason === expected.reason &&
+    item.suggestedRewrite === expected.suggestedRewrite
+  );
+}
+
 const profileMetadataSchema = z
   .object({
     schoolLevel: schoolLevelSchema,

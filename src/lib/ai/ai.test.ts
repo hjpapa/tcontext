@@ -451,6 +451,139 @@ describe("OpenAI structured boundary", () => {
     ).rejects.toMatchObject({ code: "ai_timeout", status: 504 });
   });
 
+  it("retries one transient 429 after a jittered pause when the caller opts in", async () => {
+    vi.useFakeTimers();
+    try {
+      const warn = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
+      vi.spyOn(console, "info").mockImplementation(() => undefined);
+      vi.spyOn(Math, "random").mockReturnValue(0.5);
+      const parse = vi
+        .fn()
+        .mockRejectedValueOnce(
+          OpenAI.APIError.generate(
+            429,
+            { error: { code: "rate_limit_exceeded" } },
+            "Rate limited",
+            new Headers(),
+          ),
+        )
+        .mockResolvedValueOnce({
+          output_parsed: { answer: "재시도 응답" },
+          usage: null,
+        });
+      setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+      const pending = runStructuredResponse({
+        operation: "profile_generate",
+        model: "gpt-5.6-terra",
+        effort: "low",
+        instructions: "테스트",
+        input: "로그에 남으면 안 되는 인터뷰 본문",
+        schema: z.object({ answer: z.string() }).strict(),
+        schemaName: "test_schema",
+        maxOutputTokens: 100,
+        retryTransientErrorOnce: true,
+        timeoutMs: 1_000,
+      });
+
+      await vi.advanceTimersByTimeAsync(399);
+      expect(parse).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(1_000);
+      await expect(pending).resolves.toEqual({ answer: "재시도 응답" });
+      expect(parse).toHaveBeenCalledTimes(2);
+
+      const logs = JSON.stringify(warn.mock.calls);
+      expect(logs).toContain("openai_request_transient_retry");
+      expect(logs).toContain("429");
+      expect(logs).not.toContain("로그에 남으면 안 되는 인터뷰 본문");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("surfaces a second transient failure instead of retrying again", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const parse = vi
+        .fn()
+        .mockRejectedValue(
+          OpenAI.APIError.generate(
+            503,
+            undefined,
+            "Unavailable",
+            new Headers(),
+          ),
+        );
+      setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+      const pending = runStructuredResponse({
+        operation: "profile_generate",
+        model: "gpt-5.6-terra",
+        effort: "low",
+        instructions: "테스트",
+        input: "입력",
+        schema: z.object({ answer: z.string() }).strict(),
+        schemaName: "test_schema",
+        maxOutputTokens: 100,
+        retryTransientErrorOnce: true,
+        timeoutMs: 1_000,
+      });
+      const assertion = expect(pending).rejects.toMatchObject({
+        code: "ai_unavailable",
+        status: 503,
+      });
+      await vi.advanceTimersByTimeAsync(2_000);
+      await assertion;
+      expect(parse).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    [
+      "a 5xx without opt-in",
+      false,
+      () =>
+        OpenAI.APIError.generate(500, undefined, "Server error", new Headers()),
+    ],
+    ["a timeout", true, () => new OpenAI.APIConnectionTimeoutError()],
+    [
+      "an exhausted quota",
+      true,
+      () =>
+        OpenAI.APIError.generate(
+          429,
+          { error: { code: "insufficient_quota" } },
+          "Quota exceeded",
+          new Headers(),
+        ),
+    ],
+  ])("does not retry %s", async (_label, optIn, makeError) => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const parse = vi.fn().mockRejectedValue(makeError());
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+    await expect(
+      runStructuredResponse({
+        operation: "profile_generate",
+        model: "gpt-5.6-terra",
+        effort: "low",
+        instructions: "테스트",
+        input: "입력",
+        schema: z.object({ answer: z.string() }).strict(),
+        schemaName: "test_schema",
+        maxOutputTokens: 100,
+        retryTransientErrorOnce: optIn,
+        timeoutMs: 1_000,
+      }),
+    ).rejects.toBeInstanceOf(Error);
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
   it("accepts only controlled suggested-tag category/value pairs", () => {
     const suggestedTags =
       profileGenerationOutputSchema.shape.suggestedTags.element;
@@ -853,6 +986,74 @@ describe("OpenAI structured boundary", () => {
     ]);
   });
 
+  it("absorbs one transient OpenAI error during profile generation only", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      vi.spyOn(console, "info").mockImplementation(() => undefined);
+      const parse = vi
+        .fn()
+        .mockRejectedValueOnce(
+          OpenAI.APIError.generate(
+            502,
+            undefined,
+            "Bad gateway",
+            new Headers(),
+          ),
+        )
+        .mockResolvedValueOnce({
+          status: "completed",
+          output_parsed: {
+            profile: generatedProfileFixture(),
+            suggestedTags: [],
+          },
+          usage: null,
+        });
+      setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+      const pending = generateProfile({
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        answers: [
+          {
+            questionId: "q-1",
+            moduleId: "identity_and_role",
+            question: "What guides your lesson design?",
+            answer: "I connect discussion, feedback, and revision.",
+          },
+        ],
+      });
+      await vi.advanceTimersByTimeAsync(2_000);
+
+      await expect(pending).resolves.toMatchObject({
+        profile: { profileTitle: "Teacher context" },
+      });
+      expect(parse).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not retry a transient OpenAI error during the privacy review", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const parse = vi
+      .fn()
+      .mockRejectedValue(
+        OpenAI.APIError.generate(
+          429,
+          { error: { code: "rate_limit_exceeded" } },
+          "Rate limited",
+          new Headers(),
+        ),
+      );
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+    await expect(
+      reviewProfileWithAI(teacherProfileFixture()),
+    ).rejects.toMatchObject({ code: "ai_rate_limited", status: 503 });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
   it("refines only unconfirmed claims in the requested module", async () => {
     const original = teacherProfileFixture();
     const target = original.modules.find(
@@ -1163,7 +1364,6 @@ describe("OpenAI structured boundary", () => {
               {
                 path: "profile.shortSummary",
                 category: "person_name",
-                text: profile.shortSummary,
                 reason: "\u500B\u4EBA을 특정할 수 있습니다.",
                 suggestedRewrite: "일반적인 표현으로 바꿔 주세요.",
               },
@@ -1198,8 +1398,9 @@ describe("OpenAI structured boundary", () => {
     expect(parse).not.toHaveBeenCalled();
   });
 
-  it("discards AI candidates whose path or text is not an exact input field", async () => {
+  it("discards AI candidates whose path was not sent for review", async () => {
     const profile = teacherProfileFixture();
+    profile.metadata.modelName = "teacher@example.com";
     setOpenAIClientForTests({
       responses: {
         parse: vi.fn().mockResolvedValue({
@@ -1208,15 +1409,13 @@ describe("OpenAI structured boundary", () => {
               {
                 path: "profile.metadata.modelName",
                 category: "contact",
-                text: profile.metadata.modelName,
                 reason: "hallucinated metadata finding",
                 suggestedRewrite: "remove it",
               },
               {
-                path: "profile.shortSummary",
-                category: "combination_risk",
-                text: "AI changed the original text.",
-                reason: "altered text finding",
+                path: "profile.modules.99.claims.0.text",
+                category: "contact",
+                reason: "hallucinated field finding",
                 suggestedRewrite: "rewrite it",
               },
             ],
@@ -1232,6 +1431,53 @@ describe("OpenAI structured boundary", () => {
       source: "openai",
       review: { status: "clear", items: [] },
     });
+  });
+
+  it("recovers a truncated privacy review with one larger-budget retry", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+        output_parsed: null,
+        usage: { input_tokens: 900, output_tokens: 2_000, total_tokens: 2_900 },
+      })
+      .mockResolvedValueOnce({
+        status: "completed",
+        incomplete_details: null,
+        output_parsed: { items: [] },
+        usage: { input_tokens: 900, output_tokens: 2_400, total_tokens: 3_300 },
+      });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+
+    await expect(reviewProfileWithAI(teacherProfileFixture())).resolves.toEqual(
+      {
+        source: "openai",
+        review: { status: "clear", items: [] },
+      },
+    );
+    expect(parse.mock.calls.map((call) => call[0].max_output_tokens)).toEqual([
+      2_000, 4_000,
+    ]);
+  });
+
+  it("does not ask the privacy model to echo field text back", () => {
+    const format = zodTextFormat(
+      privacyReviewCandidatesOutputSchema,
+      "tcontext_privacy_review_candidates",
+    ) as unknown as {
+      schema: {
+        properties: {
+          items: { items: { properties: Record<string, unknown> } };
+        };
+      };
+    };
+
+    expect(
+      Object.keys(format.schema.properties.items.items.properties).sort(),
+    ).toEqual(["category", "path", "reason", "suggestedRewrite"]);
   });
 
   it("discards AI false positives based only on generic student and class wording", async () => {
@@ -1256,42 +1502,36 @@ describe("OpenAI structured boundary", () => {
           {
             path: "profile.shortSummary",
             category: "person_name",
-            text: profile.shortSummary,
             reason: "주제를 학생이라는 표현을 이름으로 판단했습니다.",
             suggestedRewrite: "일반적인 표현으로 바꿉니다.",
           },
           {
             path: "profile.modules.0.summary",
             category: "specific_school_or_class",
-            text: firstModule.summary,
             reason: "학급이라는 단어가 있습니다.",
             suggestedRewrite: "학급이라는 단어를 삭제합니다.",
           },
           {
             path: "profile.teachingDesignPrinciples.0",
             category: "combination_risk",
-            text: profile.teachingDesignPrinciples[0],
             reason: "우리 학급이라는 표현이 있습니다.",
             suggestedRewrite: "일반적인 표현으로 바꿉니다.",
           },
           {
             path: "profile.classSupportConsiderations.0",
             category: "identifiable_sensitive_context",
-            text: profile.classSupportConsiderations[0],
             reason: "우리 반 학생이라는 표현이 있습니다.",
             suggestedRewrite: "일반적인 표현으로 바꿉니다.",
           },
           {
             path: "profile.aiCollaborationInstructions.0",
             category: "person_name",
-            text: profile.aiCollaborationInstructions[0],
             reason: "초등학교 학생이라는 표현이 있습니다.",
             suggestedRewrite: "학교급 표현을 삭제합니다.",
           },
           {
             path: "profile.realisticConstraints.0",
             category: "person_name",
-            text: profile.realisticConstraints[0],
             reason: "선택한 학생과 이해한 학생이라는 표현이 있습니다.",
             suggestedRewrite: "이름처럼 보이는 표현을 삭제합니다.",
           },
@@ -1335,7 +1575,6 @@ describe("OpenAI structured boundary", () => {
                 {
                   path: "profile.shortSummary",
                   category: "person_name",
-                  text,
                   reason: "일반 교육 문장을 사람 이름으로 판단했습니다.",
                   suggestedRewrite: "학생이라는 단어를 삭제합니다.",
                 },
@@ -1385,7 +1624,6 @@ describe("OpenAI structured boundary", () => {
               {
                 path: "profile.shortSummary",
                 category: "person_name",
-                text: profile.shortSummary,
                 reason: "질문나무를 사람 이름으로 판단했습니다.",
                 suggestedRewrite: "프로젝트 명칭을 제거합니다.",
               },
@@ -1420,7 +1658,6 @@ describe("OpenAI structured boundary", () => {
                 {
                   path: "profile.shortSummary",
                   category: "person_name",
-                  text,
                   reason: "이름 표지와 실명이 함께 있습니다.",
                   suggestedRewrite: "실명을 제거합니다.",
                 },
@@ -1448,7 +1685,6 @@ describe("OpenAI structured boundary", () => {
               {
                 path: "profile.shortSummary",
                 category: "person_name",
-                text: profile.shortSummary,
                 reason: "이름 표지가 있습니다.",
                 suggestedRewrite: "이름을 제거합니다.",
               },
@@ -1476,7 +1712,6 @@ describe("OpenAI structured boundary", () => {
               {
                 path: "profile.shortSummary",
                 category: "person_name",
-                text: profile.shortSummary,
                 reason: "실명이라는 단어가 있습니다.",
                 suggestedRewrite: "표현을 제거합니다.",
               },
@@ -1509,21 +1744,18 @@ describe("OpenAI structured boundary", () => {
           {
             path: "profile.shortSummary",
             category: "identifiable_sensitive_context",
-            text: profile.shortSummary,
             reason: "학급 평균이 있습니다.",
             suggestedRewrite: "점수를 제거합니다.",
           },
           {
             path: "profile.modules.0.summary",
             category: "identifiable_sensitive_context",
-            text: firstModule.summary,
             reason: "지원이 필요한 학생이 있습니다.",
             suggestedRewrite: "집단 표현을 제거합니다.",
           },
           {
             path: "profile.modules.0.claims.0.text",
             category: "identifiable_sensitive_context",
-            text: firstClaim.text,
             reason: "낙인 표현이 있습니다.",
             suggestedRewrite: "관찰 가능한 지원으로 바꿉니다.",
           },

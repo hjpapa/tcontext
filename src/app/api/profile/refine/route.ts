@@ -13,6 +13,11 @@ import {
 } from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
+// Worst case is two 45s OpenAI attempts (the second only after a truncated
+// answer). Revisit with the p95 of `openai_request` durationMs logs for
+// operation=profile_refine.
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   try {
     const rateLimit = consumeRateLimit(request, {

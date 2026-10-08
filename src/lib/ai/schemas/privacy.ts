@@ -10,11 +10,15 @@ export const PRIVACY_REVIEW_CATEGORIES = [
   "combination_risk",
 ] as const;
 
+/**
+ * The model returns only the field path, never the original text. The server
+ * looks the text up from the fields it sent, so a long or numerous candidate
+ * list cannot exhaust the output budget by echoing the document back.
+ */
 export const privacyReviewCandidateSchema = z
   .object({
     path: z.string().trim().min(1).max(300),
     category: z.enum(PRIVACY_REVIEW_CATEGORIES),
-    text: z.string().trim().min(1).max(4_000),
     reason: z.string().trim().min(1).max(500),
     suggestedRewrite: z.string().trim().min(1).max(1_000),
   })

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+// Contribution must trust the signed review instead of calling OpenAI again;
+// this mock only proves that no second review happens.
 vi.mock("@/lib/ai/privacy", () => ({
   reviewProfileWithAI: vi.fn(),
 }));
@@ -15,12 +17,19 @@ import {
   contributeProfile,
   validateContribution,
 } from "@/lib/consent/contribution";
+import {
+  issuePrivacyReviewToken,
+  PRIVACY_REVIEW_TOKEN_TTL_MS,
+} from "@/lib/security/privacy-review-token";
 import { insertSubmission } from "@/lib/supabase/submissions";
 import {
   PROFILE_MODULE_IDS,
   PROFILE_MODULE_TITLES,
+  UNVERIFIED_PRIVACY_REVIEW,
   type TeacherContextProfile,
 } from "@/types/profile";
+
+const SIGNING_SECRET = "s".repeat(48);
 
 function profile(
   options: {
@@ -92,8 +101,17 @@ function contribution(overrides: Record<string, unknown> = {}) {
     privacyReview: value.privacyReview,
     consentVersion: "1.0",
     consentAccepted: true,
+    privacyReviewToken: issuePrivacyReviewToken(value),
     ...overrides,
   };
+}
+
+function storedReceipt() {
+  vi.mocked(insertSubmission).mockResolvedValue({
+    id: "11111111-1111-4111-8111-111111111111",
+    createdAt: "2026-07-31T00:00:00.000Z",
+    retentionUntil: "2027-07-30T00:00:00.000Z",
+  });
 }
 
 describe("optional profile contribution", () => {
@@ -102,10 +120,7 @@ describe("optional profile contribution", () => {
     process.env.CONSENT_VERSION = "1.0";
     process.env.DATA_RETENTION_DAYS = "365";
     process.env.DELETE_TOKEN_PEPPER = "p".repeat(48);
-    vi.mocked(reviewProfileWithAI).mockResolvedValue({
-      source: "openai",
-      review: { status: "clear", items: [] },
-    });
+    process.env.PRIVACY_REVIEW_SIGNING_SECRET = SIGNING_SECRET;
   });
 
   it("requires explicit consent", () => {
@@ -196,65 +211,136 @@ describe("optional profile contribution", () => {
     expect(insertSubmission).not.toHaveBeenCalled();
   });
 
-  it("stores only reviewed profile data and returns the one-time token", async () => {
-    vi.mocked(insertSubmission).mockResolvedValue({
-      id: "11111111-1111-4111-8111-111111111111",
-      createdAt: "2026-07-31T00:00:00.000Z",
-      retentionUntil: "2027-07-30T00:00:00.000Z",
-    });
+  it("rejects an unverified review that the teacher continued past locally", () => {
+    const unverified = profile();
+    unverified.privacyReview = UNVERIFIED_PRIVACY_REVIEW;
 
-    const receipt = await contributeProfile(contribution() as never);
+    expect(() =>
+      validateContribution(
+        contribution({
+          profile: unverified,
+          profileMarkdown: profileToMarkdown(unverified),
+          confirmedTags: unverified.confirmedTags,
+          privacyReview: unverified.privacyReview,
+          privacyReviewToken: undefined,
+        }) as never,
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "privacy_review_required" }),
+    );
+  });
+
+  it("stores a signed clear profile without asking OpenAI again", async () => {
+    storedReceipt();
+    const input = contribution();
+
+    const receipt = await contributeProfile(input as never);
     const payload = vi.mocked(insertSubmission).mock.calls[0]?.[0];
 
     expect(receipt.deletionToken).toHaveLength(43);
     expect(payload).toBeDefined();
     expect(payload).not.toHaveProperty("answers");
     expect(payload).not.toHaveProperty("raw_answers");
+    expect(JSON.stringify(payload)).not.toContain(input.privacyReviewToken);
     expect(payload?.deletion_token_hash).not.toBe(receipt.deletionToken);
     expect(payload?.retention_until).toBeTruthy();
     expect(payload?.profile_markdown).toBe(
       profileToMarkdown(contribution().profile as TeacherContextProfile),
     );
-    expect(reviewProfileWithAI).toHaveBeenCalledOnce();
+    expect(reviewProfileWithAI).not.toHaveBeenCalled();
   });
 
-  it("does not write when the fresh OpenAI review is not clear", async () => {
-    vi.mocked(reviewProfileWithAI).mockResolvedValue({
-      source: "openai",
-      review: {
-        status: "needs_review",
-        items: [
-          {
-            text: "검토 대상",
-            reason: "개인 식별 가능성",
-            suggestedRewrite: "집단 수준의 지원으로 표현합니다.",
-          },
-        ],
-      },
-    });
+  it("accepts the same profile when its keys arrive in another order", async () => {
+    storedReceipt();
+    const reordered = Object.fromEntries(
+      Object.entries(profile()).reverse(),
+    ) as TeacherContextProfile;
 
     await expect(
-      contributeProfile(contribution() as never),
+      contributeProfile(
+        contribution({
+          profile: reordered,
+          profileMarkdown: profileToMarkdown(reordered),
+        }) as never,
+      ),
+    ).resolves.toMatchObject({ deletionToken: expect.any(String) });
+  });
+
+  it.each([
+    ["is missing", () => undefined],
+    ["has a forged signature", () => "v1.1785456000000.forged-signature"],
+    [
+      "has a tampered timestamp",
+      () => {
+        const [version, issuedAt, mac] =
+          issuePrivacyReviewToken(profile()).split(".");
+        return `${version}.${Number(issuedAt) + 1}.${mac}`;
+      },
+    ],
+    [
+      "was signed with another secret",
+      () => {
+        process.env.PRIVACY_REVIEW_SIGNING_SECRET = "o".repeat(48);
+        const token = issuePrivacyReviewToken(profile());
+        process.env.PRIVACY_REVIEW_SIGNING_SECRET = SIGNING_SECRET;
+        return token;
+      },
+    ],
+  ])("rejects a review token that %s", async (_label, makeToken) => {
+    await expect(
+      contributeProfile(
+        contribution({ privacyReviewToken: makeToken() }) as never,
+      ),
+    ).rejects.toMatchObject({ code: "privacy_review_required", status: 422 });
+    expect(insertSubmission).not.toHaveBeenCalled();
+    expect(reviewProfileWithAI).not.toHaveBeenCalled();
+  });
+
+  it("rejects a review token after one hour", async () => {
+    const issuedAt = Date.now() - PRIVACY_REVIEW_TOKEN_TTL_MS - 1_000;
+
+    await expect(
+      contributeProfile(
+        contribution({
+          privacyReviewToken: issuePrivacyReviewToken(profile(), issuedAt),
+        }) as never,
+      ),
     ).rejects.toMatchObject({
       code: "privacy_review_required",
       status: 422,
+      message: expect.stringContaining("만료"),
     });
     expect(insertSubmission).not.toHaveBeenCalled();
   });
 
-  it("does not accept a clear result unless OpenAI actually produced it", async () => {
-    vi.mocked(reviewProfileWithAI).mockResolvedValue({
-      source: "local",
-      review: { status: "clear", items: [] },
-    });
+  it("rejects a profile that changed after the review was signed", async () => {
+    const token = issuePrivacyReviewToken(profile());
+    const changed = profile();
+    const claim = changed.modules[0]?.claims[0];
+    if (!claim) throw new Error("profile fixture claim is missing");
+    claim.text = "학생이 생각을 말로 설명할 시간을 충분히 줍니다.";
 
     await expect(
-      contributeProfile(contribution() as never),
-    ).rejects.toMatchObject({
-      code: "privacy_review_required",
-      status: 422,
+      contributeProfile(
+        contribution({
+          profile: changed,
+          profileMarkdown: profileToMarkdown(changed),
+          privacyReviewToken: token,
+        }) as never,
+      ),
+    ).rejects.toMatchObject({ code: "privacy_review_required", status: 422 });
+    expect(insertSubmission).not.toHaveBeenCalled();
+    expect(reviewProfileWithAI).not.toHaveBeenCalled();
+  });
+
+  it("refuses contribution when the signing secret is missing or short", async () => {
+    const input = contribution();
+    process.env.PRIVACY_REVIEW_SIGNING_SECRET = "short";
+
+    await expect(contributeProfile(input as never)).rejects.toMatchObject({
+      code: "configuration_error",
+      status: 503,
     });
-    expect(reviewProfileWithAI).toHaveBeenCalledOnce();
     expect(insertSubmission).not.toHaveBeenCalled();
   });
 });

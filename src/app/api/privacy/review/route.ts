@@ -7,7 +7,16 @@ import {
   parseJsonBody,
   readJsonRequest,
 } from "@/lib/security/api-error";
+import {
+  isPrivacyReviewSigningConfigured,
+  issuePrivacyReviewToken,
+} from "@/lib/security/privacy-review-token";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+
+// Worst case is two 25s OpenAI attempts (the second only after a truncated
+// answer). Revisit with the p95 of `openai_request` durationMs logs for
+// operation=privacy_review.
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
@@ -21,9 +30,21 @@ export async function POST(request: Request) {
     );
 
     const result = await reviewProfileWithAI(input.profile);
-    return NextResponse.json(result, {
-      headers: rateLimitHeaders(rateLimit),
-    });
+    // Contribution trusts this signed verdict instead of asking OpenAI again,
+    // so only a clear review that OpenAI produced is ever signed.
+    const reviewToken =
+      result.source === "openai" &&
+      result.review.status === "clear" &&
+      isPrivacyReviewSigningConfigured()
+        ? issuePrivacyReviewToken({
+            ...input.profile,
+            privacyReview: result.review,
+          })
+        : undefined;
+    return NextResponse.json(
+      reviewToken === undefined ? result : { ...result, reviewToken },
+      { headers: rateLimitHeaders(rateLimit) },
+    );
   } catch (error) {
     return handleRouteError(error);
   }

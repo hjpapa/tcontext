@@ -47,7 +47,9 @@ import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import {
   confirmedTagsFromCandidates,
   hasUnresolvedClaims,
+  isUnverifiedPrivacyReview,
   PROFILE_MODULE_TITLES,
+  UNVERIFIED_PRIVACY_REVIEW,
   type ControlledTagCategory,
   type PrivacyReview,
   type ProfileClaim,
@@ -376,6 +378,7 @@ export function ProfileReview() {
     setProfile,
     suggestedTags,
     setMarkdown,
+    setPrivacyReviewToken,
     clearBrowserRecords,
   } = useInterviewSession();
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -468,6 +471,7 @@ export function ProfileReview() {
     setPrivacyReview(null);
     setPrivacyWarningAccepted(false);
     setMarkdown("");
+    setPrivacyReviewToken(null);
   };
 
   const updateDraftProfile = (nextProfile: TeacherContextProfile) => {
@@ -632,6 +636,7 @@ export function ProfileReview() {
     setError("");
     setPrivacyWarningAccepted(false);
     setMarkdown("");
+    setPrivacyReviewToken(null);
     try {
       const confirmedTags = confirmedTagsFromCandidates(
         suggestedTags.map((tag) => ({
@@ -647,19 +652,32 @@ export function ProfileReview() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile: withTags }),
-      });
-      if (!response.ok) {
+      }).catch(() => null);
+
+      let review: PrivacyReview;
+      let reviewToken: string | null = null;
+      if (!response || response.status === 429 || response.status >= 500) {
+        // A busy or slow AI service, a platform time limit, or a dropped
+        // connection must not strand the teacher on this screen. The document
+        // becomes "unverified": still not clear, so contribution stays closed.
+        review = UNVERIFIED_PRIVACY_REVIEW;
+      } else if (!response.ok) {
         throw new Error(
           await responseMessage(
             response,
             "개인정보 검사를 완료하지 못했습니다. 다시 시도해 주세요.",
           ),
         );
+      } else {
+        const result = (await response.json()) as {
+          source: "local" | "openai";
+          review: PrivacyReview;
+          reviewToken?: string;
+        };
+        review = result.review;
+        reviewToken = result.reviewToken ?? null;
       }
-      const result = (await response.json()) as {
-        source: "local" | "openai";
-        review: PrivacyReview;
-      };
+
       if (draftRevisionRef.current !== revisionAtStart) {
         setError(
           "개인정보 검사 중 문서가 수정되어 이전 검사 결과를 적용하지 않았습니다. 현재 내용을 확인한 뒤 다시 검사해 주세요.",
@@ -668,12 +686,13 @@ export function ProfileReview() {
       }
       const reviewedProfile: TeacherContextProfile = {
         ...withTags,
-        privacyReview: result.review,
+        privacyReview: review,
       };
       setProfile(reviewedProfile);
-      setPrivacyReview(result.review);
+      setPrivacyReview(review);
 
-      if (result.review.status === "clear") {
+      if (review.status === "clear") {
+        setPrivacyReviewToken(reviewToken);
         setMarkdown(profileToMarkdown(reviewedProfile));
         router.push("/result");
       }
@@ -808,6 +827,9 @@ export function ProfileReview() {
     setMarkdown(profileToMarkdown(profile));
     router.push("/result");
   };
+
+  const privacyReviewUnverified =
+    privacyReview !== null && isUnverifiedPrivacyReview(privacyReview);
 
   return (
     <section aria-labelledby="review-title" className="space-y-12">
@@ -1549,12 +1571,14 @@ export function ProfileReview() {
         >
           <div>
             <h2 id="privacy-warning-override-title" className="font-bold">
-              꼭 필요한 내용이라면 경고를 확인하고 계속할 수 있습니다.
+              {privacyReviewUnverified
+                ? "기다리기 어렵다면 직접 확인하고 결과로 이동할 수 있습니다."
+                : "꼭 필요한 내용이라면 경고를 확인하고 계속할 수 있습니다."}
             </h2>
             <p className="mt-1 text-sm leading-6 text-[#653f20]">
-              이 선택은 검사 결과를 통과로 바꾸지 않습니다. 결과와 Markdown에는
-              경고가 표시되며, 서버로 보내는 선택적 데이터 기여는
-              비활성화됩니다.
+              {privacyReviewUnverified
+                ? "이 선택은 검사를 통과한 것으로 바꾸지 않습니다. 결과와 Markdown에는 '개인정보 확인 안 됨'이 표시됩니다. 다운로드·복사·인쇄는 그대로 쓸 수 있고, 선택적 데이터 기여는 AI 검사를 통과한 뒤에만 할 수 있습니다."
+                : "이 선택은 검사 결과를 통과로 바꾸지 않습니다. 결과와 Markdown에는 경고가 표시되며, 서버로 보내는 선택적 데이터 기여는 비활성화됩니다."}
             </p>
           </div>
           <div className="flex items-start gap-3">
@@ -1570,8 +1594,9 @@ export function ProfileReview() {
               htmlFor="privacy-warning-accepted"
               className="cursor-pointer text-base leading-7"
             >
-              식별 가능한 정보가 남아 있을 수 있음을 이해했습니다. 공유하거나
-              다른 AI에 입력하기 전에 내용을 직접 다시 확인하겠습니다.
+              {privacyReviewUnverified
+                ? "AI 개인정보 검사를 마치지 못한 문서임을 이해했습니다. 공유하거나 다른 AI에 입력하기 전에 이름·연락처·학교명·개별 학생 정보가 없는지 직접 확인하겠습니다."
+                : "식별 가능한 정보가 남아 있을 수 있음을 이해했습니다. 공유하거나 다른 AI에 입력하기 전에 내용을 직접 다시 확인하겠습니다."}
             </Label>
           </div>
           <Button
@@ -1581,7 +1606,9 @@ export function ProfileReview() {
             onClick={continueWithPrivacyWarning}
             className="min-h-12 bg-[#653f20] text-white hover:bg-[#7a4b25]"
           >
-            경고 확인하고 결과 보기
+            {privacyReviewUnverified
+              ? "직접 확인하고 결과 보기"
+              : "경고 확인하고 결과 보기"}
             <ArrowRight aria-hidden="true" />
           </Button>
         </section>
