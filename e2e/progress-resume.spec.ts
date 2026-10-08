@@ -28,6 +28,8 @@ test("restores only the question position and explains that answers were not res
     ),
     currentQuestionIndex: 3,
   };
+  const resumedQuestion = progressed.questions[progressed.currentQuestionIndex];
+  if (!resumedQuestion) throw new Error("Expected a resumed question");
   const serialized = JSON.stringify(toStoredInterviewProgress(progressed));
 
   await page.addInitScript(
@@ -37,10 +39,9 @@ test("restores only the question position and explains that answers were not res
   await page.goto("/interview");
 
   await expect(page.getByText("진행 위치만 복원했어요")).toBeVisible();
+  await expect(page.getByText(/^질문 4 \/ \d+$/)).toBeVisible();
   await expect(
-    page.getByRole("heading", {
-      name: "새 수업을 준비할 때 가장 먼저 정하는 것은 무엇인가요?",
-    }),
+    page.getByRole("heading", { level: 1, name: resumedQuestion.prompt }),
   ).toBeVisible();
   await expect(
     page.getByText(/이전에 처리한 1개 질문의 내용은 복원되지 않았고/),
