@@ -4,7 +4,6 @@ import { ZodError } from "zod";
 export type ApiErrorCode =
   | "invalid_request"
   | "payload_too_large"
-  | "privacy_risk_detected"
   | "follow_up_limit_reached"
   | "rate_limit_exceeded"
   | "consent_required"

@@ -193,17 +193,13 @@ async function refineResponseFeedback(
       message?: string;
       error?: {
         message?: string;
-        details?:
-          | {
-              findings?: Array<{ path?: string }>;
-            }
-          | Array<{ path?: string }>;
+        details?: Array<{ path?: string }>;
       };
     };
     const details = body.error?.details;
     const paths = Array.isArray(details)
       ? details.map((item) => item.path)
-      : details?.findings?.map((finding) => finding.path);
+      : [];
 
     return {
       kind: "error",

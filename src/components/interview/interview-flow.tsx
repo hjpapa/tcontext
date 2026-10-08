@@ -22,7 +22,6 @@ import {
   addFollowUpQuestion,
   createInterviewState,
   goToPreviousQuestion,
-  goToQuestion,
   setInterviewAnswer,
 } from "@/lib/interview/state";
 import { detectPrivacyRisks } from "@/lib/privacy/detector";
@@ -90,66 +89,16 @@ function exchangeFrom(
   };
 }
 
-class InterviewRequestError extends Error {
-  readonly blockedQuestionIds: readonly string[];
-
-  constructor(message: string, blockedQuestionIds: readonly string[] = []) {
-    super(message);
-    this.name = "InterviewRequestError";
-    this.blockedQuestionIds = blockedQuestionIds;
-  }
-}
-
-/**
- * A privacy block reports only each finding's category and request path
- * (`current.answer`, `previousAnswers.2.answer`, `answers.0.answer`). The
- * path is mapped back to the question whose answer was sent there.
- */
-async function requestError(
-  response: Response,
-  questionIdByPath: ReadonlyMap<string, string>,
-): Promise<InterviewRequestError> {
+async function responseMessage(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as {
       message?: string;
-      error?: {
-        code?: string;
-        message?: string;
-        details?: { findings?: Array<{ path?: unknown }> };
-      };
+      error?: { message?: string };
     };
-    const findings =
-      body.error?.code === "privacy_risk_detected"
-        ? (body.error.details?.findings ?? [])
-        : [];
-    const blockedQuestionIds = [
-      ...new Set(
-        findings.flatMap(({ path }) => {
-          const questionId =
-            typeof path === "string" ? questionIdByPath.get(path) : undefined;
-          return questionId ? [questionId] : [];
-        }),
-      ),
-    ];
-    return new InterviewRequestError(
-      body.message ?? body.error?.message ?? "요청을 처리하지 못했습니다.",
-      blockedQuestionIds,
-    );
+    return body.message ?? body.error?.message ?? "요청을 처리하지 못했습니다.";
   } catch {
-    return new InterviewRequestError(
-      "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-    );
+    return "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
   }
-}
-
-function answerPaths(
-  exchanges: readonly { questionId: string }[],
-  path: string,
-): Array<[string, string]> {
-  return exchanges.map(({ questionId }, index) => [
-    `${path}.${index}.answer`,
-    questionId,
-  ]);
 }
 
 export function InterviewFlow() {
@@ -185,9 +134,6 @@ export function InterviewFlow() {
   const [privacyRisks, setPrivacyRisks] = useState<PrivacyScanResult | null>(
     null,
   );
-  const [blockedQuestionIds, setBlockedQuestionIds] = useState<
-    readonly string[]
-  >([]);
 
   const currentQuestion = interview?.questions[interview.currentQuestionIndex];
   const answeredCount = interview
@@ -277,13 +223,7 @@ export function InterviewFlow() {
 
     if (!response.ok) {
       if (response.status === 429 || response.status >= 500) return state;
-      throw await requestError(
-        response,
-        new Map([
-          ["current.answer", question.id],
-          ...answerPaths(previousAnswers, "previousAnswers"),
-        ]),
-      );
+      throw new Error(await responseMessage(response));
     }
 
     let body: unknown;
@@ -344,12 +284,7 @@ export function InterviewFlow() {
         answers: exchanges,
       }),
     });
-    if (!response.ok) {
-      throw await requestError(
-        response,
-        new Map(answerPaths(exchanges, "answers")),
-      );
-    }
+    if (!response.ok) throw new Error(await responseMessage(response));
     const result = (await response.json()) as {
       profile: Parameters<typeof setProfile>[0];
       suggestedTags: Parameters<typeof setSuggestedTags>[0];
@@ -359,26 +294,14 @@ export function InterviewFlow() {
     router.push("/review");
   };
 
-  const editBlockedAnswer = (questionId: string) => {
-    if (!interview) return;
-    const index = interview.questions.findIndex(
-      (question) => question.id === questionId,
-    );
-    if (index < 0) return;
-
-    const text = interview.answers[questionId]?.text ?? "";
-    const scan = detectPrivacyRisks(text);
-    setInterview(goToQuestion(interview, index));
-    setAnswer(text);
-    setError("");
-    setBlockedQuestionIds([]);
-    setPrivacyRisks(scan.status === "blocked" ? scan : null);
-  };
-
-  const commitAndContinue = async (disposition: AnswerDisposition) => {
+  const commitAndContinue = async (
+    disposition: AnswerDisposition,
+    {
+      privacyWarningAccepted = false,
+    }: { privacyWarningAccepted?: boolean } = {},
+  ) => {
     if (!interview || !currentQuestion || busy) return;
     setError("");
-    setBlockedQuestionIds([]);
     setPrivacyRisks(null);
     if (disposition === "answered" && !answer.trim()) {
       setError(
@@ -386,7 +309,9 @@ export function InterviewFlow() {
       );
       return;
     }
-    if (disposition === "answered") {
+    // Training use: a detection is a warning, never a block. The teacher can
+    // edit the answer (which re-runs the check) or continue with it as is.
+    if (disposition === "answered" && !privacyWarningAccepted) {
       const scan = detectPrivacyRisks(answer.trim());
       if (scan.status === "blocked") {
         setPrivacyRisks(scan);
@@ -395,7 +320,6 @@ export function InterviewFlow() {
     }
 
     setBusy(true);
-    let latest: InterviewState | null = null;
     try {
       let next = setInterviewAnswer(
         interview,
@@ -403,10 +327,8 @@ export function InterviewFlow() {
         answer,
         disposition,
       );
-      latest = next;
       if (disposition === "answered") {
         next = await maybeAddFollowUp(next, currentQuestion, answer.trim());
-        latest = next;
       }
 
       if (next.currentQuestionIndex < next.questions.length - 1) {
@@ -425,14 +347,6 @@ export function InterviewFlow() {
         await generateProfile(next);
       }
     } catch (caught) {
-      const blocked =
-        caught instanceof InterviewRequestError
-          ? caught.blockedQuestionIds
-          : [];
-      // Keep the answer just entered so it is still there after the teacher
-      // edits the flagged answer and returns.
-      if (latest && blocked.length > 0) setInterview(latest);
-      setBlockedQuestionIds(blocked);
       setError(
         caught instanceof Error
           ? caught.message
@@ -596,14 +510,6 @@ export function InterviewFlow() {
   const progress = Math.round(
     ((interview.currentQuestionIndex + 1) / interview.questions.length) * 100,
   );
-  const blockedQuestions = blockedQuestionIds.flatMap((questionId) => {
-    const index = interview.questions.findIndex(
-      (question) => question.id === questionId,
-    );
-    const question = interview.questions[index];
-    return question ? [{ question, number: index + 1 }] : [];
-  });
-
   return (
     <section aria-labelledby="question-title" className="mx-auto max-w-3xl">
       <div className="mb-10 space-y-3">
@@ -752,38 +658,7 @@ export function InterviewFlow() {
         {error ? (
           <Alert variant="destructive" role="alert">
             <AlertTitle>다시 확인해 주세요</AlertTitle>
-            <AlertDescription>
-              <p>{error}</p>
-              {blockedQuestions.length > 0 ? (
-                <>
-                  <p>
-                    아래 질문의 답변에서 개인정보로 보이는 표현이
-                    감지되었습니다. 답변을 고친 뒤 다시 진행해 주세요.
-                  </p>
-                  <ul className="space-y-2">
-                    {blockedQuestions.map(({ question, number }) => (
-                      <li
-                        key={question.id}
-                        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <span>
-                          질문 {number}. {questionText(question)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="min-h-11 shrink-0"
-                          onClick={() => editBlockedAnswer(question.id)}
-                        >
-                          이 답변 고치기
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : null}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -792,7 +667,12 @@ export function InterviewFlow() {
             role="alert"
             className="border-l-4 border-[#a6443d] bg-[#fff0ee] p-5"
           >
-            <h2 className="font-bold">전송 전에 이 표현을 바꿔 주세요.</h2>
+            <h2 className="font-bold">개인정보로 보이는 표현이 있습니다.</h2>
+            <p className="mt-1 text-sm leading-6 text-[#653c38]">
+              연수용 문서라도 실제 이름·연락처·학교명은 빼거나 바꾸는 것을
+              권장합니다. 답변을 고치면 다시 확인하고, 그대로 계속하면 이 답변이
+              AI 초안 만들기에 쓰이며 최종 문서에 경고가 남을 수 있습니다.
+            </p>
             <ul className="mt-3 space-y-3">
               {privacyRisks.matches.map((match, index) => (
                 <li
@@ -815,6 +695,21 @@ export function InterviewFlow() {
                 </li>
               ))}
             </ul>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={busy}
+              className="mt-4 min-h-12 bg-white"
+              onClick={() =>
+                void commitAndContinue("answered", {
+                  privacyWarningAccepted: true,
+                })
+              }
+            >
+              그대로 계속
+              <ArrowRight aria-hidden="true" />
+            </Button>
           </div>
         ) : null}
 

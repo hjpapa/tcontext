@@ -7,10 +7,6 @@ import {
   parseJsonBody,
   readJsonRequest,
 } from "@/lib/security/api-error";
-import {
-  assertSafeForAI,
-  collectInterviewAnswerFields,
-} from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 import { MAX_FOLLOW_UPS } from "@/types/interview";
 
@@ -24,11 +20,6 @@ export async function POST(request: Request) {
     const input = parseJsonBody(
       followUpRequestSchema.safeParse(await readJsonRequest(request)),
     );
-
-    assertSafeForAI([
-      { path: "current.answer", value: input.current.answer },
-      ...collectInterviewAnswerFields(input.previousAnswers, "previousAnswers"),
-    ]);
 
     if (input.followUpCount >= MAX_FOLLOW_UPS) {
       return NextResponse.json(

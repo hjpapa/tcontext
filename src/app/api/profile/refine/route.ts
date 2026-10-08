@@ -7,10 +7,6 @@ import {
   parseJsonBody,
   readJsonRequest,
 } from "@/lib/security/api-error";
-import {
-  assertSafeForAI,
-  collectProfileRefinePrivacyTextFields,
-} from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
@@ -23,10 +19,6 @@ export async function POST(request: Request) {
     const input = parseJsonBody(
       profileRefineRequestSchema.safeParse(await readJsonRequest(request)),
     );
-    assertSafeForAI([
-      ...collectProfileRefinePrivacyTextFields(input.profile, input.moduleId),
-      { path: "refine.request.instruction", value: input.instruction },
-    ]);
 
     const profile = await refineProfile(input);
     return NextResponse.json(
