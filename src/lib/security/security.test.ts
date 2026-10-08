@@ -11,11 +11,9 @@ import {
   hashDeletionToken,
   verifyDeletionToken,
 } from "@/lib/security/hash-token";
+import { detectPrivacyRisks } from "@/lib/privacy/detector";
 import {
-  assertSafeForAI,
-  collectProfileRefinePrivacyTextFields,
   collectProfilePrivacyTextFields,
-  findPrivacyRisks,
   localProfilePrivacyReview,
 } from "@/lib/security/privacy-guard";
 import {
@@ -28,6 +26,12 @@ import {
   type TeacherContextProfile,
 } from "@/types/profile";
 import { FICTIONAL_PROFILES } from "@/content/examples";
+
+// Detections are warnings the teacher may continue past; these cases pin what
+// the detector flags so the warning and the final review stay meaningful.
+function flagged(text: string): boolean {
+  return detectPrivacyRisks(text).status === "blocked";
+}
 
 function storedProfile(): TeacherContextProfile {
   return {
@@ -87,109 +91,36 @@ describe("security boundaries", () => {
     process.env.DATA_RETENTION_DAYS = originalRetention;
   });
 
-  it("blocks personal data before an OpenAI boundary without echoing it", () => {
-    let thrown: unknown;
-    try {
-      assertSafeForAI([
-        { path: "answers.0", value: "김민수 학생은 ADHD 진단을 받았습니다." },
-      ]);
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toMatchObject({
-      code: "privacy_risk_detected",
-      status: 422,
-      details: {
-        findings: expect.arrayContaining([
-          { category: "student_name", path: "answers.0" },
-          { category: "medical_or_counseling", path: "answers.0" },
-        ]),
-      },
-    });
-    expect(JSON.stringify(thrown)).not.toContain("김민수");
+  it("flags a named student's diagnosis with both categories", () => {
+    expect(
+      detectPrivacyRisks("김민수 학생은 ADHD 진단을 받았습니다.").matches.map(
+        (match) => match.type,
+      ),
+    ).toEqual(
+      expect.arrayContaining(["student_name", "medical_or_counseling"]),
+    );
   });
 
   it("keeps every fictional example clear at the full persistence boundary", () => {
     for (const profile of FICTIONAL_PROFILES) {
-      expect(
-        findPrivacyRisks(collectProfilePrivacyTextFields(profile)),
-      ).toEqual([]);
+      expect(localProfilePrivacyReview(profile).status).toBe("clear");
     }
   });
 
-  it("allows group-level support language", () => {
-    expect(() =>
-      assertSafeForAI([
-        {
-          path: "answers.0",
-          value:
-            "일부 학생은 긴 설명 뒤 집중 전환이 어려워 짧은 단계 안내가 필요합니다.",
-        },
-      ]),
-    ).not.toThrow();
+  it.each([
+    "일부 학생은 긴 설명 뒤 집중 전환이 어려워 짧은 단계 안내가 필요합니다.",
+    "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.",
+    "교사는 보드게임과 사회정서적 주제를 학생의 자발적 학습력으로 연결하는 수업 가능성을 탐색하고 있다. 활동 자체의 재미뿐 아니라 학생들이 편안하고 즐겁게 참여하는 분위기 조성이 중요한 역할로 나타난다.",
+  ])("does not flag group-level support language: %s", (text) => {
+    expect(flagged(text)).toBe(false);
   });
 
-  it("allows ordinary Korean grammar in a module-refinement summary", () => {
-    const profile = storedProfile();
-    const summary =
-      "교사의 수업 운영 방식은 학생의 선택과 참여를 존중하는 데 초점을 둡니다.";
-    const firstModule = profile.modules[0];
-    if (!firstModule) throw new Error("Missing profile module fixture");
-    firstModule.summary = summary;
-
-    const fields = collectProfileRefinePrivacyTextFields(
-      profile,
-      "educational_philosophy",
-    );
-
-    expect(fields).toContainEqual({
-      path: "profile.modules.0.summary",
-      value: summary,
-    });
-    expect(findPrivacyRisks(fields)).toEqual([]);
-    expect(() => assertSafeForAI(fields)).not.toThrow();
-  });
-
-  it("allows an educational topic object before a generic student reference", () => {
-    const text =
-      "교사는 보드게임과 사회정서적 주제를 학생의 자발적 학습력으로 연결하는 수업 가능성을 탐색하고 있다. 활동 자체의 재미뿐 아니라 학생들이 편안하고 즐겁게 참여하는 분위기 조성이 중요한 역할로 나타난다.";
-
-    expect(() =>
-      assertSafeForAI([{ path: "profile.shortSummary", value: text }]),
-    ).not.toThrow();
-  });
-
-  it("still blocks a likely name in a module-refinement summary", () => {
-    const profile = storedProfile();
-    const firstModule = profile.modules[0];
-    if (!firstModule) throw new Error("Missing profile module fixture");
-    firstModule.summary = "김다은 학생의 선택을 존중합니다.";
-
-    let thrown: unknown;
-    try {
-      assertSafeForAI(
-        collectProfileRefinePrivacyTextFields(
-          profile,
-          "educational_philosophy",
-        ),
-      );
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toMatchObject({
-      code: "privacy_risk_detected",
-      details: {
-        findings: expect.arrayContaining([
-          {
-            category: "student_name",
-            path: "profile.modules.0.summary",
-          },
-        ]),
-      },
-    });
-    expect(JSON.stringify(thrown)).not.toContain("김다은");
+  it("still flags a likely name in a profile summary", () => {
+    expect(
+      detectPrivacyRisks("김다은 학생의 선택을 존중합니다.").matches.map(
+        (match) => match.type,
+      ),
+    ).toContain("student_name");
   });
 
   it.each([
@@ -211,14 +142,9 @@ describe("security boundaries", () => {
     "교실은 학생이 실수해도 안전한 곳입니다.",
     "관계는 학생과 함께 만듭니다.",
     "평가는 학생의 성장을 돕습니다.",
-  ])(
-    "allows generic educational context before an OpenAI boundary: %s",
-    (text) => {
-      expect(() =>
-        assertSafeForAI([{ path: "answers.0", value: text }]),
-      ).not.toThrow();
-    },
-  );
+  ])("does not flag generic educational context: %s", (text) => {
+    expect(flagged(text)).toBe(false);
+  });
 
   it.each([
     "푸른하늘초등학교에서 근무합니다.",
@@ -237,10 +163,8 @@ describe("security boundaries", () => {
     "학생 한 명의 상담 내용은 외부에 공유되었습니다.",
     "그 학생의 상담 내용: 최근 불안으로 치료 중입니다.",
     "지난 4월 12일 시청 과학대회에서 단독 수상한 5학년 학생입니다.",
-  ])("blocks identifiable context before an OpenAI boundary: %s", (text) => {
-    expect(() =>
-      assertSafeForAI([{ path: "answers.0", value: text }]),
-    ).toThrowError(expect.objectContaining({ code: "privacy_risk_detected" }));
+  ])("flags identifiable context for a warning: %s", (text) => {
+    expect(flagged(text)).toBe(true);
   });
 
   it.each([
@@ -257,10 +181,8 @@ describe("security boundaries", () => {
     "중학교 2학년 국어 수업을 담당합니다.",
     "학급 인원은 20명대이고 기기는 모둠별로 공유합니다.",
     "여러 학급에서 읽기 속도와 발표 부담의 차이가 크게 나타납니다.",
-  ])("allows non-identifying context before an OpenAI boundary: %s", (text) => {
-    expect(() =>
-      assertSafeForAI([{ path: "answers.0", value: text }]),
-    ).not.toThrow();
+  ])("does not flag non-identifying context: %s", (text) => {
+    expect(flagged(text)).toBe(false);
   });
 
   it("scans every persisted authored string, including role, titles, and IDs", () => {

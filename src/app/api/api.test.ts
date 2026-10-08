@@ -132,38 +132,9 @@ describe("API route boundaries", () => {
     expect(decideFollowUp).not.toHaveBeenCalled();
   });
 
-  it("blocks detected personal information before calling OpenAI", async () => {
-    const response = await followUp(
-      jsonRequest("/api/interview/follow-up", {
-        schoolLevel: "elementary",
-        role: "homeroom_teacher",
-        current: {
-          ...safeExchange,
-          answer: "김민수 학생은 ADHD 진단을 받았습니다.",
-        },
-        previousAnswers: [],
-        followUpCount: 0,
-      }),
-    );
-
-    expect(response.status).toBe(422);
-    const body = await response.json();
-    expect(body.error.code).toBe("privacy_risk_detected");
-    expect(JSON.stringify(body)).not.toContain("김민수");
-    expect(decideFollowUp).not.toHaveBeenCalled();
-  });
-
-  // Question wording is authored content or an AI follow-up that was already
-  // screened. Re-scanning it on the server would block every later request
-  // with nothing the teacher can edit, while the browser only checks answers.
-  const earlierFollowUpExchange = {
-    questionId: "follow-up-1-q-1",
-    moduleId: "class_context",
-    question: "말씀하신 고학년 학생이 햇살반 활동에서 달라진 점은 무엇인가요?",
-    answer: "질문을 먼저 적게 하니 발표 부담이 줄었습니다.",
-  };
-
-  it("does not block a follow-up request because of earlier question wording", async () => {
+  // Training use: the browser warns and the teacher may continue, so the
+  // server forwards answers the detector would flag instead of returning 422.
+  it("forwards a flagged follow-up answer the teacher chose to keep", async () => {
     vi.mocked(decideFollowUp).mockResolvedValue({
       needed: false,
       question: null,
@@ -173,58 +144,33 @@ describe("API route boundaries", () => {
       jsonRequest("/api/interview/follow-up", {
         schoolLevel: "elementary",
         role: "homeroom_teacher",
-        current: safeExchange,
-        previousAnswers: [earlierFollowUpExchange],
-        followUpCount: 1,
+        current: {
+          ...safeExchange,
+          answer: "김민수 학생은 ADHD 진단을 받았습니다.",
+        },
+        previousAnswers: [
+          { ...safeExchange, questionId: "q-2", answer: "한빛초등학교입니다." },
+        ],
+        followUpCount: 0,
       }),
     );
 
     expect(response.status).toBe(200);
-    expect(decideFollowUp).toHaveBeenCalledOnce();
+    expect(decideFollowUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        current: expect.objectContaining({
+          answer: "김민수 학생은 ADHD 진단을 받았습니다.",
+        }),
+      }),
+    );
   });
 
-  it("does not block profile generation because of earlier question wording", async () => {
+  it("forwards flagged answers to profile generation", async () => {
     vi.mocked(generateProfile).mockResolvedValue({
       profile: submissionProfile(),
       suggestedTags: [],
     });
 
-    const response = await generateProfileRoute(
-      jsonRequest("/api/profile/generate", {
-        schoolLevel: "elementary",
-        role: "homeroom_teacher",
-        answers: [safeExchange, earlierFollowUpExchange],
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(generateProfile).toHaveBeenCalledOnce();
-  });
-
-  it("reports which earlier answer blocked a follow-up request", async () => {
-    const response = await followUp(
-      jsonRequest("/api/interview/follow-up", {
-        schoolLevel: "elementary",
-        role: "homeroom_teacher",
-        current: safeExchange,
-        previousAnswers: [
-          earlierFollowUpExchange,
-          { ...safeExchange, questionId: "q-2", answer: "한빛초등학교입니다." },
-        ],
-        followUpCount: 1,
-      }),
-    );
-
-    expect(response.status).toBe(422);
-    const body = await response.json();
-    expect(body.error.details.findings).toEqual([
-      { category: "school_name", path: "previousAnswers.1.answer" },
-    ]);
-    expect(JSON.stringify(body)).not.toContain("한빛");
-    expect(decideFollowUp).not.toHaveBeenCalled();
-  });
-
-  it("reports which answer blocked profile generation", async () => {
     const response = await generateProfileRoute(
       jsonRequest("/api/profile/generate", {
         schoolLevel: "elementary",
@@ -236,12 +182,8 @@ describe("API route boundaries", () => {
       }),
     );
 
-    expect(response.status).toBe(422);
-    const body = await response.json();
-    expect(body.error.details.findings).toEqual([
-      { category: "phone", path: "answers.1.answer" },
-    ]);
-    expect(generateProfile).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(generateProfile).toHaveBeenCalledOnce();
   });
 
   it("enforces the four-follow-up maximum without an AI call", async () => {
@@ -454,40 +396,6 @@ describe("API route boundaries", () => {
     },
   );
 
-  it("still blocks a likely name in another module summary", async () => {
-    const profile = submissionProfile();
-    const firstModule = profile.modules[0];
-    if (!firstModule) throw new Error("Missing profile module fixture");
-    firstModule.summary = "김다은 학생의 선택을 존중합니다.";
-
-    const response = await refineProfileRoute(
-      jsonRequest("/api/profile/refine", {
-        profile,
-        instruction: "실제 수업에서 활용하는 문장으로 작성",
-        moduleId: "educational_philosophy",
-        editableClaimIds: ["claim-2"],
-      }),
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(422);
-    expect(body).toMatchObject({
-      error: {
-        code: "privacy_risk_detected",
-        details: {
-          findings: [
-            {
-              category: "student_name",
-              path: "profile.modules.0.summary",
-            },
-          ],
-        },
-      },
-    });
-    expect(JSON.stringify(body)).not.toContain("김다은");
-    expect(refineProfile).not.toHaveBeenCalled();
-  });
-
   it("returns the exact draft field path when a refinement draft is invalid", async () => {
     const profile = submissionProfile();
     profile.profileTitle = "";
@@ -537,116 +445,49 @@ describe("API route boundaries", () => {
     expect(refineProfile).toHaveBeenCalledOnce();
   });
 
-  it("scans metadata that a full refinement would transmit", async () => {
-    const profile = submissionProfile();
-    profile.metadata.modelName = "teacher@example.com";
-
-    const response = await refineProfileRoute(
-      jsonRequest("/api/profile/refine", {
-        profile,
-        instruction: "문서 전체의 표현을 정돈해 주세요.",
-        editableClaimIds: [],
-      }),
-    );
-
-    expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({
-      error: {
-        code: "privacy_risk_detected",
-        details: {
-          findings: [
-            {
-              category: "email",
-              path: "profile.metadata.modelName",
-            },
-          ],
-        },
-      },
-    });
-    expect(refineProfile).not.toHaveBeenCalled();
-  });
-
-  it("returns only category and path when a refinement contains a direct identifier", async () => {
-    const profile = submissionProfile();
-    const response = await refineProfileRoute(
-      jsonRequest("/api/profile/refine", {
+  it.each([
+    [
+      "a name in the instruction",
+      (profile: TeacherContextProfile) => ({
         profile,
         instruction: "김민수 학생의 설명을 더 구체적으로 써 주세요.",
         moduleId: "educational_philosophy",
         editableClaimIds: ["claim-2"],
       }),
-    );
-
-    expect(response.status).toBe(422);
-    expect(await response.json()).toEqual({
-      error: {
-        code: "privacy_risk_detected",
-        message:
-          "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
-        details: {
-          findings: [
-            {
-              category: "student_name",
-              path: "refine.request.instruction",
-            },
-          ],
-        },
+    ],
+    [
+      "a name in the selected module claim",
+      (profile: TeacherContextProfile) => {
+        const claim = profile.modules.find(
+          (module) => module.id === "educational_philosophy",
+        )?.claims[0];
+        if (!claim) throw new Error("Missing target claim fixture");
+        claim.text = "김민수 학생은 토론을 선호합니다.";
+        return {
+          profile,
+          instruction: "선택한 문장을 더 구체적으로 써 주세요.",
+          moduleId: "educational_philosophy",
+          editableClaimIds: ["claim-2"],
+        };
       },
-    });
-    expect(refineProfile).not.toHaveBeenCalled();
-  });
-
-  it("blocks a direct identifier in the selected module claim", async () => {
-    const profile = submissionProfile();
-    const targetClaim = profile.modules.find(
-      (module) => module.id === "educational_philosophy",
-    )?.claims[0];
-    if (!targetClaim) throw new Error("Missing target claim fixture");
-    targetClaim.text = "김민수 학생은 토론을 선호합니다.";
-
-    const response = await refineProfileRoute(
-      jsonRequest("/api/profile/refine", {
-        profile,
-        instruction: "선택한 문장을 더 구체적으로 써 주세요.",
-        moduleId: "educational_philosophy",
-        editableClaimIds: ["claim-2"],
-      }),
-    );
-
-    expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({
-      error: {
-        code: "privacy_risk_detected",
-        details: {
-          findings: [
-            {
-              category: "student_name",
-              path: "profile.modules.1.claims.0.text",
-            },
-          ],
-        },
+    ],
+    [
+      "an email in metadata during a full refinement",
+      (profile: TeacherContextProfile) => {
+        profile.metadata.modelName = "teacher@example.com";
+        return {
+          profile,
+          instruction: "문서 전체의 표현을 정돈해 주세요.",
+          editableClaimIds: [],
+        };
       },
-    });
-    expect(refineProfile).not.toHaveBeenCalled();
-  });
-
-  it("does not scan non-target claims during a module-only refinement", async () => {
+    ],
+  ])("forwards a refinement with %s", async (_label, makeBody) => {
     const profile = submissionProfile();
-    const nonTargetModule = profile.modules.find(
-      (module) => module.id === "class_context",
-    );
-    const nonTargetClaim = nonTargetModule?.claims[0];
-    if (!nonTargetClaim) throw new Error("Missing non-target claim fixture");
-    nonTargetClaim.text = "학생 김민수의 전화번호는 010-1234-5678입니다.";
     vi.mocked(refineProfile).mockResolvedValue(profile);
 
     const response = await refineProfileRoute(
-      jsonRequest("/api/profile/refine", {
-        profile,
-        instruction: "선택한 모듈만 더 구체적으로 써 주세요.",
-        moduleId: "educational_philosophy",
-        editableClaimIds: ["claim-2"],
-      }),
+      jsonRequest("/api/profile/refine", makeBody(profile)),
     );
 
     expect(response.status).toBe(200);

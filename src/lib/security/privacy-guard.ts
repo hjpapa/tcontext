@@ -1,10 +1,5 @@
 import { detectPrivacyRisks } from "@/lib/privacy/detector";
-import { ApiError } from "@/lib/security/api-error";
-import type {
-  PrivacyReview,
-  ProfileModuleId,
-  TeacherContextProfile,
-} from "@/types/profile";
+import type { PrivacyReview, TeacherContextProfile } from "@/types/profile";
 
 export type TextField = {
   path: string;
@@ -26,23 +21,6 @@ export function collectTextFields(value: unknown, path = "value"): TextField[] {
   return [];
 }
 
-/**
- * Collects teacher-written interview answers at their request-body paths
- * (`answers.0.answer`). The browser scans exactly these before sending.
- * Question wording is authored content or a follow-up that decideFollowUp
- * already screened, so a match there would block the interview with nothing
- * the teacher can edit.
- */
-export function collectInterviewAnswerFields(
-  exchanges: readonly { answer: string }[],
-  path: string,
-): TextField[] {
-  return exchanges.map(({ answer }, index) => ({
-    path: `${path}.${index}.answer`,
-    value: answer,
-  }));
-}
-
 const ISO_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u;
 
@@ -54,19 +32,6 @@ function privacyMatchesForField({ path, value }: TextField) {
         ISO_TIMESTAMP.test(value) &&
         match.type === "birth_date"
       ),
-  );
-}
-
-export function findPrivacyRisks(fields: readonly TextField[]) {
-  return fields.flatMap(({ path, value }) =>
-    privacyMatchesForField({ path, value }).map((match) => ({
-      category: match.type,
-      path,
-      start: match.start,
-      end: match.end,
-      reason: match.reason,
-      suggestedRewrite: match.suggestedRewrite,
-    })),
   );
 }
 
@@ -137,87 +102,6 @@ export function prepareProfileForAIRefinement(
     ...profile,
     privacyReview: { status: "clear", items: [] },
   };
-}
-
-/**
- * Collects the natural-language fields included in a profile refinement call.
- * A module-only refinement receives document summaries plus only the selected
- * module's claims. A full refinement receives the complete profile except for
- * the prior privacy-review state, so the same complete sanitized payload is
- * scanned before it crosses the OpenAI boundary.
- */
-export function collectProfileRefinePrivacyTextFields(
-  profile: TeacherContextProfile,
-  moduleId?: ProfileModuleId,
-): TextField[] {
-  if (moduleId === undefined) {
-    return collectTextFields(
-      prepareProfileForAIRefinement(profile),
-      "profile",
-    ).filter((field) => field.value.trim().length > 0);
-  }
-
-  const modulesWithClaims = profile.modules.filter(
-    (module) => module.id === moduleId,
-  );
-
-  return [
-    { path: "profile.profileTitle", value: profile.profileTitle },
-    { path: "profile.shortSummary", value: profile.shortSummary },
-    ...profile.modules.flatMap((module, moduleIndex) => [
-      {
-        path: `profile.modules.${moduleIndex}.title`,
-        value: module.title,
-      },
-      {
-        path: `profile.modules.${moduleIndex}.summary`,
-        value: module.summary,
-      },
-    ]),
-    ...modulesWithClaims.flatMap((module) => {
-      const moduleIndex = profile.modules.indexOf(module);
-      return module.claims.map((claim, claimIndex) => ({
-        path: `profile.modules.${moduleIndex}.claims.${claimIndex}.text`,
-        value: claim.text,
-      }));
-    }),
-    ...profile.teachingDesignPrinciples.map((value, index) => ({
-      path: `profile.teachingDesignPrinciples.${index}`,
-      value,
-    })),
-    ...profile.classSupportConsiderations.map((value, index) => ({
-      path: `profile.classSupportConsiderations.${index}`,
-      value,
-    })),
-    ...profile.realisticConstraints.map((value, index) => ({
-      path: `profile.realisticConstraints.${index}`,
-      value,
-    })),
-    ...profile.aiCollaborationInstructions.map((value, index) => ({
-      path: `profile.aiCollaborationInstructions.${index}`,
-      value,
-    })),
-  ].filter((field) => field.value.trim().length > 0);
-}
-
-/**
- * Stops sensitive text before it reaches OpenAI. The response exposes only
- * the category and field path; matched text and offsets are never echoed.
- */
-export function assertSafeForAI(fields: readonly TextField[]): void {
-  const findings = findPrivacyRisks(fields);
-  if (findings.length > 0) {
-    throw new ApiError(
-      "privacy_risk_detected",
-      422,
-      "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
-      {
-        details: {
-          findings: findings.map(({ category, path }) => ({ category, path })),
-        },
-      },
-    );
-  }
 }
 
 function localPrivacyReviewForFields(fields: readonly TextField[]) {

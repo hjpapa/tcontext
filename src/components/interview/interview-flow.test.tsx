@@ -11,8 +11,8 @@ import { createInterviewState } from "@/lib/interview";
 
 import { InterviewFlow } from "./interview-flow";
 
-const FIRST_ANSWER = "학생이 자신의 생각을 설명하고 수정했을 때입니다.";
-const SECOND_ANSWER = "짧은 안내 뒤에 짝 대화를 이어 갑니다.";
+const FLAGGED_ANSWER = "김민수 학생은 토론에서 질문을 먼저 합니다.";
+const SAFE_ANSWER = "학생이 자신의 생각을 설명하고 수정했을 때입니다.";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -36,7 +36,17 @@ async function startInterview() {
   return user;
 }
 
-describe("InterviewFlow privacy blocks", () => {
+function interviewQuestions() {
+  const [first, second] = createInterviewState({
+    schoolLevel: "elementary",
+    role: "homeroom_teacher",
+    privacyNoticeAccepted: true,
+  }).questions;
+  if (!first || !second) throw new Error("Expected interview questions");
+  return { first, second };
+}
+
+describe("InterviewFlow privacy warnings", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
@@ -47,73 +57,63 @@ describe("InterviewFlow privacy blocks", () => {
     vi.unstubAllGlobals();
   });
 
-  it("names the earlier answer a server privacy block points to and reopens it", async () => {
-    const questions = createInterviewState({
-      schoolLevel: "elementary",
-      role: "homeroom_teacher",
-      privacyNoticeAccepted: true,
-    }).questions;
-    const [first, second] = questions;
-    if (!first || !second) throw new Error("Expected interview questions");
-
-    const noFollowUp = async () =>
-      jsonResponse({ needed: false, question: null });
-    const fetchMock = vi
-      .fn(noFollowUp)
-      .mockImplementationOnce(noFollowUp)
-      .mockImplementationOnce(async () =>
-        jsonResponse(
-          {
-            error: {
-              code: "privacy_risk_detected",
-              message:
-                "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
-              details: {
-                findings: [
-                  {
-                    category: "student_name",
-                    path: "previousAnswers.0.answer",
-                  },
-                ],
-              },
-            },
-          },
-          422,
-        ),
-      );
+  it("warns about a flagged answer and continues only when the teacher chooses to", async () => {
+    const { first, second } = interviewQuestions();
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ needed: false, question: null }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     const user = await startInterview();
     const answerBox = () => screen.getByRole("textbox", { name: "답변" });
 
-    await user.type(answerBox(), FIRST_ANSWER);
-    await user.click(screen.getByRole("button", { name: /다음 질문/u }));
-    expect(
-      await screen.findByRole("heading", { level: 1, name: second.prompt }),
-    ).toBeInTheDocument();
-
-    await user.type(answerBox(), SECOND_ANSWER);
+    await user.type(answerBox(), FLAGGED_ANSWER);
     await user.click(screen.getByRole("button", { name: /다음 질문/u }));
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(`질문 1. ${first.prompt}`);
-    expect(alert).not.toHaveTextContent(FIRST_ANSWER);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-
-    await user.click(
-      within(alert).getByRole("button", { name: "이 답변 고치기" }),
-    );
+    const warning = await screen.findByRole("alert");
+    expect(warning).toHaveTextContent("개인정보로 보이는 표현이 있습니다.");
+    expect(warning).toHaveTextContent("김민수 학생");
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(
       screen.getByRole("heading", { level: 1, name: first.prompt }),
     ).toBeInTheDocument();
-    expect(answerBox()).toHaveValue(FIRST_ANSWER);
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
-    // The answer entered when the block happened is kept for the return trip.
-    await user.click(screen.getByRole("button", { name: /다음 질문/u }));
+    await user.click(
+      within(warning).getByRole("button", { name: /그대로 계속/u }),
+    );
+
     expect(
       await screen.findByRole("heading", { level: 1, name: second.prompt }),
     ).toBeInTheDocument();
-    expect(answerBox()).toHaveValue(SECOND_ANSWER);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      current: { answer: string };
+    };
+    expect(body.current.answer).toBe(FLAGGED_ANSWER);
+  });
+
+  it("checks an edited answer again instead of reusing the earlier choice", async () => {
+    const { second } = interviewQuestions();
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse({ needed: false, question: null }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const user = await startInterview();
+    const answerBox = () => screen.getByRole("textbox", { name: "답변" });
+
+    await user.type(answerBox(), FLAGGED_ANSWER);
+    await user.click(screen.getByRole("button", { name: /다음 질문/u }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.clear(answerBox());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await user.type(answerBox(), SAFE_ANSWER);
+    await user.click(screen.getByRole("button", { name: /다음 질문/u }));
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: second.prompt }),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 });

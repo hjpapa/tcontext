@@ -307,12 +307,12 @@ test.describe("anonymous teacher-context flow", () => {
   }) => {
     await page.route("**/api/interview/follow-up", async (route) => {
       await route.fulfill({
-        status: 422,
+        status: 400,
         contentType: "application/json",
         body: JSON.stringify({
           error: {
-            code: "privacy_risk_detected",
-            message: "개인정보로 보이는 표현을 바꿔 주세요.",
+            code: "invalid_request",
+            message: "요청 형식이 올바르지 않습니다.",
           },
         }),
       });
@@ -324,7 +324,7 @@ test.describe("anonymous teacher-context flow", () => {
 
     await expect(page.getByText(/^질문 1 \/ \d+$/)).toBeVisible();
     await expect(page.locator("main").getByRole("alert")).toContainText(
-      "개인정보로 보이는 표현을 바꿔 주세요.",
+      "요청 형식이 올바르지 않습니다.",
     );
   });
 
@@ -446,7 +446,7 @@ test.describe("anonymous teacher-context flow", () => {
     await expect(refineButton).toBeEnabled();
   });
 
-  test("shows a privacy block next to the module without echoing private text", async ({
+  test("points an invalid refinement field to its sentence in the module", async ({
     page,
   }) => {
     await page.route("**/api/interview/follow-up", async (route) => {
@@ -460,21 +460,18 @@ test.describe("anonymous teacher-context flow", () => {
     });
     await page.route("**/api/profile/refine", async (route) => {
       await route.fulfill({
-        status: 422,
+        status: 400,
         contentType: "application/json",
         body: JSON.stringify({
           error: {
-            code: "privacy_risk_detected",
-            message:
-              "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
-            details: {
-              findings: [
-                {
-                  category: "student_name",
-                  path: "profile.modules.1.claims.0.text",
-                },
-              ],
-            },
+            code: "invalid_request",
+            message: "요청 형식이 올바르지 않습니다.",
+            details: [
+              {
+                path: "profile.modules.1.claims.0.text",
+                message: "문장을 비워 둘 수 없습니다.",
+              },
+            ],
           },
         }),
       });
@@ -495,11 +492,8 @@ test.describe("anonymous teacher-context flow", () => {
 
     const errorAlert = philosophyModule.getByRole("alert");
     await expect(errorAlert).toBeFocused();
-    await expect(errorAlert).toContainText(
-      "이름·연락처 등 명확한 직접 식별정보를 제거한 뒤 다시 시도해 주세요.",
-    );
+    await expect(errorAlert).toContainText("요청 형식이 올바르지 않습니다.");
     await expect(errorAlert).toContainText("교육관과 학생관 문장 1");
-    await expect(errorAlert).not.toContainText("홍길동");
 
     const locationButton = errorAlert.getByRole("button", {
       name: "교육관과 학생관 문장 1 항목으로 이동",
@@ -728,7 +722,35 @@ test.describe("anonymous teacher-context flow", () => {
     expect(staleRequest.profile?.confirmedTags).toEqual(emptyConfirmedTags);
   });
 
-  test("blocks PII locally, completes review, and exports without contribution", async ({
+  test("continues with a flagged answer only after the teacher chooses to", async ({
+    page,
+  }) => {
+    const followUpRequests: Array<Record<string, unknown>> = [];
+    await page.route("**/api/interview/follow-up", async (route) => {
+      followUpRequests.push(route.request().postDataJSON());
+      await fulfillJson(route, { needed: false, question: null });
+    });
+
+    await startElementaryInterview(page);
+    const flaggedAnswer = "김민수 학생은 토론에서 질문을 먼저 합니다.";
+    await page.getByRole("textbox", { name: "답변" }).fill(flaggedAnswer);
+    await page.getByRole("button", { name: "다음 질문" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "개인정보로 보이는 표현이 있습니다." }),
+    ).toBeVisible();
+    expect(followUpRequests).toHaveLength(0);
+
+    await page.getByRole("button", { name: "그대로 계속" }).click();
+
+    await expect(
+      page.getByText(`질문 2 / ${fixedQuestionCount}`),
+    ).toBeVisible();
+    expect(followUpRequests).toHaveLength(1);
+    expect(JSON.stringify(followUpRequests[0])).toContain(flaggedAnswer);
+  });
+
+  test("warns about PII locally, completes review, and exports without contribution", async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -777,10 +799,13 @@ test.describe("anonymous teacher-context flow", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "전송 전에 이 표현을 바꿔 주세요.",
+        name: "개인정보로 보이는 표현이 있습니다.",
       }),
     ).toBeVisible();
     await expect(page.locator("main").getByRole("alert")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "그대로 계속" }),
+    ).toBeVisible();
     await expect(
       page.locator("mark").filter({ hasText: "김민수 학생" }),
     ).toBeVisible();

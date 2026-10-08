@@ -7,10 +7,6 @@ import {
   parseJsonBody,
   readJsonRequest,
 } from "@/lib/security/api-error";
-import {
-  assertSafeForAI,
-  collectInterviewAnswerFields,
-} from "@/lib/security/privacy-guard";
 import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 // Worst case is a jittered 429/5xx retry plus two 45s OpenAI attempts (the
@@ -28,7 +24,6 @@ export async function POST(request: Request) {
     const input = parseJsonBody(
       profileGenerateRequestSchema.safeParse(await readJsonRequest(request)),
     );
-    assertSafeForAI(collectInterviewAnswerFields(input.answers, "answers"));
 
     const result = await generateProfile(input);
     return NextResponse.json(result, {
