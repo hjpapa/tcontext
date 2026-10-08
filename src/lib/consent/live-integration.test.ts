@@ -9,11 +9,13 @@ import {
   PROMPT_VERSION,
   PROFILE_SCHEMA_VERSION,
 } from "@/lib/ai/models";
+import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { submissionCreateRequestSchema } from "@/lib/ai/schemas/requests";
 import { contributeProfile } from "@/lib/consent/contribution";
 import { getConsentVersion } from "@/lib/consent/policy";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import { hashDeletionToken } from "@/lib/security/hash-token";
+import { issuePrivacyReviewToken } from "@/lib/security/privacy-review-token";
 import { deleteSubmission } from "@/lib/supabase/submissions";
 import { FICTIONAL_PROFILES } from "@/content/examples";
 import { teacherContextProfileSchema } from "@/types/profile";
@@ -37,6 +39,14 @@ describe.runIf(liveIntegrationEnabled)("live contribution integration", () => {
       privacyReview: { status: "clear", items: [] },
     });
 
+    // Same order as the browser: the review route signs a clear OpenAI
+    // verdict, and contribution verifies that signature without re-reviewing.
+    const review = await reviewProfileWithAI(profile);
+    expect(review).toEqual({
+      source: "openai",
+      review: { status: "clear", items: [] },
+    });
+
     const input = submissionCreateRequestSchema.parse({
       profile,
       profileMarkdown: profileToMarkdown(profile),
@@ -44,6 +54,7 @@ describe.runIf(liveIntegrationEnabled)("live contribution integration", () => {
       privacyReview: profile.privacyReview,
       consentVersion: getConsentVersion(),
       consentAccepted: true,
+      privacyReviewToken: issuePrivacyReviewToken(profile),
     });
 
     const receipt = await contributeProfile(input);

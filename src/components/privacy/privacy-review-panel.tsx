@@ -1,6 +1,6 @@
-import { ShieldCheck, ShieldX } from "lucide-react";
+import { ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 
-import type { PrivacyReview } from "@/types/profile";
+import { isUnverifiedPrivacyReview, type PrivacyReview } from "@/types/profile";
 
 export type PrivacyReviewLocation = {
   id: string;
@@ -33,6 +33,30 @@ export function PrivacyReviewPanel({
           <p className="mt-1 text-sm leading-6 text-[#536159]">
             자동 검사는 보조 수단입니다. 다운로드 전에 이름·연락처·구체적인
             학교·반명 등 직접 식별정보가 없는지 한 번 더 읽어 주세요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isUnverifiedPrivacyReview(review)) {
+    return (
+      <div
+        role="alert"
+        className="flex gap-3 border-l-4 border-[#b66a2c] bg-[#fff8ec] p-5"
+      >
+        <ShieldAlert
+          aria-hidden="true"
+          className="mt-0.5 size-6 shrink-0 text-[#8a4d1d]"
+        />
+        <div>
+          <p className="font-bold">
+            AI 개인정보 최종 검사를 마치지 못했습니다.
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[#653f20]">
+            접속이 몰리거나 AI 응답이 늦어 검사가 끝나지 않았습니다. 잠시 후
+            아래 &lsquo;검토 마치고 개인정보 검사&rsquo; 버튼을 다시 누르면 다시
+            검사합니다.
           </p>
         </div>
       </div>

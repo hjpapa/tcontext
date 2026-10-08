@@ -102,37 +102,42 @@ function hasCombinationRisk(text: string) {
  * Generic educational nouns such as 학생, 학급, 우리 학급, and 우리 반 are
  * never concrete evidence by themselves, regardless of the model category.
  */
-function candidateHasConcreteEvidence(candidate: PrivacyReviewCandidate) {
-  switch (candidate.category) {
+function candidateHasConcreteEvidence(
+  category: PrivacyReviewCandidate["category"],
+  text: string,
+) {
+  switch (category) {
     case "person_name":
-      return hasPotentialPersonName(candidate.text);
+      return hasPotentialPersonName(text);
     case "government_id":
-      return hasGovernmentIdentifier(candidate.text);
+      return hasGovernmentIdentifier(text);
     case "contact":
-      return hasContactDetail(candidate.text);
+      return hasContactDetail(text);
     case "precise_location":
-      return hasPreciseLocation(candidate.text);
+      return hasPreciseLocation(text);
     case "specific_school_or_class":
-      return hasSpecificSchoolOrClass(candidate.text);
+      return hasSpecificSchoolOrClass(text);
     case "identifiable_sensitive_context":
-      return hasIdentifiableSensitiveContext(candidate.text);
+      return hasIdentifiableSensitiveContext(text);
     case "combination_risk":
-      return hasCombinationRisk(candidate.text);
+      return hasCombinationRisk(text);
   }
 }
 
 function validatedPublicReview(
   fields: readonly TextField[],
-  candidates: Awaited<ReturnType<typeof runPrivacyReviewCandidates>>["items"],
+  candidates: readonly PrivacyReviewCandidate[],
 ): PrivacyReview {
   const allowedTextByPath = new Map(
     fields.map((field) => [field.path, field.value] as const),
   );
-  const candidatesByPath = new Map<string, typeof candidates>();
+  const candidatesByPath = new Map<string, PrivacyReviewCandidate[]>();
 
   for (const candidate of candidates) {
-    if (allowedTextByPath.get(candidate.path) !== candidate.text) continue;
-    if (!candidateHasConcreteEvidence(candidate)) continue;
+    // The model never echoes text back; a path that was not sent is dropped.
+    const text = allowedTextByPath.get(candidate.path);
+    if (text === undefined) continue;
+    if (!candidateHasConcreteEvidence(candidate.category, text)) continue;
 
     const existing = candidatesByPath.get(candidate.path) ?? [];
     if (
@@ -167,6 +172,11 @@ function validatedPublicReview(
   });
 }
 
+// Reasoning tokens share this budget. A truncated answer is retried once with
+// the larger limit instead of failing the teacher's only path to the result.
+const PRIVACY_REVIEW_OUTPUT_TOKENS = 2_000;
+const PRIVACY_REVIEW_RETRY_OUTPUT_TOKENS = 4_000;
+
 async function runPrivacyReviewCandidates(fields: readonly TextField[]) {
   return runStructuredResponse({
     operation: "privacy_review",
@@ -178,7 +188,8 @@ async function runPrivacyReviewCandidates(fields: readonly TextField[]) {
     }),
     schema: privacyReviewCandidatesOutputSchema,
     schemaName: "tcontext_privacy_review_candidates",
-    maxOutputTokens: 2_000,
+    maxOutputTokens: PRIVACY_REVIEW_OUTPUT_TOKENS,
+    retryMaxOutputTokens: PRIVACY_REVIEW_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.privacy,
   });
 }

@@ -18,7 +18,37 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { TeacherContextProfile } from "@/types/profile";
+import {
+  isUnverifiedPrivacyReview,
+  type TeacherContextProfile,
+} from "@/types/profile";
+
+const CONTRIBUTION_FAILED_MESSAGE =
+  "기여 데이터를 저장하지 못했습니다. 문서 다운로드에는 영향이 없습니다.";
+
+type ContributionError = {
+  message: string;
+  reviewAgain: boolean;
+};
+
+async function contributionError(
+  response: Response,
+): Promise<ContributionError> {
+  try {
+    const body = (await response.json()) as {
+      error?: { code?: string; message?: string };
+    };
+    // Only the privacy-review answer is actionable for the teacher (an
+    // expired or mismatched review); other failures keep the generic text.
+    if (body.error?.code === "privacy_review_required" && body.error.message) {
+      return {
+        message: `${body.error.message} 문서 다운로드에는 영향이 없습니다.`,
+        reviewAgain: true,
+      };
+    }
+  } catch {}
+  return { message: CONTRIBUTION_FAILED_MESSAGE, reviewAgain: false };
+}
 
 export function ContributionPanel({
   profile,
@@ -31,16 +61,17 @@ export function ContributionPanel({
   consentVersion: string;
   retentionDays: number;
 }) {
-  const { contributionReceipt, setContributionReceipt } = useInterviewSession();
+  const { contributionReceipt, privacyReviewToken, setContributionReceipt } =
+    useInterviewSession();
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ContributionError | null>(null);
   const [copied, setCopied] = useState<"id" | "token" | null>(null);
 
   const contribute = async () => {
     if (!accepted || busy) return;
     setBusy(true);
-    setError("");
+    setError(null);
     try {
       const response = await fetch("/api/submissions/create", {
         method: "POST",
@@ -52,20 +83,16 @@ export function ContributionPanel({
           confirmedTags: profile.confirmedTags,
           privacyReview: profile.privacyReview,
           consentVersion,
+          ...(privacyReviewToken ? { privacyReviewToken } : {}),
         }),
       });
       if (!response.ok) {
-        throw new Error(
-          "기여 데이터를 저장하지 못했습니다. 문서 다운로드에는 영향이 없습니다.",
-        );
+        setError(await contributionError(response));
+        return;
       }
       setContributionReceipt((await response.json()) as ContributionReceipt);
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "기여 데이터를 저장하지 못했습니다.",
-      );
+    } catch {
+      setError({ message: CONTRIBUTION_FAILED_MESSAGE, reviewAgain: false });
     } finally {
       setBusy(false);
     }
@@ -107,6 +134,7 @@ export function ContributionPanel({
   };
 
   if (profile.privacyReview.status !== "clear") {
+    const unverified = isUnverifiedPrivacyReview(profile.privacyReview);
     return (
       <section
         aria-labelledby="contribution-disabled-title"
@@ -118,12 +146,14 @@ export function ContributionPanel({
             id="contribution-disabled-title"
             className="mt-1 text-xl font-bold"
           >
-            개인정보 경고가 남아 있어 이 문서는 서버에 기여할 수 없습니다.
+            {unverified
+              ? "AI 개인정보 검사를 마치지 못해 이 문서는 아직 기여할 수 없습니다."
+              : "개인정보 경고가 남아 있어 이 문서는 서버에 기여할 수 없습니다."}
           </h2>
           <p className="mt-2 leading-7 text-[#653f20]">
-            다운로드와 복사는 그대로 사용할 수 있습니다. 기여하려면 검토
-            화면으로 돌아가 해당 표현을 수정한 뒤 개인정보 검사를 다시 진행해
-            주세요.
+            {unverified
+              ? "다운로드와 복사는 그대로 사용할 수 있습니다. 기여하려면 잠시 후 검토 화면으로 돌아가 개인정보 검사를 다시 진행해 주세요."
+              : "다운로드와 복사는 그대로 사용할 수 있습니다. 기여하려면 검토 화면으로 돌아가 해당 표현을 수정한 뒤 개인정보 검사를 다시 진행해 주세요."}
           </p>
         </div>
       </section>
@@ -269,7 +299,17 @@ export function ContributionPanel({
       {error ? (
         <Alert variant="destructive" className="mt-5" role="alert">
           <AlertTitle>저장하지 못했습니다</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            <p>{error.message}</p>
+            {error.reviewAgain ? (
+              <Link
+                href="/review"
+                className="mt-2 inline-block font-semibold underline underline-offset-4"
+              >
+                검토 화면으로 돌아가기
+              </Link>
+            ) : null}
+          </AlertDescription>
         </Alert>
       ) : null}
 

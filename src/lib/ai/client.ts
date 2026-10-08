@@ -37,8 +37,17 @@ type StructuredResponseOptions<Schema extends z.ZodType> = {
   maxOutputTokens: number;
   retryMaxOutputTokens?: number;
   missingParsedFallback?: z.input<Schema>;
+  /**
+   * Retries once after a short jittered pause when OpenAI answers 429 or 5xx
+   * or drops the connection. Timeouts are never retried because they have
+   * already used the whole time budget.
+   */
+  retryTransientErrorOnce?: boolean;
   timeoutMs: number;
 };
+
+const TRANSIENT_RETRY_BASE_DELAY_MS = 400;
+const TRANSIENT_RETRY_JITTER_MS = 800;
 
 type SafeUsage = {
   inputTokens: number;
@@ -113,6 +122,22 @@ function logRetry(
   });
 }
 
+function logTransientRetry(
+  options: StructuredResponseOptions<z.ZodType>,
+  startedAt: number,
+  error: unknown,
+  delayMs: number,
+) {
+  console.warn("openai_request_transient_retry", {
+    operation: options.operation,
+    model: options.model,
+    durationMs: Date.now() - startedAt,
+    errorType: error instanceof Error ? error.constructor.name : "UnknownError",
+    status: error instanceof OpenAI.APIError ? (error.status ?? null) : null,
+    delayMs,
+  });
+}
+
 function logFallback(
   options: StructuredResponseOptions<z.ZodType>,
   startedAt: number,
@@ -142,6 +167,26 @@ function logFailure(
     ...(response ? { response } : {}),
     success: false,
   });
+}
+
+function isTransientOpenAIError(error: unknown): boolean {
+  if (error instanceof OpenAI.APIConnectionTimeoutError) return false;
+  if (error instanceof OpenAI.APIConnectionError) return true;
+  if (!(error instanceof OpenAI.APIError)) return false;
+  // An exhausted quota stays exhausted; retrying only adds latency.
+  if (error.status === 429) return error.code !== "insufficient_quota";
+  return typeof error.status === "number" && error.status >= 500;
+}
+
+function transientRetryDelayMs(): number {
+  return (
+    TRANSIENT_RETRY_BASE_DELAY_MS +
+    Math.floor(Math.random() * TRANSIENT_RETRY_JITTER_MS)
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function mapOpenAIError(error: unknown): ApiError {
@@ -222,18 +267,11 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
 ): Promise<z.output<Schema>> {
   const startedAt = Date.now();
   let lastResponseDetails: SafeResponseDetails | undefined;
+  let transientRetryAvailable = options.retryTransientErrorOnce === true;
 
-  try {
-    const outputTokenLimits = [
-      options.maxOutputTokens,
-      ...(options.retryMaxOutputTokens === undefined
-        ? []
-        : [options.retryMaxOutputTokens]),
-    ];
-
-    for (const [attemptIndex, maxOutputTokens] of outputTokenLimits.entries()) {
-      lastResponseDetails = undefined;
-      const response = await getOpenAIClient().responses.parse(
+  const parseResponse = async (maxOutputTokens: number) => {
+    const request = () =>
+      getOpenAIClient().responses.parse(
         {
           model: options.model,
           instructions: options.instructions,
@@ -250,6 +288,32 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
           timeout: options.timeoutMs,
         },
       );
+
+    try {
+      return await request();
+    } catch (error) {
+      if (!transientRetryAvailable || !isTransientOpenAIError(error)) {
+        throw error;
+      }
+      transientRetryAvailable = false;
+      const delayMs = transientRetryDelayMs();
+      logTransientRetry(options, startedAt, error, delayMs);
+      await sleep(delayMs);
+      return request();
+    }
+  };
+
+  try {
+    const outputTokenLimits = [
+      options.maxOutputTokens,
+      ...(options.retryMaxOutputTokens === undefined
+        ? []
+        : [options.retryMaxOutputTokens]),
+    ];
+
+    for (const [attemptIndex, maxOutputTokens] of outputTokenLimits.entries()) {
+      lastResponseDetails = undefined;
+      const response = await parseResponse(maxOutputTokens);
 
       lastResponseDetails = responseDetailsOf(response);
       if (response.output_parsed !== null) {

@@ -11,6 +11,7 @@ import {
   PROFILE_MODULE_IDS,
   TEACHING_SUBJECT_LABELS,
   hasUnresolvedClaims,
+  isUnverifiedPrivacyReview,
   teacherContextProfileSchema,
   type ProfileClaim,
   type TeacherContextProfile,
@@ -166,7 +167,12 @@ export function profileToMarkdown(input: TeacherContextProfile): string {
     "- **확인하거나 수정할 내용**과 **[검토 전]** 표시는 AI에 사용하기 전에 교사가 먼저 확인해야 한다.",
   ];
 
-  if (profile.privacyReview.status === "needs_review") {
+  if (isUnverifiedPrivacyReview(profile.privacyReview)) {
+    sections.push(
+      "",
+      "> **개인정보 확인 안 됨:** AI 개인정보 최종 검사를 마치지 못한 상태에서 만든 문서입니다. 공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지 직접 확인해 주세요. 이 상태의 문서는 서버에 선택 저장할 수 없습니다.",
+    );
+  } else if (profile.privacyReview.status === "needs_review") {
     sections.push(
       "",
       "> **개인정보 경고:** 자동 검사에서 확인이 필요한 표현이 남아 있습니다. 공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지 직접 다시 확인해 주세요. 이 상태의 문서는 서버에 선택 저장할 수 없습니다.",

@@ -131,6 +131,7 @@ CONSENT_VERSION=1.0
 PROFILE_SCHEMA_VERSION=1.0
 
 DELETE_TOKEN_PEPPER=
+PRIVACY_REVIEW_SIGNING_SECRET=
 CRON_SECRET=
 
 ADMIN_PASSWORD_HASH=
@@ -141,7 +142,9 @@ NEXT_PUBLIC_APP_NAME=TContext
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `CRON_SECRET`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
+`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
+
+`PRIVACY_REVIEW_SIGNING_SECRET`은 선택적 기여에 필요한 32자 이상의 무작위 값입니다. 최종 OpenAI 개인정보 검사가 `clear`이면 서버가 정규화한 프로필 JSON의 SHA-256과 검사 결과, 발급 시각에 HMAC 서명한 토큰을 브라우저 메모리로 돌려주고, 기여 API는 OpenAI를 다시 호출하지 않고 이 서명과 1시간 만료만 검증합니다. 토큰은 서버에 저장하지 않습니다. 값이 없으면 문서 생성·다운로드는 그대로 동작하고 기여만 거부됩니다. 값을 바꾸면 이미 발급된 토큰은 모두 무효가 됩니다.
 
 `DATA_RETENTION_DAYS`는 일일 정리 지연까지 포함해 행이 실제로 저장될 수 있는 최장 일수입니다. 삭제 대상 전환 시각은 `consented_at + max(DATA_RETENTION_DAYS - 1, 0)일`로 계산합니다. 값이 `1`이면 기여 즉시 삭제 대상이 되고 다음 일일 정리 주기 안에 삭제됩니다.
 
@@ -180,7 +183,7 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 
 1. GitHub `hjpapa/tcontext` 저장소를 Vercel `tcontext` 프로젝트에 연결합니다.
 2. `.env.example`의 값을 Preview와 Production에 각각 설정합니다.
-3. 두 환경에는 서로 독립된 `DELETE_TOKEN_PEPPER`, `CRON_SECRET`을 사용합니다.
+3. 두 환경에는 서로 독립된 `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`을 사용합니다.
 4. Preview에서 전체 흐름과 모바일 화면을 확인합니다.
 5. 통과한 `main` 커밋을 Production으로 승격합니다.
 

@@ -19,6 +19,7 @@ import {
   LESSON_TASK_CONTEXT_ITEMS,
   RESULT_USAGE_STEPS,
 } from "@/content/profile-document";
+import { isUnverifiedPrivacyReview } from "@/types/profile";
 
 export function ResultView({
   consentVersion,
@@ -50,6 +51,9 @@ export function ResultView({
   }
 
   const privacyReviewClear = profile.privacyReview.status === "clear";
+  const privacyReviewUnverified = isUnverifiedPrivacyReview(
+    profile.privacyReview,
+  );
 
   return (
     <section aria-labelledby="result-title" className="space-y-12">
@@ -66,7 +70,9 @@ export function ResultView({
           )}
           {privacyReviewClear
             ? "교사 검토·개인정보 검사 완료"
-            : "개인정보 경고를 확인하고 만든 문서"}
+            : privacyReviewUnverified
+              ? "개인정보 확인 안 됨 · AI 검사를 마치지 못한 문서"
+              : "개인정보 경고를 확인하고 만든 문서"}
         </p>
         <h1
           id="result-title"
@@ -84,11 +90,29 @@ export function ResultView({
           role="status"
           className="border-l-4 border-[#b66a2c] bg-[#fff8ec] p-5 text-[#653f20]"
         >
-          <p className="font-bold">자동 검사 경고가 남아 있는 문서입니다.</p>
-          <p className="mt-1 text-sm leading-6">
-            공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지 직접
-            확인해 주세요. 이 문서는 선택적 데이터 기여를 할 수 없습니다.
-          </p>
+          {privacyReviewUnverified ? (
+            <>
+              <p className="font-bold">
+                AI 개인정보 검사를 마치지 못한 문서입니다.
+              </p>
+              <p className="mt-1 text-sm leading-6">
+                공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지
+                직접 확인해 주세요. 선택적 데이터 기여를 하려면 검토 화면으로
+                돌아가 개인정보 검사를 다시 받아 주세요.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-bold">
+                자동 검사 경고가 남아 있는 문서입니다.
+              </p>
+              <p className="mt-1 text-sm leading-6">
+                공유하거나 다른 AI에 입력하기 전에 식별 가능한 정보가 없는지
+                직접 확인해 주세요. 이 문서는 선택적 데이터 기여를 할 수
+                없습니다.
+              </p>
+            </>
+          )}
         </div>
       ) : null}
 

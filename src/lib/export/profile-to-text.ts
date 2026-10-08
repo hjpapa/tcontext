@@ -9,6 +9,7 @@ import {
   PROFILE_MODULE_IDS,
   TEACHING_SUBJECT_LABELS,
   hasUnresolvedClaims,
+  isUnverifiedPrivacyReview,
   teacherContextProfileSchema,
   type TeacherContextProfile,
 } from "@/types/profile";
@@ -46,9 +47,11 @@ export function profileToPlainText(input: TeacherContextProfile): string {
       : [
           `담당 교과: ${TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject]}`,
         ]),
-    profile.privacyReview.status === "needs_review"
-      ? "개인정보 상태: 경고를 확인한 로컬 문서 — 식별 가능 정보가 남아 있을 수 있음"
-      : "개인정보 상태: 자동 검사 통과",
+    isUnverifiedPrivacyReview(profile.privacyReview)
+      ? "개인정보 상태: AI 검사를 마치지 못한 로컬 문서 — 식별 가능 정보가 남아 있을 수 있음"
+      : profile.privacyReview.status === "needs_review"
+        ? "개인정보 상태: 경고를 확인한 로컬 문서 — 식별 가능 정보가 남아 있을 수 있음"
+        : "개인정보 상태: 자동 검사 통과",
     hasUnresolvedClaims(profile)
       ? "상태: 확인이 필요한 문장이 남아 있음"
       : "상태: 교사 검토 완료",

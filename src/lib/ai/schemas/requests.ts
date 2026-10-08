@@ -64,6 +64,9 @@ export const submissionCreateRequestSchema = profileContributionSchema
   .omit({ consentedAt: true })
   .extend({
     consentAccepted: z.boolean(),
+    // Optional here so a missing token gets the "review again" answer from
+    // the contribution boundary instead of a generic 400.
+    privacyReviewToken: z.string().trim().min(1).max(256).optional(),
   })
   .strict();
 

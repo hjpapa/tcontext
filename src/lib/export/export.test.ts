@@ -3,6 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { FICTIONAL_PROFILES } from "@/content/examples";
+import { UNVERIFIED_PRIVACY_REVIEW } from "@/types/profile";
 import {
   downloadMarkdown,
   profileMarkdownFilename,
@@ -144,6 +145,23 @@ describe("profile export", () => {
 
     expect(profileToMarkdown(profile)).toContain("needs_review");
     expect(profileToPlainText(profile)).toContain("개인정보 상태: 경고");
+    expect(profileToCompactText(profile)).toContain("[개인정보 경고]");
+    expect(profileToPrintableHtml(profile)).toContain("개인정보 경고");
+  });
+
+  it("labels an unfinished AI privacy review as unverified, not as a finding", () => {
+    const profile = fictionalProfile(0);
+    profile.privacyReview = UNVERIFIED_PRIVACY_REVIEW;
+
+    const markdown = profileToMarkdown(profile);
+    expect(markdown).toContain('privacy_review: "needs_review"');
+    expect(markdown).toContain("**개인정보 확인 안 됨:**");
+    expect(markdown).toContain("서버에 선택 저장할 수 없습니다");
+    expect(markdown).not.toContain("**개인정보 경고:**");
+    expect(markdown).not.toContain(UNVERIFIED_PRIVACY_REVIEW.items[0]!.text);
+    expect(profileToPlainText(profile)).toContain(
+      "개인정보 상태: AI 검사를 마치지 못한 로컬 문서",
+    );
     expect(profileToCompactText(profile)).toContain("[개인정보 경고]");
     expect(profileToPrintableHtml(profile)).toContain("개인정보 경고");
   });

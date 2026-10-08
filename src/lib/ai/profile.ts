@@ -149,6 +149,9 @@ export async function generateProfile(input: GenerateInput): Promise<{
     schemaName: "tcontext_profile_generation",
     maxOutputTokens: PROFILE_GENERATION_OUTPUT_TOKENS,
     retryMaxOutputTokens: PROFILE_GENERATION_RETRY_OUTPUT_TOKENS,
+    // Losing a finished interview to one busy-provider answer is costly, so
+    // only generation absorbs a single 429/5xx before surfacing the error.
+    retryTransientErrorOnce: true,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
   });
   assertSafeGeneratedCharacters(output);

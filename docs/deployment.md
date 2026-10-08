@@ -53,24 +53,27 @@ supabase db push
 
 ## 환경 변수
 
-| 이름                      | Preview         | Production      | 비고                             |
-| ------------------------- | --------------- | --------------- | -------------------------------- |
-| `OPENAI_API_KEY`          | 필수            | 필수            | 서버 전용                        |
-| `OPENAI_INTERVIEW_MODEL`  | `gpt-5.6-luna`  | `gpt-5.6-luna`  | 환경별 교체 가능                 |
-| `OPENAI_PROFILE_MODEL`    | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                 |
-| `OPENAI_PRIVACY_MODEL`    | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                 |
-| `SUPABASE_URL`            | 필수            | 필수            | 프로젝트 URL                     |
-| `SUPABASE_SECRET_KEY`     | 필수            | 필수            | 서버 전용, `NEXT_PUBLIC_` 금지   |
-| `DATA_RETENTION_DAYS`     | `365`           | `365`           | 정리 간격 포함 실제 최장 일수    |
-| `CONSENT_VERSION`         | `1.0`           | `1.0`           | 동의 문안 버전                   |
-| `PROFILE_SCHEMA_VERSION`  | `1.0`           | `1.0`           | canonical schema                 |
-| `DELETE_TOKEN_PEPPER`     | 필수            | 필수            | 환경별 다른 긴 무작위 값         |
-| `CRON_SECRET`             | 필수            | 필수            | Vercel Cron 보호                 |
-| `ADMIN_PASSWORD_HASH`     | 필수            | 필수            | scrypt 해시, 서버 전용           |
-| `ADMIN_SESSION_SECRET`    | 필수            | 필수            | 환경별 다른 32바이트 이상 비밀값 |
-| `ADMIN_SESSION_TTL_HOURS` | `8`             | `8`             | 1~24시간                         |
-| `NEXT_PUBLIC_APP_NAME`    | `TContext`      | `TContext`      | 공개 값                          |
-| `NEXT_PUBLIC_APP_URL`     | Preview URL     | Production URL  | 영수증·절대 URL 기준 공개 값     |
+| 이름                            | Preview         | Production      | 비고                                      |
+| ------------------------------- | --------------- | --------------- | ----------------------------------------- |
+| `OPENAI_API_KEY`                | 필수            | 필수            | 서버 전용                                 |
+| `OPENAI_INTERVIEW_MODEL`        | `gpt-5.6-luna`  | `gpt-5.6-luna`  | 환경별 교체 가능                          |
+| `OPENAI_PROFILE_MODEL`          | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                          |
+| `OPENAI_PRIVACY_MODEL`          | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                          |
+| `SUPABASE_URL`                  | 필수            | 필수            | 프로젝트 URL                              |
+| `SUPABASE_SECRET_KEY`           | 필수            | 필수            | 서버 전용, `NEXT_PUBLIC_` 금지            |
+| `DATA_RETENTION_DAYS`           | `365`           | `365`           | 정리 간격 포함 실제 최장 일수             |
+| `CONSENT_VERSION`               | `1.0`           | `1.0`           | 동의 문안 버전                            |
+| `PROFILE_SCHEMA_VERSION`        | `1.0`           | `1.0`           | canonical schema                          |
+| `DELETE_TOKEN_PEPPER`           | 필수            | 필수            | 환경별 다른 긴 무작위 값                  |
+| `PRIVACY_REVIEW_SIGNING_SECRET` | 필수            | 필수            | 32자 이상, 서버 전용, `NEXT_PUBLIC_` 금지 |
+| `CRON_SECRET`                   | 필수            | 필수            | Vercel Cron 보호                          |
+| `ADMIN_PASSWORD_HASH`           | 필수            | 필수            | scrypt 해시, 서버 전용                    |
+| `ADMIN_SESSION_SECRET`          | 필수            | 필수            | 환경별 다른 32바이트 이상 비밀값          |
+| `ADMIN_SESSION_TTL_HOURS`       | `8`             | `8`             | 1~24시간                                  |
+| `NEXT_PUBLIC_APP_NAME`          | `TContext`      | `TContext`      | 공개 값                                   |
+| `NEXT_PUBLIC_APP_URL`           | Preview URL     | Production URL  | 영수증·절대 URL 기준 공개 값              |
+
+`PRIVACY_REVIEW_SIGNING_SECRET`은 최종 OpenAI 개인정보 검사가 `clear`일 때 서버가 정규화한 프로필 JSON의 SHA-256, 검사 결과, 발급 시각에 HMAC-SHA256으로 서명하는 데 쓴다. 기여 API는 OpenAI를 다시 호출하지 않고 서명, 프로필 해시, 1시간 만료만 확인한다. 토큰은 서버나 데이터베이스에 저장하지 않으며 브라우저 탭 메모리에만 있다. 값이 없거나 32자보다 짧으면 Markdown 생성·다운로드는 그대로 동작하고 선택적 기여만 503으로 거부된다. 값을 교체하면 발급된 토큰이 모두 무효가 되므로 사용자는 개인정보 검사를 다시 받아야 한다. `openssl rand -base64 48` 등으로 환경마다 따로 생성한다.
 
 Preview와 Production에는 서로 독립된 비밀값을 설정한다. 운영 Secret Key를 로컬이나 Preview에 복사하지 않는 구성이 권장된다.
 
@@ -85,6 +88,10 @@ Preview와 Production에는 서로 독립된 비밀값을 설정한다. 운영 S
 3. Preview와 Production 환경 변수를 각각 설정한다.
 4. Preview를 배포해 랜딩, 개인정보 안내, 학교급·역할·중고등학교 담당 교과 선택, 인터뷰, 생성·검토, 다운로드, 저장 거부, 선택 저장·삭제, `/admin/login` 인증과 관리자 열람을 스모크 테스트한다.
 5. 통과한 커밋을 Production에 배포한다.
+
+AI Route Handler는 `export const maxDuration`으로 함수 실행 한도를 명시한다. 초안 생성 120초(429/5xx 지터 재시도 1회 + 45초 시도 최대 2회), 모듈 재작성 120초(45초 시도 최대 2회), 최종 개인정보 검사 60초(25초 시도 최대 2회)다. 이 값은 Fluid compute가 켜진 Vercel 프로젝트(Hobby 최대 300초)를 전제로 한다. Fluid compute를 끈 Hobby 프로젝트는 최대 60초라 배포가 거부되므로 켜 두거나 값을 낮춘다. 운영 중에는 `openai_request` 로그의 operation별 `durationMs` p95를 보고 조정한다.
+
+최종 개인정보 검사가 OpenAI 지연·한도 초과·응답 잘림으로 끝나지 않으면 화면은 오류에서 멈추지 않고 '확인 안 됨' 상태로 결과 화면에 갈 수 있는 경로를 연다. 이 상태는 `clear`가 아니므로 Markdown에 경고가 남고 선택적 기여는 계속 차단된다.
 
 `vercel.json`은 매일 한국 시간 오전 3시 17분에 삭제 대상 정리 API를 호출한다. API는 `CRON_SECRET` 또는 Vercel Cron 인증을 검증해야 한다. 일일 실행 실패가 발생하면 최대 보유기간을 넘길 수 있으므로 즉시 수동 정리를 수행하고 스케줄을 복구한다.
 

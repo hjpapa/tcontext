@@ -46,6 +46,7 @@ type InterviewSessionValue = {
   profile: TeacherContextProfile | null;
   suggestedTags: SuggestedTag[];
   markdown: string;
+  privacyReviewToken: string | null;
   contributionReceipt: ContributionReceipt | null;
   deviceProgressEnabled: boolean;
   progressHydrated: boolean;
@@ -54,6 +55,7 @@ type InterviewSessionValue = {
   setProfile: (profile: TeacherContextProfile | null) => void;
   setSuggestedTags: (tags: SuggestedTag[]) => void;
   setMarkdown: (markdown: string) => void;
+  setPrivacyReviewToken: (token: string | null) => void;
   setContributionReceipt: (receipt: ContributionReceipt | null) => void;
   setDeviceProgressEnabled: (enabled: boolean) => void;
   clearBrowserRecords: () => void;
@@ -165,6 +167,10 @@ export function InterviewSessionProvider({
   const [profile, setProfile] = useState<TeacherContextProfile | null>(null);
   const [suggestedTags, setSuggestedTags] = useState<SuggestedTag[]>([]);
   const [markdown, setMarkdown] = useState("");
+  // Signed proof of a clear OpenAI review. Memory only, like the profile.
+  const [privacyReviewToken, setPrivacyReviewToken] = useState<string | null>(
+    null,
+  );
   const [contributionReceipt, setContributionReceipt] =
     useState<ContributionReceipt | null>(null);
   const deviceProgressEnabled = useSyncExternalStore(
@@ -210,6 +216,7 @@ export function InterviewSessionProvider({
     setProfile(null);
     setSuggestedTags([]);
     setMarkdown("");
+    setPrivacyReviewToken(null);
     setContributionReceipt(null);
 
     // TContext never stores raw answers. This only removes legacy/non-sensitive
@@ -235,6 +242,7 @@ export function InterviewSessionProvider({
       profile,
       suggestedTags,
       markdown,
+      privacyReviewToken,
       contributionReceipt,
       deviceProgressEnabled,
       progressHydrated,
@@ -243,6 +251,7 @@ export function InterviewSessionProvider({
       setProfile,
       setSuggestedTags,
       setMarkdown,
+      setPrivacyReviewToken,
       setContributionReceipt,
       setDeviceProgressEnabled,
       clearBrowserRecords,
@@ -253,6 +262,7 @@ export function InterviewSessionProvider({
       deviceProgressEnabled,
       interview,
       markdown,
+      privacyReviewToken,
       profile,
       progressHydrated,
       restoredProgress,
