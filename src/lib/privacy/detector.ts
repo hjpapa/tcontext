@@ -1,5 +1,8 @@
 import { rewriteStudentDescription, suggestionForRisk } from "./rewrite";
-import { isGenericEducationalRoleDescriptor } from "./name-context";
+import {
+  isEducationalCompoundNoun,
+  isGenericEducationalRoleDescriptor,
+} from "./name-context";
 
 import type {
   PrivacyMatch,
@@ -15,7 +18,7 @@ type PatternDefinition = {
   severity: PrivacyRiskSeverity;
   regex: RegExp;
   reason: string;
-  ignore?: (match: string) => boolean;
+  ignore?: (match: string, text: string, start: number) => boolean;
 };
 
 const KOREAN_SURNAMES =
@@ -28,15 +31,15 @@ const EXPLICIT_ENGLISH_NAME_PATTERN =
 const LABELED_NAME_CORE_PATTERN = `(?:${EXPLICIT_KOREAN_NAME_PATTERN}|${EXPLICIT_ENGLISH_NAME_PATTERN})(?:\\s*(?:씨|님))?`;
 const LABELED_NAME_ENDING_PATTERN =
   "(?:입니다|이다|이며|이고|예요|이에요|라고\\s*(?:합니다|해요))";
-const LABELED_NAME_VALUE_PATTERN = `(?!(?:["'“‘「]\\s*)?(?:익명|미상|없음|없다|비공개|가명)(?:\\s*["'”’」])?(?=$|[,.;:!?]))(?:"\\s*${LABELED_NAME_CORE_PATTERN}\\s*"|'\\s*${LABELED_NAME_CORE_PATTERN}\\s*'|“\\s*${LABELED_NAME_CORE_PATTERN}\\s*”|‘\\s*${LABELED_NAME_CORE_PATTERN}\\s*’|「\\s*${LABELED_NAME_CORE_PATTERN}\\s*」|${LABELED_NAME_CORE_PATTERN})(?:\\s*${LABELED_NAME_ENDING_PATTERN})?(?=$|[,.;:!?])`;
+const LABELED_NAME_VALUE_PATTERN = `(?!(?:["'“‘「]\\s*)?(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|없는|익명|미상|없음|없다|비공개|가명|표시|밝히|언급)(?:\\s*["'”’」])?(?=$|[,.;:!?]))(?:"\\s*${LABELED_NAME_CORE_PATTERN}\\s*"|'\\s*${LABELED_NAME_CORE_PATTERN}\\s*'|“\\s*${LABELED_NAME_CORE_PATTERN}\\s*”|‘\\s*${LABELED_NAME_CORE_PATTERN}\\s*’|「\\s*${LABELED_NAME_CORE_PATTERN}\\s*」|${LABELED_NAME_CORE_PATTERN})(?:\\s*${LABELED_NAME_ENDING_PATTERN})?(?=$|[,.;:!?])`;
 const ENGLISH_FULL_NAME_PATTERN =
   "[A-Z][A-Za-z'-]+(?:\\s+[A-Z][A-Za-z'-]+){1,2}";
 const STUDENT_ROLE_PATTERN = "(?:학생|유아|아동)";
 const ADULT_ROLE_PATTERN = "(?:교사|선생님|보호자)";
 const NAME_TRAILING_CONTEXT_PATTERN =
-  "(?=$|[은이는의에게을를과와도가로,.;:!?])";
-const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
-const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+  "(?=$|[은이는의에게께을를과와도가로,.;:!?])";
+const NAMED_STUDENT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${ENGLISH_FULL_NAME_PATTERN}\\s+${STUDENT_ROLE_PATTERN}(?!들)|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${STUDENT_ROLE_PATTERN}(?!들)\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${STUDENT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
+const NAMED_ADULT_CONTEXT_PATTERN = `(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ENGLISH_FULL_NAME_PATTERN}\\s+${ADULT_ROLE_PATTERN}|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}?|${ENGLISH_FULL_NAME_PATTERN})(?=(?:은|는|이|가|의|에게|을|를|과|와|도|만|로))|${ADULT_ROLE_PATTERN}\\s+(?:${LIKELY_KOREAN_FULL_NAME_PATTERN}|${ENGLISH_FULL_NAME_PATTERN})(?=$|[,.;:!?])|${ADULT_ROLE_PATTERN}\\s*(?:의\\s*)?(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:제|내|본인(?:의)?)\\s*(?:이름|성명|실명)\\s*(?:은|는|이|가|:|：)?\\s*${LABELED_NAME_VALUE_PATTERN}|(?:성명|실명)\\s*(?:은|는|이|가|:|：)\\s*${LABELED_NAME_VALUE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:(?:한|그|해당|특정|개별)\\s*${STUDENT_ROLE_PATTERN}|${STUDENT_ROLE_PATTERN}\\s*한\\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\\s*${STUDENT_ROLE_PATTERN})${NAME_TRAILING_CONTEXT_PATTERN}`;
 const INDIVIDUAL_STUDENT_CONTEXT_PATTERN = `(?:${NAMED_STUDENT_CONTEXT_PATTERN}|${ANONYMOUS_INDIVIDUAL_STUDENT_CONTEXT_PATTERN})`;
 const SAFE_ROLE_DESCRIPTORS = new Set([
@@ -110,6 +113,9 @@ const SAFE_ROLE_DESCRIPTORS = new Set([
   "특수학교",
   "원아",
 ]);
+// School and class prefixes describe a type, setting, or relation rather than
+// a proper name. A prefix may chain several of them (`공립병설유치원`,
+// `오후돌봄반`); any other syllables keep the whole name blocked.
 const GENERIC_SCHOOL_PREFIXES = new Set([
   "우리",
   "저희",
@@ -122,6 +128,44 @@ const GENERIC_SCHOOL_PREFIXES = new Set([
   "자율형",
   "공립",
   "사립",
+  "국립",
+  "병설",
+  "단설",
+  "부설",
+  "남자",
+  "여자",
+  "남녀공학",
+  "시골",
+  "농촌",
+  "어촌",
+  "산촌",
+  "농산어촌",
+  "도시",
+  "도심",
+  "신도시",
+  "혁신",
+  "대안",
+  "작은",
+  "소규모",
+  "대규모",
+  "과밀",
+  "거점",
+  "연구",
+  "시범",
+  "신설",
+  "통합",
+  "인근",
+  "이웃",
+  "다른",
+  "같은",
+  "기존",
+  "예술",
+  "과학",
+  "외국어",
+  "국제",
+  "체육",
+  "마이스터",
+  "기숙형",
 ]);
 const GENERIC_INSTITUTION_PREFIXES = new Set([
   "우리",
@@ -132,6 +176,13 @@ const GENERIC_INSTITUTION_PREFIXES = new Set([
   "관할",
   "현재",
   "교육",
+  "시도",
+  "시·도",
+  "광역",
+  "상급",
+  "소속",
+  "인근",
+  "다른",
 ]);
 const GENERIC_CLASS_PREFIXES = new Set([
   "우리",
@@ -164,15 +215,41 @@ const GENERIC_CLASS_PREFIXES = new Set([
   "특수",
   "학습지원",
   "나침",
+  "종일",
+  "돌봄",
+  "오전",
+  "오후",
+  "저녁",
+  "야간",
+  "연장",
+  "담임",
+  "다른",
+  "같은",
+  "인근",
+  "이웃",
+  "문과",
+  "이과",
+  "예체능",
+  "취업",
+  "진학",
+  "도움",
+  "영재",
+  "보충",
+  "맞춤",
+  "수준별",
+  "연령별",
+  "혼합연령",
+  "특기적성",
 ]);
-const MEDICAL_TERM_PATTERN =
+export const MEDICAL_TERM_PATTERN =
   "(?:ADHD|주의력결핍(?:과잉행동)?장애|자폐(?:스펙트럼)?|우울증|불안장애|틱장애|난독증|지적장애|진단(?:명|받)|치료\\s*중|약(?:을|을\\s*)?\\s*복용|건강\\s*정보|병력|상담\\s*(?:을\\s*받|기록|내용|이력)|가정\\s*환경|생활기록부)";
-const RARE_IDENTIFYING_EVENT_PATTERN =
+export const RARE_IDENTIFYING_EVENT_PATTERN =
   /(?:단독|유일|수상|입상|대회|전학|전입|전출|입학|졸업|사고|징계|퇴학|학교폭력|피해|가해|입원|응급|실종|구조)/u;
+export const GRADE_OR_AGE_PATTERN = /(?<!\d)\d{1,2}\s*(?:학년|세)(?!\d)/u;
 const SINGULAR_STUDENT_REFERENCE =
   /(?:(?:한|그|해당|특정|개별)\s*(?:학생|유아|아동)|(?:학생|유아|아동)\s*한\s*명|(?:OO|O{2,4}|○{2,4}|◯{2,4}|A)\s*(?:학생|유아|아동))/u;
 
-function hasSingularStudentReference(text: string) {
+export function hasSingularStudentReference(text: string) {
   return (
     SINGULAR_STUDENT_REFERENCE.test(text) ||
     /(?:단독|유일)[^.!?\n]{0,30}(?:학생|유아|아동)(?!들)/u.test(text) ||
@@ -180,7 +257,10 @@ function hasSingularStudentReference(text: string) {
   );
 }
 const GENERIC_EDUCATIONAL_MODIFIER =
-  /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류)(?:한|하는|했던|할)|고른|마친|고친|배운)$/u;
+  /^(?:(?:선택|이해|지원|질문|발표|설명|참여|응답|도전|시도|수정|작성|제출|관찰|기록|준비|신청|희망|요청|학습|활동|토론|탐구|협력|공유|완료|정리|구성|고민|조사|정돈|구별|비교|분석|결정|해결|계획|실행|검토|확인|연습|복습|제안|선정|분류|유지|안내|제시|연결|조정|제공|선별|구분|운영|진행|반영|활용|마련|조절|전환|존중|허용|강조|소개|제한|지도|배치|수용)(?:한|하는|했던|할|해)|고른|마친|고친|배운)$/u;
+const ROLE_FIRST_PATTERN = /^(?:학생|유아|아동|교사|선생님|보호자)\s+/u;
+const TRAILING_PARTICLE =
+  /(?:에게|에서|으로|은|는|이|가|의|을|를|과|와|도|만|로)$/u;
 
 const KOREAN_SYLLABLE_START = 0xac00;
 const KOREAN_SYLLABLE_END = 0xd7a3;
@@ -250,7 +330,7 @@ function containsValidLabeledDate(match: string) {
   return isValidCalendarDate(Number(date[1]), Number(date[2]), Number(date[3]));
 }
 
-function containsExactCalendarDate(text: string) {
+export function containsExactCalendarDate(text: string) {
   for (const match of text.matchAll(
     /((?:19|20)\d{2})(?:년|[-/.])\s*(0?[1-9]|1[0-2])(?:월|[-/.])\s*(0?[1-9]|[12]\d|3[01])일?/gu,
   )) {
@@ -283,7 +363,7 @@ function detectHighConfidenceCombinationRisks(text: string): PrivacyMatch[] {
     if (start === undefined || sentence.trim().length === 0) continue;
 
     const hasExactDate = containsExactCalendarDate(sentence);
-    const hasGradeOrAge = /(?<!\d)\d{1,2}\s*(?:학년|세)(?!\d)/u.test(sentence);
+    const hasGradeOrAge = GRADE_OR_AGE_PATTERN.test(sentence);
     const hasSingularStudent = hasSingularStudentReference(sentence);
     const hasRareEvent = RARE_IDENTIFYING_EVENT_PATTERN.test(sentence);
     const clueCount = [
@@ -320,7 +400,25 @@ function isGenericPrivacyPolicyStatement(match: string) {
   );
 }
 
-function isGenericRoleDescription(match: string) {
+/**
+ * The role-first patterns stop at the first particle-like syllable, so
+ * `유아 주도놀이를` is matched as `유아 주도놀`. Judge the whole word that
+ * follows the role, with at most one trailing particle removed.
+ */
+function isCompoundAfterRole(match: string, text: string, start: number) {
+  const role = match.match(ROLE_FIRST_PATTERN)?.[0];
+  if (!role) return false;
+
+  const word = text.slice(start + role.length).match(/^[가-힣]+/u)?.[0];
+  if (!word) return false;
+
+  return (
+    isEducationalCompoundNoun(word) ||
+    isEducationalCompoundNoun(word.replace(TRAILING_PARTICLE, ""))
+  );
+}
+
+function isGenericRoleDescription(match: string, text = match, start = 0) {
   if (
     /(?:이름|성명|실명)\s*(?:은|는|이|가|:|：)?\s*(?:익명|미상|없음|없다|비공개|가명)/u.test(
       match,
@@ -353,27 +451,51 @@ function isGenericRoleDescription(match: string) {
         isCaseMarkedRolePhrase(descriptor) ||
         /(?:에서|에게|으로|하고|하며|보다|마다|처럼|까지|부터|와|과|의|내|중|별|반|한|된|운|는|인|할|했던|로운|스러운)$/u.test(
           descriptor,
-        )
+        ) ||
+        isCompoundAfterRole(match, text, start)
     : false;
+}
+
+function isComposedOfGenericPrefixes(
+  prefix: string,
+  generic: ReadonlySet<string>,
+): boolean {
+  if (generic.has(prefix)) return true;
+  for (const part of generic) {
+    if (
+      prefix.length > part.length &&
+      prefix.startsWith(part) &&
+      isComposedOfGenericPrefixes(prefix.slice(part.length), generic)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isGenericSchoolReference(match: string) {
   const prefix = match.match(
     /^([가-힣]+?)(?:초등학교|중학교|고등학교|유치원|특수학교)$/u,
   )?.[1];
-  return prefix ? GENERIC_SCHOOL_PREFIXES.has(prefix) : false;
+  return prefix
+    ? isComposedOfGenericPrefixes(prefix, GENERIC_SCHOOL_PREFIXES)
+    : false;
 }
 
 function isGenericInstitutionReference(match: string) {
   const prefix = match.match(
-    /^([가-힣]+?)(?:교육지원청|교육청|교육대학교|대학교)$/u,
+    /^([가-힣·]+?)(?:교육지원청|교육청|교육대학교|대학교)$/u,
   )?.[1];
-  return prefix ? GENERIC_INSTITUTION_PREFIXES.has(prefix) : false;
+  return prefix
+    ? isComposedOfGenericPrefixes(prefix, GENERIC_INSTITUTION_PREFIXES)
+    : false;
 }
 
 function isGenericNamedClassReference(match: string) {
   const prefix = match.match(/^([가-힣]+)반$/u)?.[1];
-  return prefix ? GENERIC_CLASS_PREFIXES.has(prefix) : false;
+  return prefix
+    ? isComposedOfGenericPrefixes(prefix, GENERIC_CLASS_PREFIXES)
+    : false;
 }
 
 const PATTERNS: PatternDefinition[] = [
@@ -517,8 +639,11 @@ const PATTERNS: PatternDefinition[] = [
   {
     type: "school_name",
     severity: "high",
+    // `반 이름을 학생들이 정한다`, `반 이름이나`, and `반 이름 등은` use the
+    // label as an object or in a list, and `학급 명렬표` is a different noun.
+    // A quoted value after the object particle is still a disclosed name.
     regex:
-      /(?:반|학급)\s*(?:이름|명|명칭)(?!(?:은|는|이|가|:|：)?\s*["'“”]?(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|없는|익명|표시|밝히|언급))(?:은|는|이|가|:|：)?\s*["'“”]?[가-힣A-Za-z0-9·-]{1,20}(?:반)?/gu,
+      /(?:반|학급)\s*(?:이름|명칭|명(?=$|[\s은는이가을를:："'“”‘’「]))(?!(?:은|는|이|가|:|：)?\s*["'“”]?(?:입력|기록|저장|공유|수집|포함|제공|삭제|제외|쓰지|적지|적는|넣지|남기지|빼고|생략|없는|익명|표시|밝히|언급|짓|정하|만들))(?!(?:이나|나|과|와|도|만|의|에|으로|로|을|를)\s+(?!["'“”‘’「])|\s*(?:등|및|또는)(?:은|을|이|의|도|과|에)?(?![가-힣]))(?:은|는|이|가|을|를|:|：)?\s*["'“”‘’「]?[가-힣A-Za-z0-9·-]{1,20}(?:반)?/gu,
     reason: "구체적인 반 또는 학급명으로 보이는 표현이 포함되어 있습니다.",
     ignore: isGenericPrivacyPolicyStatement,
   },
@@ -535,22 +660,54 @@ const PATTERNS: PatternDefinition[] = [
 const NOTICE =
   "자동 감지는 보조 수단이며 모든 개인정보를 찾아내지는 못합니다. 전송 전 이름, 학교명, 연락처, 개별 성적, 건강·상담 정보를 직접 다시 확인해 주세요.";
 
+function patternMatches(text: string, definition: PatternDefinition) {
+  const regex = new RegExp(definition.regex.source, definition.regex.flags);
+  return [...text.matchAll(regex)].flatMap((match) => {
+    const start = match.index;
+    if (start === undefined || definition.ignore?.(match[0], text, start)) {
+      return [];
+    }
+    return [{ matchedText: match[0], start }];
+  });
+}
+
+function hasPatternRisk(text: string, types: readonly PrivacyRiskType[]) {
+  return PATTERNS.some(
+    (definition) =>
+      types.includes(definition.type) &&
+      patternMatches(text, definition).length > 0,
+  );
+}
+
+// Focused checks for callers that validate a single risk category, such as
+// AI privacy-review candidates. They share the exact rules and exceptions of
+// detectPrivacyRisks so the two judgments cannot drift apart.
+export function hasPersonNameRisk(text: string) {
+  return hasPatternRisk(text, ["student_name", "person_name"]);
+}
+
+export function hasSchoolOrClassRisk(text: string) {
+  return hasPatternRisk(text, ["school_name"]);
+}
+
+export function hasContactRisk(text: string) {
+  return hasPatternRisk(text, ["email", "phone"]);
+}
+
+export function hasGovernmentIdRisk(text: string) {
+  return hasPatternRisk(text, ["resident_registration_number"]);
+}
+
+export function hasQuasiIdentifierCombinationRisk(text: string) {
+  return detectHighConfidenceCombinationRisks(text).length > 0;
+}
+
 export function detectPrivacyRisks(text: string): PrivacyScanResult {
   const matches: PrivacyMatch[] = [];
   const supportRewrite = rewriteStudentDescription(text);
 
   for (const definition of PATTERNS) {
-    const regex = new RegExp(definition.regex.source, definition.regex.flags);
-    for (const match of text.matchAll(regex)) {
-      const matchedText = match[0];
-      const start = match.index;
-      if (
-        start === undefined ||
-        (definition.ignore && definition.ignore(matchedText))
-      ) {
-        continue;
-      }
-
+    for (const { matchedText, start } of patternMatches(text, definition)) {
       matches.push({
         type: definition.type,
         severity: definition.severity,

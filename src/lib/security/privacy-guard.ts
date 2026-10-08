@@ -26,6 +26,23 @@ export function collectTextFields(value: unknown, path = "value"): TextField[] {
   return [];
 }
 
+/**
+ * Collects teacher-written interview answers at their request-body paths
+ * (`answers.0.answer`). The browser scans exactly these before sending.
+ * Question wording is authored content or a follow-up that decideFollowUp
+ * already screened, so a match there would block the interview with nothing
+ * the teacher can edit.
+ */
+export function collectInterviewAnswerFields(
+  exchanges: readonly { answer: string }[],
+  path: string,
+): TextField[] {
+  return exchanges.map(({ answer }, index) => ({
+    path: `${path}.${index}.answer`,
+    value: answer,
+  }));
+}
+
 const ISO_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u;
 

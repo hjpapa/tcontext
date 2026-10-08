@@ -153,6 +153,97 @@ describe("API route boundaries", () => {
     expect(decideFollowUp).not.toHaveBeenCalled();
   });
 
+  // Question wording is authored content or an AI follow-up that was already
+  // screened. Re-scanning it on the server would block every later request
+  // with nothing the teacher can edit, while the browser only checks answers.
+  const earlierFollowUpExchange = {
+    questionId: "follow-up-1-q-1",
+    moduleId: "class_context",
+    question: "말씀하신 고학년 학생이 햇살반 활동에서 달라진 점은 무엇인가요?",
+    answer: "질문을 먼저 적게 하니 발표 부담이 줄었습니다.",
+  };
+
+  it("does not block a follow-up request because of earlier question wording", async () => {
+    vi.mocked(decideFollowUp).mockResolvedValue({
+      needed: false,
+      question: null,
+    });
+
+    const response = await followUp(
+      jsonRequest("/api/interview/follow-up", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        current: safeExchange,
+        previousAnswers: [earlierFollowUpExchange],
+        followUpCount: 1,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(decideFollowUp).toHaveBeenCalledOnce();
+  });
+
+  it("does not block profile generation because of earlier question wording", async () => {
+    vi.mocked(generateProfile).mockResolvedValue({
+      profile: submissionProfile(),
+      suggestedTags: [],
+    });
+
+    const response = await generateProfileRoute(
+      jsonRequest("/api/profile/generate", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        answers: [safeExchange, earlierFollowUpExchange],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(generateProfile).toHaveBeenCalledOnce();
+  });
+
+  it("reports which earlier answer blocked a follow-up request", async () => {
+    const response = await followUp(
+      jsonRequest("/api/interview/follow-up", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        current: safeExchange,
+        previousAnswers: [
+          earlierFollowUpExchange,
+          { ...safeExchange, questionId: "q-2", answer: "한빛초등학교입니다." },
+        ],
+        followUpCount: 1,
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    const body = await response.json();
+    expect(body.error.details.findings).toEqual([
+      { category: "school_name", path: "previousAnswers.1.answer" },
+    ]);
+    expect(JSON.stringify(body)).not.toContain("한빛");
+    expect(decideFollowUp).not.toHaveBeenCalled();
+  });
+
+  it("reports which answer blocked profile generation", async () => {
+    const response = await generateProfileRoute(
+      jsonRequest("/api/profile/generate", {
+        schoolLevel: "elementary",
+        role: "homeroom_teacher",
+        answers: [
+          safeExchange,
+          { ...safeExchange, questionId: "q-2", answer: "010-1234-5678" },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(422);
+    const body = await response.json();
+    expect(body.error.details.findings).toEqual([
+      { category: "phone", path: "answers.1.answer" },
+    ]);
+    expect(generateProfile).not.toHaveBeenCalled();
+  });
+
   it("enforces the four-follow-up maximum without an AI call", async () => {
     const response = await followUp(
       jsonRequest("/api/interview/follow-up", {
