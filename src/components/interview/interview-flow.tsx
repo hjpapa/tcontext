@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
   addFollowUpQuestion,
   createInterviewState,
@@ -207,7 +208,7 @@ export function InterviewFlow() {
     try {
       response = await fetch("/api/interview/follow-up", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(),
         body: JSON.stringify({
           schoolLevel: state.schoolLevel,
           role: state.role,
@@ -276,7 +277,7 @@ export function InterviewFlow() {
     }
     const response = await fetch("/api/profile/generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: jsonRequestHeaders(),
       body: JSON.stringify({
         schoolLevel: state.schoolLevel,
         role: state.role,

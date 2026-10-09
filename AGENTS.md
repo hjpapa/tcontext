@@ -10,6 +10,8 @@
 - Markdown download must work without a login or database write.
 - Supabase contribution is optional, off by default, and separate from export.
 - Never persist raw interview answers, IP addresses, user agents, names, emails, or cookies.
+  The only exception is request limiting: a daily-rotated HMAC of the network address or
+  per-tab ID may live in the shared limit store for at most its 10-minute window.
 
 ## Engineering rules
 

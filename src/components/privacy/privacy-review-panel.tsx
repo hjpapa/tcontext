@@ -9,10 +9,13 @@ export type PrivacyReviewLocation = {
 
 export function PrivacyReviewPanel({
   review,
+  retryNotice,
   locationsByText,
   onNavigate,
 }: {
   review: PrivacyReview | null;
+  /** When the check was refused by a request limit: how long to wait. */
+  retryNotice?: string | null;
   locationsByText?: ReadonlyMap<string, readonly PrivacyReviewLocation[]>;
   onNavigate?: (targetId: string) => void;
 }) {
@@ -58,6 +61,11 @@ export function PrivacyReviewPanel({
             아래 &lsquo;검토 마치고 개인정보 검사&rsquo; 버튼을 다시 누르면 다시
             검사합니다.
           </p>
+          {retryNotice ? (
+            <p className="mt-2 text-sm leading-6 font-semibold text-[#653f20]">
+              {retryNotice}
+            </p>
+          ) : null}
         </div>
       </div>
     );

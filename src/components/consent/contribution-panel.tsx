@@ -18,6 +18,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { rateLimitMessage } from "@/lib/http/retry-after";
+import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
   isUnverifiedPrivacyReview,
   type TeacherContextProfile,
@@ -34,6 +36,13 @@ type ContributionError = {
 async function contributionError(
   response: Response,
 ): Promise<ContributionError> {
+  const limited = await rateLimitMessage(response);
+  if (limited) {
+    return {
+      message: `${limited} 문서 다운로드에는 영향이 없습니다.`,
+      reviewAgain: false,
+    };
+  }
   try {
     const body = (await response.json()) as {
       error?: { code?: string; message?: string };
@@ -75,7 +84,7 @@ export function ContributionPanel({
     try {
       const response = await fetch("/api/submissions/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(),
         body: JSON.stringify({
           consentAccepted: true,
           profile,

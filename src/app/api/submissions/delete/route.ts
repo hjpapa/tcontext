@@ -11,7 +11,7 @@ import {
   hashDeletionToken,
   verifyDeletionToken,
 } from "@/lib/security/hash-token";
-import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 import {
   deleteSubmission,
   getDeletionTokenHash,
@@ -19,14 +19,10 @@ import {
 
 export async function POST(request: Request) {
   try {
-    const rateLimit = consumeRateLimit(request, {
-      namespace: "submissions-delete",
-      limit: 60,
-      windowMs: 10 * 60_000,
-    });
     const input = parseJsonBody(
       submissionDeleteRequestSchema.safeParse(await readJsonRequest(request)),
     );
+    const rateLimit = await enforceRateLimit(request, "submissions-delete");
 
     const storedHash = await getDeletionTokenHash(input.submissionId);
     if (!storedHash || !verifyDeletionToken(input.deletionToken, storedHash)) {

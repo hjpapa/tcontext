@@ -575,4 +575,69 @@ describe("API route boundaries", () => {
     expect(allowed.status).toBe(200);
     expect(await allowed.json()).toEqual({ ok: true, deletedCount: 3 });
   });
+
+  describe("request limits", () => {
+    const tab = "0123456789abcdef0123456789abcdef";
+    const followUpBody = (followUpCount = 0) => ({
+      schoolLevel: "elementary",
+      role: "homeroom_teacher",
+      current: safeExchange,
+      previousAnswers: [],
+      followUpCount,
+    });
+    const followUpFromTab = (body: unknown) =>
+      followUp(
+        jsonRequest("/api/interview/follow-up", body, {
+          "x-tcontext-tab": tab,
+        }),
+      );
+
+    beforeEach(() => {
+      vi.mocked(decideFollowUp).mockResolvedValue({
+        needed: false,
+        question: null,
+      });
+    });
+
+    it("does not count malformed requests or follow-ups past the interview maximum", async () => {
+      for (let index = 0; index < 5; index += 1) {
+        expect((await followUpFromTab({})).status).toBe(400);
+      }
+      const capped = await followUpFromTab(followUpBody(4));
+      expect(await capped.json()).toMatchObject({
+        reason: "follow_up_limit_reached",
+      });
+      expect(decideFollowUp).not.toHaveBeenCalled();
+
+      const counted = await followUpFromTab(followUpBody());
+      expect(counted.status).toBe(200);
+      expect(counted.headers.get("RateLimit-Remaining")).toBe("39");
+    });
+
+    it("tells the browser how long to wait once a tab is limited", async () => {
+      for (let index = 0; index < 40; index += 1) {
+        expect((await followUpFromTab(followUpBody())).status).toBe(200);
+      }
+      const limited = await followUpFromTab(followUpBody());
+      expect(limited.status).toBe(429);
+      const retryAfter = Number(limited.headers.get("Retry-After"));
+      expect(retryAfter).toBeGreaterThan(590);
+      expect(retryAfter).toBeLessThanOrEqual(600);
+      const body = await limited.json();
+      expect(body.error).toMatchObject({
+        code: "rate_limit_exceeded",
+        message: expect.stringContaining("약 10분 뒤 다시 시도해 주세요."),
+        details: { retryAfterSeconds: retryAfter, scope: "tab" },
+      });
+      expect(decideFollowUp).toHaveBeenCalledTimes(40);
+
+      // Another teacher's tab on the same school network is unaffected.
+      const colleague = await followUp(
+        jsonRequest("/api/interview/follow-up", followUpBody(), {
+          "x-tcontext-tab": "fedcba9876543210fedcba9876543210",
+        }),
+      );
+      expect(colleague.status).toBe(200);
+    });
+  });
 });

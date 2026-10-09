@@ -8,6 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { rateLimitMessage } from "@/lib/http/retry-after";
+import { jsonRequestHeaders } from "@/lib/http/tab-id";
 
 export function DeleteContributionForm() {
   const [submissionId, setSubmissionId] = useState("");
@@ -24,7 +26,7 @@ export function DeleteContributionForm() {
     try {
       const response = await fetch("/api/submissions/delete", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(),
         body: JSON.stringify({
           submissionId: submissionId.trim(),
           deletionToken: deletionToken.trim(),
@@ -32,7 +34,8 @@ export function DeleteContributionForm() {
       });
       if (!response.ok) {
         throw new Error(
-          "제출 ID 또는 삭제 코드를 확인해 주세요. 보안을 위해 어느 값이 틀렸는지는 구분해 알려드리지 않습니다.",
+          (await rateLimitMessage(response)) ??
+            "제출 ID 또는 삭제 코드를 확인해 주세요. 보안을 위해 어느 값이 틀렸는지는 구분해 알려드리지 않습니다.",
         );
       }
       setDeleted(true);

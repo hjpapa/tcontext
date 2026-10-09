@@ -11,7 +11,7 @@ import {
   isPrivacyReviewSigningConfigured,
   issuePrivacyReviewToken,
 } from "@/lib/security/privacy-review-token";
-import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 // Worst case is two 25s OpenAI attempts (the second only after a truncated
 // answer). Revisit with the p95 of `openai_request` durationMs logs for
@@ -20,14 +20,10 @@ export const maxDuration = 60;
 
 export async function POST(request: Request) {
   try {
-    const rateLimit = consumeRateLimit(request, {
-      namespace: "privacy-review",
-      limit: 50,
-      windowMs: 10 * 60_000,
-    });
     const input = parseJsonBody(
       privacyReviewRequestSchema.safeParse(await readJsonRequest(request)),
     );
+    const rateLimit = await enforceRateLimit(request, "privacy-review");
 
     const result = await reviewProfileWithAI(input.profile);
     // Contribution trusts this signed verdict instead of asking OpenAI again,

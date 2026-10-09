@@ -134,6 +134,13 @@ DELETE_TOKEN_PEPPER=
 PRIVACY_REVIEW_SIGNING_SECRET=
 CRON_SECRET=
 
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+RATE_LIMIT_SECRET=
+RATE_LIMIT_TEACHERS_PER_NETWORK=100
+RATE_LIMIT_AI_PER_MINUTE=300
+RATE_LIMIT_AI_PER_DAY=7500
+
 ADMIN_PASSWORD_HASH=
 ADMIN_SESSION_SECRET=
 ADMIN_SESSION_TTL_HOURS=8
@@ -142,9 +149,11 @@ NEXT_PUBLIC_APP_NAME=TContext
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
+`OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`, `UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_SECRET`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`은 서버 전용입니다. `NEXT_PUBLIC_` 접두사를 붙이거나 저장소에 커밋하지 마세요. `.env.local`은 `.gitignore`에 포함되어 있습니다.
 
 `PRIVACY_REVIEW_SIGNING_SECRET`은 선택적 기여에 필요한 32자 이상의 무작위 값입니다. 최종 OpenAI 개인정보 검사가 `clear`이면 서버가 정규화한 프로필 JSON의 SHA-256과 검사 결과, 발급 시각에 HMAC 서명한 토큰을 브라우저 메모리로 돌려주고, 기여 API는 OpenAI를 다시 호출하지 않고 이 서명과 1시간 만료만 검증합니다. 토큰은 서버에 저장하지 않습니다. 값이 없으면 문서 생성·다운로드는 그대로 동작하고 기여만 거부됩니다. 값을 바꾸면 이미 발급된 토큰은 모두 무효가 됩니다.
+
+`UPSTASH_REDIS_REST_URL`·`UPSTASH_REDIS_REST_TOKEN`과 32자 이상의 `RATE_LIMIT_SECRET`을 모두 설정하면 요청 제한 횟수를 서버 인스턴스끼리 공유합니다. Vercel Marketplace에서 Upstash Redis를 연결하면 자동으로 들어오는 `KV_REST_API_URL`·`KV_REST_API_TOKEN` 이름도 인식합니다. 연수처럼 한 학교 네트워크(같은 공인 IP)에서 수십 명이 동시에 쓰는 상황을 기준으로, 10분 창마다 브라우저 탭별 한도와 네트워크 한도(교사 `RATE_LIMIT_TEACHERS_PER_NETWORK`명 기준, 기본 100명)를 따로 셉니다. OpenAI를 호출하는 요청은 서비스 전체 분당·일일 상한(기본 300회·7,500회, 하루 교사 약 300명)에도 셉니다. 저장소에는 IP와 탭 ID 원문을 보내지 않고, 한국 시간 자정마다 바뀌는 키로 HMAC한 값만 최대 10분 동안 둡니다. 값이 없거나 저장소가 응답하지 않으면 인스턴스별 메모리 제한으로 자동 전환해 서비스는 계속 동작합니다. 자세한 한도와 설정 절차는 [docs/deployment.md](docs/deployment.md#요청-제한과-동시-접속)를 참고하세요.
 
 `DATA_RETENTION_DAYS`는 일일 정리 지연까지 포함해 행이 실제로 저장될 수 있는 최장 일수입니다. 삭제 대상 전환 시각은 `consented_at + max(DATA_RETENTION_DAYS - 1, 0)일`로 계산합니다. 값이 `1`이면 기여 즉시 삭제 대상이 되고 다음 일일 정리 주기 안에 삭제됩니다.
 
@@ -182,10 +191,11 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 운영 주소: [https://tcontext.vercel.app](https://tcontext.vercel.app)
 
 1. GitHub `hjpapa/tcontext` 저장소를 Vercel `tcontext` 프로젝트에 연결합니다.
-2. `.env.example`의 값을 Preview와 Production에 각각 설정합니다.
-3. 두 환경에는 서로 독립된 `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`을 사용합니다.
-4. Preview에서 전체 흐름과 모바일 화면을 확인합니다.
-5. 통과한 `main` 커밋을 Production으로 승격합니다.
+2. Vercel Marketplace에서 Upstash Redis(무료 플랜)를 만들어 프로젝트에 연결합니다. 연수처럼 동시 접속이 많은 사용에 필요합니다.
+3. `.env.example`의 값을 Preview와 Production에 각각 설정합니다.
+4. 두 환경에는 서로 독립된 `DELETE_TOKEN_PEPPER`, `PRIVACY_REVIEW_SIGNING_SECRET`, `CRON_SECRET`, `RATE_LIMIT_SECRET`을 사용합니다.
+5. Preview에서 전체 흐름과 모바일 화면을 확인하고 `/api/health`의 `sharedRateLimit`이 `configured`인지 봅니다.
+6. 통과한 `main` 커밋을 Production으로 승격합니다.
 
 `vercel.json`의 Cron은 매일 삭제 대상이 된 행을 정리합니다. 기본 365일 정책은 364일째 삭제 대상으로 전환해 다음 일일 실행까지 포함한 실제 보유기간이 최대 365일을 넘지 않게 합니다. 상세 운영 절차는 [docs/deployment.md](docs/deployment.md)를 참고하세요.
 
@@ -204,6 +214,8 @@ CI에서는 OpenAI SDK와 Supabase 클라이언트를 모킹하며 실제 API나
 - 개인정보 탐지는 규칙과 AI를 함께 사용해도 모든 문맥상 식별 정보를 찾는다고 보장할 수 없습니다.
 - 응답 품질과 비용은 모델 버전과 사용자의 답변 길이에 따라 달라집니다.
 - 삭제 코드를 분실하면 로그인·이메일이 없어 제출물을 찾아줄 수 없습니다.
+- 공유 요청 제한 저장소가 없거나 장애일 때는 인스턴스마다 따로 세므로 서비스 전체 AI 상한이 실행 중인 인스턴스 수만큼 느슨해집니다.
+- 서비스 전체 일일 AI 상한에 도달하면 상한이 풀릴 때까지 모든 사용자의 AI 요청(후속 질문, 초안 생성, 다시 쓰기, 최종 개인정보 검사)이 거부됩니다. 큰 연수 전에는 `RATE_LIMIT_AI_PER_DAY`를 확인하세요.
 - 분석 태그는 사용자가 확인한 제한 어휘이며 교사의 전문성 평가나 순위에 사용할 수 없습니다.
 
 ## 라이선스와 운영 책임
