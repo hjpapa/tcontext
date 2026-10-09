@@ -9,7 +9,7 @@ import {
   verifyAdminPassword,
 } from "@/lib/admin/auth";
 import { ApiError } from "@/lib/security/api-error";
-import { consumeRateLimit } from "@/lib/security/rate-limit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 
 function loginError(code: "configuration" | "invalid" | "rate-limited"): never {
   redirect(`/admin/login?error=${code}`);
@@ -18,11 +18,11 @@ function loginError(code: "configuration" | "invalid" | "rate-limited"): never {
 export async function loginAdmin(formData: FormData): Promise<never> {
   const requestHeaders = new Headers(await headers());
   try {
-    consumeRateLimit(
+    await enforceRateLimit(
       new Request("https://tcontext.invalid/admin/login", {
         headers: requestHeaders,
       }),
-      { namespace: "admin-login", limit: 5, windowMs: 15 * 60 * 1000 },
+      "admin-login",
     );
   } catch (error) {
     if (error instanceof ApiError && error.code === "rate_limit_exceeded") {

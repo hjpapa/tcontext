@@ -7,7 +7,7 @@ import {
   parseJsonBody,
   readJsonRequest,
 } from "@/lib/security/api-error";
-import { consumeRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
+import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
 // Worst case is a jittered 429/5xx retry plus two 45s OpenAI attempts (the
 // second only after a truncated answer). Revisit with the p95 of
@@ -16,14 +16,10 @@ export const maxDuration = 120;
 
 export async function POST(request: Request) {
   try {
-    const rateLimit = consumeRateLimit(request, {
-      namespace: "profile-generate",
-      limit: 40,
-      windowMs: 10 * 60_000,
-    });
     const input = parseJsonBody(
       profileGenerateRequestSchema.safeParse(await readJsonRequest(request)),
     );
+    const rateLimit = await enforceRateLimit(request, "profile-generate");
 
     const result = await generateProfile(input);
     return NextResponse.json(result, {

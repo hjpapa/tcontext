@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { isSharedRateLimitConfigured } from "@/lib/security/rate-limit";
+
 export async function GET() {
   const openAIConfigured = Boolean(process.env.OPENAI_API_KEY?.trim());
   const supabaseConfigured = Boolean(
@@ -14,6 +16,9 @@ export async function GET() {
         optionalContributionStorage: supabaseConfigured
           ? "configured"
           : "unconfigured",
+        sharedRateLimit: isSharedRateLimitConfigured()
+          ? "configured"
+          : "per-instance",
       },
       timestamp: new Date().toISOString(),
     },

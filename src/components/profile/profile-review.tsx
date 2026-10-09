@@ -44,6 +44,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadMarkdown } from "@/lib/export/download";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { rateLimitMessage } from "@/lib/http/retry-after";
+import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
   confirmedTagsFromCandidates,
   hasUnresolvedClaims,
@@ -381,6 +383,9 @@ export function ProfileReview() {
   const [privacyReview, setPrivacyReview] = useState<PrivacyReview | null>(
     null,
   );
+  const [privacyRetryNotice, setPrivacyRetryNotice] = useState<string | null>(
+    null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [refineInstructions, setRefineInstructions] = useState<
@@ -465,6 +470,7 @@ export function ProfileReview() {
 
   const resetPrivacyReview = () => {
     setPrivacyReview(null);
+    setPrivacyRetryNotice(null);
     setPrivacyWarningAccepted(false);
     setMarkdown("");
     setPrivacyReviewToken(null);
@@ -633,6 +639,7 @@ export function ProfileReview() {
     setPrivacyWarningAccepted(false);
     setMarkdown("");
     setPrivacyReviewToken(null);
+    setPrivacyRetryNotice(null);
     try {
       const confirmedTags = confirmedTagsFromCandidates(
         suggestedTags.map((tag) => ({
@@ -646,17 +653,19 @@ export function ProfileReview() {
       };
       const response = await fetch("/api/privacy/review", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(),
         body: JSON.stringify({ profile: withTags }),
       }).catch(() => null);
 
       let review: PrivacyReview;
       let reviewToken: string | null = null;
+      let retryNotice: string | null = null;
       if (!response || response.status === 429 || response.status >= 500) {
         // A busy or slow AI service, a platform time limit, or a dropped
         // connection must not strand the teacher on this screen. The document
         // becomes "unverified": still not clear, so contribution stays closed.
         review = UNVERIFIED_PRIVACY_REVIEW;
+        retryNotice = response ? await rateLimitMessage(response) : null;
       } else if (!response.ok) {
         throw new Error(
           await responseMessage(
@@ -686,6 +695,7 @@ export function ProfileReview() {
       };
       setProfile(reviewedProfile);
       setPrivacyReview(review);
+      setPrivacyRetryNotice(retryNotice);
 
       if (review.status === "clear") {
         setPrivacyReviewToken(reviewToken);
@@ -718,7 +728,7 @@ export function ProfileReview() {
     try {
       const response = await fetch("/api/profile/refine", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(),
         body: JSON.stringify({
           profile: markPrivacyReviewPending(profile),
           instruction,
@@ -1556,6 +1566,7 @@ export function ProfileReview() {
 
       <PrivacyReviewPanel
         review={privacyReview}
+        retryNotice={privacyRetryNotice}
         locationsByText={privacyLocationsByText}
         onNavigate={focusReviewField}
       />

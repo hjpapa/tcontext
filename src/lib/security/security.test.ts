@@ -16,10 +16,7 @@ import {
   collectProfilePrivacyTextFields,
   localProfilePrivacyReview,
 } from "@/lib/security/privacy-guard";
-import {
-  consumeRateLimit,
-  resetRateLimitsForTests,
-} from "@/lib/security/rate-limit";
+import { resetRateLimitsForTests } from "@/lib/security/rate-limit";
 import {
   PROFILE_MODULE_IDS,
   teacherContextProfileSchema,
@@ -299,18 +296,5 @@ describe("security boundaries", () => {
     expect(() =>
       calculateRetentionUntil(new Date("2026-07-31T00:00:00.000Z"), 366),
     ).toThrowError(expect.objectContaining({ code: "configuration_error" }));
-  });
-
-  it("uses a generous per-address limit for shared school networks", () => {
-    const request = new Request("https://tcontext.test", {
-      headers: { "x-forwarded-for": "203.0.113.10" },
-    });
-    const options = { namespace: "test", limit: 2, windowMs: 60_000 };
-
-    expect(consumeRateLimit(request, options, 1_000).remaining).toBe(1);
-    expect(consumeRateLimit(request, options, 1_000).remaining).toBe(0);
-    expect(() => consumeRateLimit(request, options, 1_000)).toThrowError(
-      expect.objectContaining({ code: "rate_limit_exceeded" }),
-    );
   });
 });

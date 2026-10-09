@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid: "관리자 비밀번호가 올바르지 않습니다.",
-  "rate-limited": "로그인 시도가 많습니다. 15분 뒤 다시 시도해 주세요.",
+  "rate-limited": "로그인 시도가 많습니다. 최대 10분 뒤 다시 시도해 주세요.",
   configuration: "관리자 로그인이 아직 설정되지 않았습니다.",
 };
 

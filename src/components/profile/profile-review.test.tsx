@@ -159,6 +159,36 @@ describe("ProfileReview final privacy check", () => {
     },
   );
 
+  it("tells the teacher how long to wait when the check hits a request limit", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse(
+        {
+          error: {
+            code: "rate_limit_exceeded",
+            message:
+              "같은 네트워크에서 요청이 많습니다. 약 3분 뒤 다시 시도해 주세요.",
+            details: { retryAfterSeconds: 170, scope: "network" },
+          },
+        },
+        429,
+      ),
+    );
+    renderReview();
+
+    await runFinalCheck(user);
+
+    expect(
+      await screen.findByText(
+        "같은 네트워크에서 요청이 많습니다. 약 3분 뒤 다시 시도해 주세요.",
+      ),
+    ).toBeVisible();
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(new Headers(init?.headers).get("x-tcontext-tab")).toMatch(
+      /^[0-9a-f]{32}$/,
+    );
+  });
+
   it("keeps a request error on the review screen", async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
