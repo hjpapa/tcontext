@@ -5,6 +5,7 @@ const GENERIC_ROLE_DESCRIPTOR_STEMS = new Set([
   "반성적",
   "방식",
   "표현",
+  "여부",
   "하나",
   "설명",
   "선택",
