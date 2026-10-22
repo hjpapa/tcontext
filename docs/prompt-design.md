@@ -43,7 +43,7 @@
 
 ## 최종 프로필 생성
 
-기본 모델은 `OPENAI_PROFILE_MODEL=gpt-5.6-terra`, reasoning effort는 `low`다. 전체 답변을 근거와 함께 구조화하는 작업이므로 지능과 비용의 균형을 우선한다.
+기본 모델은 `OPENAI_PROFILE_MODEL=gpt-6-luna`, reasoning effort는 `medium`이다. 생성과 AI 재작성에 같은 설정을 사용한다. 짧은 답변의 단서를 교차 해석하면서 실행 지침으로 확장하는 품질과 비용의 균형을 우선한다.
 
 입력은 학교급, 역할, 중고등학교 담당 교과, 질문 ID와 답변으로 제한한다. 서버는 원본을 저장하지 않고 요청 처리 후 폐기한다.
 

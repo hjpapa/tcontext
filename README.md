@@ -53,7 +53,7 @@ OpenAI와 Supabase Secret Key를 사용하는 코드는 모두 Next.js Route Han
 | 작업                           | 환경 변수                | 기본값          | reasoning effort |
 | ------------------------------ | ------------------------ | --------------- | ---------------- |
 | 후속 질문 판단·생성            | `OPENAI_INTERVIEW_MODEL` | `gpt-5.6-luna`  | `none`           |
-| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-5.6-terra` | `low`            |
+| 전체 프로필·Markdown 내용 생성 | `OPENAI_PROFILE_MODEL`   | `gpt-6-luna`    | `medium`         |
 | 최종 개인정보 검토             | `OPENAI_PRIVACY_MODEL`   | `gpt-5.6-terra` | `low`            |
 
 모델은 환경 변수로 교체할 수 있습니다. 교체 전 Structured Output 호환성, Zod 검증, 충실성, 개인정보 평가를 다시 실행해야 합니다. 비용은 OpenAI 계정의 해당 모델 입력·출력 토큰 단가에 따라 달라지므로 운영 시 실제 사용량과 공식 가격표를 확인하세요. 애플리케이션 로그에는 모델명, 처리 시간, 토큰 사용량, 성공 여부만 남기며 질문·답변·프로필 본문은 남기지 않습니다.
@@ -120,7 +120,7 @@ pnpm dev
 ```dotenv
 OPENAI_API_KEY=
 OPENAI_INTERVIEW_MODEL=gpt-5.6-luna
-OPENAI_PROFILE_MODEL=gpt-5.6-terra
+OPENAI_PROFILE_MODEL=gpt-6-luna
 OPENAI_PRIVACY_MODEL=gpt-5.6-terra
 
 SUPABASE_URL=

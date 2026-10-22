@@ -1,12 +1,12 @@
 export const OPENAI_MODELS = {
   interview: process.env.OPENAI_INTERVIEW_MODEL?.trim() || "gpt-5.6-luna",
-  profile: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.6-terra",
+  profile: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-6-luna",
   privacy: process.env.OPENAI_PRIVACY_MODEL?.trim() || "gpt-5.6-terra",
 } as const;
 
 export const OPENAI_REASONING_EFFORT = {
   interview: "none",
-  profile: "low",
+  profile: "medium",
   privacy: "low",
 } as const;
 

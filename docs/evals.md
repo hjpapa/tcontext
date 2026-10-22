@@ -72,3 +72,25 @@ pnpm test:e2e
 ```
 
 CI는 실제 OpenAI API와 Supabase 운영 DB를 호출하지 않는다. 배포 후에는 별도의 수동 스모크 테스트로 모델 연결과 선택 저장·삭제를 검증한다.
+
+## GPT-6 Luna 짧은 답변 실 API 평가
+
+`src/lib/ai/profile-live.test.ts`는 명시적으로 활성화할 때만 기존 키로 실제 `generateProfile` 경로를 실행한다. 요청은 `gpt-6-luna`, `medium`, `store: false`를 사용한다. API 요금이 발생하며 일반 `pnpm test`에서는 건너뛴다.
+
+```powershell
+$env:RUN_PROFILE_LIVE_EVAL = "1"
+pnpm test src/lib/ai/profile-live.test.ts
+Remove-Item Env:RUN_PROFILE_LIVE_EVAL
+```
+
+개인정보 없는 가상 답변 1~3개만 넣어 다음 세 사례를 검사한다.
+
+- 자율적인 사고 + 준비 시간 부족: 질문·생각할 시간과 준비 부담을 고려한 실행 지침
+- 예측 가능한 약속 + 순서 안내 + 대안 비교: 단계적인 운영과 비교 지침
+- 공정함 한 문장: 하나의 의미로 단정하지 않고 확인이 필요한 해석 구분
+
+7개 모듈과 유효한 근거 ID, 미확인 상태, 추론·실행 지침의 존재와 주제 관련성, 임의의 학급 수치·성격 유형 방지, 개인정보 검사, Markdown 내보내기의 내용 보존을 확인한다. 답변·생성 문서는 저장하거나 로그로 출력하지 않으며 결과는 성공 여부와 개수·처리 시간 등 메타데이터만 남긴다.
+
+2026-10-22: 실 API 세 사례 통과. 주제 관련성 검사는 제한적인 어휘 검사이므로 모든 의미 오류나 환각의 부재를 보장하지 않는다. 실제 교사의 문서 유용성 평가는 별도로 필요하다.
+
+기존 배포 환경에 `OPENAI_PROFILE_MODEL=gpt-5.6-terra`가 명시돼 있다면 코드 기본값보다 우선한다. 운영 전 해당 값을 `gpt-6-luna`로 변경하고 새 배포에 반영해야 한다.

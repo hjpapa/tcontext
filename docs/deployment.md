@@ -57,7 +57,7 @@ supabase db push
 | --------------------------------- | --------------- | --------------- | ----------------------------------------- |
 | `OPENAI_API_KEY`                  | 필수            | 필수            | 서버 전용                                 |
 | `OPENAI_INTERVIEW_MODEL`          | `gpt-5.6-luna`  | `gpt-5.6-luna`  | 환경별 교체 가능                          |
-| `OPENAI_PROFILE_MODEL`            | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                          |
+| `OPENAI_PROFILE_MODEL`            | `gpt-6-luna`    | `gpt-6-luna`    | 환경별 교체 가능                          |
 | `OPENAI_PRIVACY_MODEL`            | `gpt-5.6-terra` | `gpt-5.6-terra` | 환경별 교체 가능                          |
 | `SUPABASE_URL`                    | 필수            | 필수            | 프로젝트 URL                              |
 | `SUPABASE_SECRET_KEY`             | 필수            | 필수            | 서버 전용, `NEXT_PUBLIC_` 금지            |

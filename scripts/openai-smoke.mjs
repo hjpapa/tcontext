@@ -32,8 +32,8 @@ const checks = [
   },
   {
     operation: "profile",
-    model: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-5.6-terra",
-    effort: "low",
+    model: process.env.OPENAI_PROFILE_MODEL?.trim() || "gpt-6-luna",
+    effort: "medium",
   },
   {
     operation: "privacy",
