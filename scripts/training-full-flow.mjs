@@ -150,6 +150,7 @@ async function prepare(index) {
     async (route) => {
       const request = route.request();
       const input = request.postDataJSON();
+      session.answerIds = new Set(input.answers.map((a) => a.questionId));
       result.generation.requests++;
       result.fixedAnswers = fixedQuestions.filter((q) =>
         input.answers.some(
@@ -263,6 +264,43 @@ async function finishGeneration(session, responsePromise) {
     assert.equal(result.generation.status, 200);
     assert(parsed.success);
     assert.equal(result.fixedAnswers, 14);
+    const { profile } = parsed.data;
+    const claims = profile.modules.flatMap((module) => module.claims);
+    const text = claims.map((claim) => claim.text).join("\n");
+    // Bounded quality checks on fictional output; retain only booleans/counts.
+    // Lexical relevance is not a guarantee of semantic faithfulness.
+    result.generation.model = profile.metadata.modelName;
+    result.generation.quality = {
+      sevenPopulatedModules:
+        profile.modules.length === 7 &&
+        profile.modules.every((module) => module.claims.length >= 2),
+      groundedIds: claims.every(
+        (claim) =>
+          claim.evidenceQuestionIds.length > 0 &&
+          claim.evidenceQuestionIds.every((id) => session.answerIds.has(id)),
+      ),
+      notAutoConfirmed: claims.every((claim) => !claim.confirmedByUser),
+      directAndInferred:
+        claims.some((claim) => claim.basis === "direct") &&
+        claims.some((claim) => claim.basis === "inferred"),
+      relevantConcepts: [
+        /근거|이유/u,
+        /단계|순서/u,
+        /종이|칠판/u,
+        /선택|표현/u,
+        /피드백|수정/u,
+      ].every((pattern) => pattern.test(text)),
+      actionable:
+        profile.teachingDesignPrinciples.length > 0 &&
+        profile.aiCollaborationInstructions.length > 0,
+      noInventedClassNumbers:
+        !/\d+\s*(?:명|학년|반|대)(?:\s|[,.]|이다|입니다)/u.test(text),
+      noPersonalityTypes: !/MBTI|[IE][NS][TF][JP]|성격\s*유형/u.test(text),
+    };
+    assert(
+      Object.values(result.generation.quality).every(Boolean),
+      "Synthetic quality check failed",
+    );
     await page.waitForURL("**/review");
     result.generation.checkpoint = "confirm-claims";
     await page.getByTestId("unresolved-count").waitFor();
