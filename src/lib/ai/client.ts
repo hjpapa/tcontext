@@ -5,6 +5,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { ReasoningEffort } from "openai/resources/shared";
 import { z } from "zod";
 
+import { formatRetryAfter } from "@/lib/http/retry-after";
 import { ApiError } from "@/lib/security/api-error";
 
 let client: OpenAI | undefined;
@@ -48,6 +49,9 @@ type StructuredResponseOptions<Schema extends z.ZodType> = {
 
 const TRANSIENT_RETRY_BASE_DELAY_MS = 400;
 const TRANSIENT_RETRY_JITTER_MS = 800;
+// Two 45s calls plus this pause fit the 120s generation route budget.
+const MAX_TRANSIENT_RETRY_DELAY_MS = 15_000;
+const MAX_PROVIDER_ATTEMPTS = 2;
 
 type SafeUsage = {
   inputTokens: number;
@@ -178,10 +182,34 @@ function isTransientOpenAIError(error: unknown): boolean {
   return typeof error.status === "number" && error.status >= 500;
 }
 
-function transientRetryDelayMs(): number {
-  return (
-    TRANSIENT_RETRY_BASE_DELAY_MS +
-    Math.floor(Math.random() * TRANSIENT_RETRY_JITTER_MS)
+function providerRetryAfterMs(error: unknown): number | undefined {
+  if (!(error instanceof OpenAI.APIError)) return undefined;
+  const milliseconds = error.headers?.get("retry-after-ms");
+  if (milliseconds?.trim()) {
+    const value = Number(milliseconds);
+    if (Number.isFinite(value) && value >= 0) return value;
+  }
+  const header = error.headers?.get("retry-after")?.trim();
+  if (!header) return undefined;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1_000;
+  // A negative numeric header is invalid, not an HTTP date.
+  if (Number.isFinite(seconds)) return undefined;
+  const date = Date.parse(header);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
+}
+
+function transientRetryDelayMs(error: unknown): number | undefined {
+  const requested = providerRetryAfterMs(error);
+  // Never retry earlier than the provider allows. Long waits belong in the
+  // response to the teacher, rather than running past the function deadline.
+  if (requested !== undefined && requested > MAX_TRANSIENT_RETRY_DELAY_MS) {
+    return undefined;
+  }
+  return Math.min(
+    MAX_TRANSIENT_RETRY_DELAY_MS,
+    (requested ?? TRANSIENT_RETRY_BASE_DELAY_MS) +
+      Math.floor(Math.random() * TRANSIENT_RETRY_JITTER_MS),
   );
 }
 
@@ -205,11 +233,15 @@ function mapOpenAIError(error: unknown): ApiError {
     error instanceof OpenAI.RateLimitError ||
     (error instanceof OpenAI.APIError && error.status === 429)
   ) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((providerRetryAfterMs(error) ?? 10_000) / 1_000),
+    );
     return new ApiError(
       "ai_rate_limited",
       503,
-      "AI 서비스 요청이 잠시 많습니다. 잠시 후 다시 시도해 주세요.",
-      { cause: error, retryAfterSeconds: 10 },
+      `AI 서비스 요청이 잠시 많습니다. ${formatRetryAfter(retryAfterSeconds)} 뒤 다시 시도해 주세요. 답변은 이 탭에 그대로 있습니다.`,
+      { cause: error, retryAfterSeconds, details: { retryAfterSeconds } },
     );
   }
 
@@ -268,10 +300,12 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
   const startedAt = Date.now();
   let lastResponseDetails: SafeResponseDetails | undefined;
   let transientRetryAvailable = options.retryTransientErrorOnce === true;
+  let providerAttempts = 0;
 
   const parseResponse = async (maxOutputTokens: number) => {
-    const request = () =>
-      getOpenAIClient().responses.parse(
+    const request = () => {
+      providerAttempts += 1;
+      return getOpenAIClient().responses.parse(
         {
           model: options.model,
           instructions: options.instructions,
@@ -288,15 +322,21 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
           timeout: options.timeoutMs,
         },
       );
+    };
 
     try {
       return await request();
     } catch (error) {
-      if (!transientRetryAvailable || !isTransientOpenAIError(error)) {
+      if (
+        !transientRetryAvailable ||
+        providerAttempts >= MAX_PROVIDER_ATTEMPTS ||
+        !isTransientOpenAIError(error)
+      ) {
         throw error;
       }
       transientRetryAvailable = false;
-      const delayMs = transientRetryDelayMs();
+      const delayMs = transientRetryDelayMs(error);
+      if (delayMs === undefined) throw error;
       logTransientRetry(options, startedAt, error, delayMs);
       await sleep(delayMs);
       return request();
@@ -326,6 +366,7 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
 
       const shouldRetry =
         attemptIndex === 0 &&
+        providerAttempts < MAX_PROVIDER_ATTEMPTS &&
         options.retryMaxOutputTokens !== undefined &&
         lastResponseDetails.reason === "max_output_tokens";
       if (shouldRetry) {

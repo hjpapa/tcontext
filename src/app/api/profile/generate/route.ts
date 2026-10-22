@@ -9,8 +9,8 @@ import {
 } from "@/lib/security/api-error";
 import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
-// Worst case is a jittered 429/5xx retry plus two 45s OpenAI attempts (the
-// second only after a truncated answer). Revisit with the p95 of
+// At most two 45s OpenAI attempts in total, including transient/truncation
+// retries, plus up to 15s of provider-directed backoff. Revisit with the p95 of
 // `openai_request` durationMs logs for operation=profile_generate.
 export const maxDuration = 120;
 

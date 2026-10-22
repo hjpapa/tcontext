@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
   addFollowUpQuestion,
@@ -206,18 +207,22 @@ export function InterviewFlow() {
     );
     let response: Response;
     try {
-      response = await fetch("/api/interview/follow-up", {
-        method: "POST",
-        headers: jsonRequestHeaders(),
-        body: JSON.stringify({
-          schoolLevel: state.schoolLevel,
-          role: state.role,
-          teachingSubject: state.teachingSubject,
-          current: exchangeFrom(state, question, answerText),
-          previousAnswers,
-          followUpCount: state.followUpCount,
-        }),
-      });
+      response = await fetchWithDeadline(
+        "/api/interview/follow-up",
+        {
+          method: "POST",
+          headers: jsonRequestHeaders(),
+          body: JSON.stringify({
+            schoolLevel: state.schoolLevel,
+            role: state.role,
+            teachingSubject: state.teachingSubject,
+            current: exchangeFrom(state, question, answerText),
+            previousAnswers,
+            followUpCount: state.followUpCount,
+          }),
+        },
+        55_000,
+      );
     } catch {
       return state;
     }
@@ -275,16 +280,20 @@ export function InterviewFlow() {
         "초안을 만들려면 적어도 한 질문에는 직접 답해 주세요. 이전 질문으로 돌아가 답변을 추가할 수 있습니다.",
       );
     }
-    const response = await fetch("/api/profile/generate", {
-      method: "POST",
-      headers: jsonRequestHeaders(),
-      body: JSON.stringify({
-        schoolLevel: state.schoolLevel,
-        role: state.role,
-        teachingSubject: state.teachingSubject,
-        answers: exchanges,
-      }),
-    });
+    const response = await fetchWithDeadline(
+      "/api/profile/generate",
+      {
+        method: "POST",
+        headers: jsonRequestHeaders(),
+        body: JSON.stringify({
+          schoolLevel: state.schoolLevel,
+          role: state.role,
+          teachingSubject: state.teachingSubject,
+          answers: exchanges,
+        }),
+      },
+      130_000,
+    );
     if (!response.ok) throw new Error(await responseMessage(response));
     const result = (await response.json()) as {
       profile: Parameters<typeof setProfile>[0];

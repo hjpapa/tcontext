@@ -107,16 +107,18 @@ describe.each(storeSetups)("request limits with %s", (_label, configure) => {
     ];
     const outcomes: string[] = [];
     for (const [step, policy] of session.entries()) {
-      for (let teacher = 0; teacher < 30; teacher += 1) {
-        await enforceRateLimit(
-          request(SCHOOL_NETWORK, tabId(teacher)),
-          policy,
-          T0 + step * 20_000 + teacher * 200,
-        ).then(
-          () => outcomes.push("ok"),
-          (error: { code?: string }) => outcomes.push(error.code ?? "error"),
-        );
-      }
+      await Promise.all(
+        Array.from({ length: 30 }, async (_, teacher) => {
+          await enforceRateLimit(
+            request(SCHOOL_NETWORK, tabId(teacher)),
+            policy,
+            T0 + step * 20_000,
+          ).then(
+            () => outcomes.push("ok"),
+            (error: { code?: string }) => outcomes.push(error.code ?? "error"),
+          );
+        }),
+      );
     }
     expect(outcomes).toHaveLength(30 * session.length);
     expect(outcomes.every((outcome) => outcome === "ok")).toBe(true);

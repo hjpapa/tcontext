@@ -44,6 +44,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadMarkdown } from "@/lib/export/download";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { rateLimitMessage } from "@/lib/http/retry-after";
 import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
@@ -651,11 +652,15 @@ export function ProfileReview() {
         ...markPrivacyReviewPending(profile),
         confirmedTags,
       };
-      const response = await fetch("/api/privacy/review", {
-        method: "POST",
-        headers: jsonRequestHeaders(),
-        body: JSON.stringify({ profile: withTags }),
-      }).catch(() => null);
+      const response = await fetchWithDeadline(
+        "/api/privacy/review",
+        {
+          method: "POST",
+          headers: jsonRequestHeaders(),
+          body: JSON.stringify({ profile: withTags }),
+        },
+        70_000,
+      ).catch(() => null);
 
       let review: PrivacyReview;
       let reviewToken: string | null = null;
@@ -726,18 +731,22 @@ export function ProfileReview() {
     });
     resetPrivacyReview();
     try {
-      const response = await fetch("/api/profile/refine", {
-        method: "POST",
-        headers: jsonRequestHeaders(),
-        body: JSON.stringify({
-          profile: markPrivacyReviewPending(profile),
-          instruction,
-          moduleId: module.id,
-          editableClaimIds: module.claims
-            .filter((claim) => !claim.confirmedByUser)
-            .map((claim) => claim.id),
-        }),
-      });
+      const response = await fetchWithDeadline(
+        "/api/profile/refine",
+        {
+          method: "POST",
+          headers: jsonRequestHeaders(),
+          body: JSON.stringify({
+            profile: markPrivacyReviewPending(profile),
+            instruction,
+            moduleId: module.id,
+            editableClaimIds: module.claims
+              .filter((claim) => !claim.confirmedByUser)
+              .map((claim) => claim.id),
+          }),
+        },
+        130_000,
+      );
       if (!response.ok) {
         const feedback = await refineResponseFeedback(
           response,

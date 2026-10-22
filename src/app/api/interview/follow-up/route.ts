@@ -10,6 +10,9 @@ import {
 import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 import { MAX_FOLLOW_UPS } from "@/types/interview";
 
+// A truncated answer can require two 20s provider calls.
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const input = parseJsonBody(

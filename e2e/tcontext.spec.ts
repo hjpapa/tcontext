@@ -225,6 +225,47 @@ async function approveDraftAndFinishReview(page: Page) {
 }
 
 test.describe("anonymous teacher-context flow", () => {
+  test("keeps interview answers after a dropped generation request and lets the teacher retry", async ({
+    page,
+  }) => {
+    const payloads: unknown[] = [];
+    await page.route("**/api/interview/follow-up", (route) =>
+      fulfillJson(route, { needed: false, question: null }),
+    );
+    await page.route("**/api/profile/generate", async (route) => {
+      payloads.push(route.request().postDataJSON());
+      if (payloads.length === 1) await route.abort("internetdisconnected");
+      else
+        await fulfillJson(route, {
+          profile: generatedProfile,
+          suggestedTags: [],
+        });
+    });
+    await startElementaryInterview(page);
+    await page.getByRole("textbox", { name: "답변" }).fill(safeAnswer);
+    await page.getByRole("button", { name: "다음 질문", exact: true }).click();
+    for (let i = 2; i <= fixedQuestionCount; i++) {
+      await expect(
+        page.getByText(`질문 ${i} / ${fixedQuestionCount}`),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "건너뛰기", exact: true }).click();
+    }
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "네트워크 연결을 확인해 주세요" }),
+    ).toBeVisible();
+    await expect(page.getByText("답변 1개 · AI 후속 0/4")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "초안 만들기", exact: true }),
+    ).toBeEnabled();
+    await page.getByRole("button", { name: "건너뛰기", exact: true }).click();
+    await expect(page).toHaveURL(/\/review$/);
+    expect(payloads).toHaveLength(2);
+    expect(payloads[1]).toEqual(payloads[0]);
+    expect(JSON.stringify(payloads[1])).toContain(safeAnswer);
+  });
+
   test("requires and sends a controlled subject for middle and high school", async ({
     page,
   }) => {
