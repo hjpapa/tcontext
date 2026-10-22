@@ -3,6 +3,7 @@ import {
   OPENAI_MODELS,
   OPENAI_REASONING_EFFORT,
   OPENAI_TIMEOUT_MS,
+  PROFILE_TOTAL_TIMEOUT_MS,
   PROFILE_SCHEMA_VERSION,
   PROMPT_VERSION,
 } from "@/lib/ai/models";
@@ -153,6 +154,7 @@ export async function generateProfile(input: GenerateInput): Promise<{
     // only generation absorbs a single 429/5xx before surfacing the error.
     retryTransientErrorOnce: true,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
+    totalTimeoutMs: PROFILE_TOTAL_TIMEOUT_MS,
   });
   assertSafeGeneratedCharacters(output);
   assertEvidenceQuestionIds(output.profile, input);
@@ -330,6 +332,7 @@ async function refineSingleModule(
     maxOutputTokens: MODULE_REFINE_OUTPUT_TOKENS,
     retryMaxOutputTokens: MODULE_REFINE_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
+    totalTimeoutMs: PROFILE_TOTAL_TIMEOUT_MS,
   });
   assertSafeGeneratedCharacters(output.module);
 
@@ -382,6 +385,7 @@ export async function refineProfile(
     maxOutputTokens: PROFILE_REFINE_OUTPUT_TOKENS,
     retryMaxOutputTokens: PROFILE_REFINE_RETRY_OUTPUT_TOKENS,
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
+    totalTimeoutMs: PROFILE_TOTAL_TIMEOUT_MS,
   });
   assertSafeGeneratedCharacters(output.profile);
 

@@ -4,6 +4,8 @@ const GENERIC_ROLE_DESCRIPTOR_STEMS = new Set([
   "문제의식",
   "반성적",
   "방식",
+  "표현",
+  "하나",
   "설명",
   "선택",
   "성장",
@@ -117,7 +119,7 @@ const CLAUSE_ENDING = /(?:면|면서|도록|는데|려고|어서|해서|하여|�
 const TEMPORAL_ROLE_ADVERB =
   /^(?:마지막|처음|중간|다음|이전|이후|직전|직후)(?:에|으로)$/u;
 
-const KOREAN_CASE_PARTICLE = /(?:은|는|이|가|을|를|도|만)$/u;
+const KOREAN_DESCRIPTOR_ENDING = /(?:인지|은|는|이|가|을|를|도|만|에)$/u;
 const KOREAN_OBJECT_PARTICLE = /(?<particle>을|를)$/u;
 const KOREAN_SYLLABLE_START = 0xac00;
 const KOREAN_SYLLABLE_END = 0xd7a3;
@@ -189,6 +191,6 @@ export function isGenericEducationalRoleDescriptor(descriptor: string) {
   // 명확한 표현은 detector의 별도 분기가 계속 차단한다.
   if (isGenericObjectPhrase(descriptor)) return true;
 
-  const stem = descriptor.replace(KOREAN_CASE_PARTICLE, "");
+  const stem = descriptor.replace(KOREAN_DESCRIPTOR_ENDING, "");
   return stem !== descriptor && isEducationalCompoundNoun(stem);
 }

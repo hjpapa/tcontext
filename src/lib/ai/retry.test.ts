@@ -52,6 +52,97 @@ afterEach(() => {
 });
 
 describe("provider retry budget for simultaneous draft generation", () => {
+  const extendedOptions = {
+    ...options,
+    timeoutMs: 90_000,
+    totalTimeoutMs: 110_000,
+  };
+
+  it("allows a 60s full-profile response without the old 45s cutoff", async () => {
+    const parse = vi.fn(
+      (_body, requestOptions) =>
+        new Promise((resolve, reject) => {
+          setTimeout(
+            () =>
+              requestOptions.timeout < 60_000
+                ? reject(new OpenAI.APIConnectionTimeoutError())
+                : resolve(success),
+            Math.min(60_000, requestOptions.timeout),
+          );
+        }),
+    );
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    const assertion = expect(
+      runStructuredResponse(extendedOptions),
+    ).resolves.toEqual({ ok: true });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
+  it("deducts a slow truncated response from the retry deadline", async () => {
+    const parse = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        vi.setSystemTime(Date.now() + 70_000);
+        return truncated;
+      })
+      .mockResolvedValue(success);
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(runStructuredResponse(extendedOptions)).resolves.toEqual({
+      ok: true,
+    });
+    expect(parse.mock.calls.map((call) => call[1].timeout)).toEqual([
+      90_000, 40_000,
+    ]);
+  });
+
+  it("charges both elapsed work and provider backoff to the same deadline", async () => {
+    const parse = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        vi.setSystemTime(Date.now() + 80_000);
+        throw limited(new Headers({ "retry-after": "10" }));
+      })
+      .mockResolvedValue(success);
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    const pending = runStructuredResponse(extendedOptions);
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(parse).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toEqual({ ok: true });
+    expect(parse.mock.calls.map((call) => call[1].timeout)).toEqual([
+      90_000, 20_000,
+    ]);
+  });
+
+  it("does not sleep past the deadline or violate a provider wait", async () => {
+    const parse = vi.fn().mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + 108_000);
+      throw limited(new Headers({ "retry-after": "5" }));
+    });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(runStructuredResponse(extendedOptions)).rejects.toMatchObject({
+      code: "ai_rate_limited",
+      retryAfterSeconds: 5,
+    });
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("does not start a truncation retry after the shared deadline expires", async () => {
+    const parse = vi.fn().mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + 110_000);
+      return truncated;
+    });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(runStructuredResponse(extendedOptions)).rejects.toMatchObject({
+      code: "ai_timeout",
+      status: 504,
+    });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ["retry-after", "5", 5_000],
     ["retry-after-ms", "1500", 1_500],

@@ -9,9 +9,8 @@ import {
 } from "@/lib/security/api-error";
 import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
-// Worst case is two 45s OpenAI attempts (the second only after a truncated
-// answer). Revisit with the p95 of `openai_request` durationMs logs for
-// operation=profile_refine.
+// Generation and refinement share the same 110s AI deadline, including the
+// optional truncation retry, leaving 10s for other route work.
 export const maxDuration = 120;
 
 export async function POST(request: Request) {

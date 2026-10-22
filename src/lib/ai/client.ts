@@ -40,16 +40,18 @@ type StructuredResponseOptions<Schema extends z.ZodType> = {
   missingParsedFallback?: z.input<Schema>;
   /**
    * Retries once after a short jittered pause when OpenAI answers 429 or 5xx
-   * or drops the connection. Timeouts are never retried because they have
-   * already used the whole time budget.
+   * or drops the connection. Timeouts are not retried to avoid repeating
+   * expensive work after an already long wait.
    */
   retryTransientErrorOnce?: boolean;
   timeoutMs: number;
+  /** Shared deadline across provider calls and retry backoff. */
+  totalTimeoutMs?: number;
 };
 
 const TRANSIENT_RETRY_BASE_DELAY_MS = 400;
 const TRANSIENT_RETRY_JITTER_MS = 800;
-// Two 45s calls plus this pause fit the 120s generation route budget.
+// Provider-directed waits are also charged to the caller's total deadline.
 const MAX_TRANSIENT_RETRY_DELAY_MS = 15_000;
 const MAX_PROVIDER_ATTEMPTS = 2;
 
@@ -301,9 +303,15 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
   let lastResponseDetails: SafeResponseDetails | undefined;
   let transientRetryAvailable = options.retryTransientErrorOnce === true;
   let providerAttempts = 0;
+  const remainingMs = () =>
+    options.totalTimeoutMs === undefined
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, options.totalTimeoutMs - (Date.now() - startedAt));
 
   const parseResponse = async (maxOutputTokens: number) => {
     const request = () => {
+      const timeout = Math.min(options.timeoutMs, remainingMs());
+      if (timeout <= 0) throw new OpenAI.APIConnectionTimeoutError();
       providerAttempts += 1;
       return getOpenAIClient().responses.parse(
         {
@@ -319,7 +327,7 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
         },
         {
           maxRetries: 0,
-          timeout: options.timeoutMs,
+          timeout,
         },
       );
     };
@@ -337,6 +345,9 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
       transientRetryAvailable = false;
       const delayMs = transientRetryDelayMs(error);
       if (delayMs === undefined) throw error;
+      // Return the provider's actionable error when its wait would consume the
+      // remaining deadline; never retry early or start a call after the budget.
+      if (delayMs >= remainingMs()) throw error;
       logTransientRetry(options, startedAt, error, delayMs);
       await sleep(delayMs);
       return request();

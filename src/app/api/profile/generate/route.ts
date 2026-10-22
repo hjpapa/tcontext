@@ -9,9 +9,8 @@ import {
 } from "@/lib/security/api-error";
 import { enforceRateLimit, rateLimitHeaders } from "@/lib/security/rate-limit";
 
-// At most two 45s OpenAI attempts in total, including transient/truncation
-// retries, plus up to 15s of provider-directed backoff. Revisit with the p95 of
-// `openai_request` durationMs logs for operation=profile_generate.
+// The profile caller enforces a shared 110s AI deadline, including retries and
+// backoff. Leave 10s for request limiting, validation and response delivery.
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
