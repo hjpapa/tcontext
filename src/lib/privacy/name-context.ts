@@ -21,6 +21,7 @@ const GENERIC_ROLE_DESCRIPTOR_STEMS = new Set([
   "정서",
   "정체성",
   "제약",
+  "제안",
   "주도성",
   "주도적",
   "주제",
@@ -110,6 +111,12 @@ const ROLE_NOUN_CONJUNCTION =
  */
 const CLAUSE_ENDING = /(?:면|면서|도록|는데|려고|어서|해서|하여|하게|적)$/u;
 
+// Temporal phrases before a role describe when an action occurs. Match known
+// temporal nouns only: accepting every word ending in `에` or `로` would also
+// hide real names. Explicit name labels are handled separately by the detector.
+const TEMPORAL_ROLE_ADVERB =
+  /^(?:마지막|처음|중간|다음|이전|이후|직전|직후)(?:에|으로)$/u;
+
 const KOREAN_CASE_PARTICLE = /(?:은|는|이|가|을|를|도|만)$/u;
 const KOREAN_OBJECT_PARTICLE = /(?<particle>을|를)$/u;
 const KOREAN_SYLLABLE_START = 0xac00;
@@ -173,6 +180,7 @@ export function isGenericEducationalRoleDescriptor(descriptor: string) {
   if (isEducationalCompoundNoun(descriptor)) return true;
   if (ROLE_NOUN_CONJUNCTION.test(descriptor)) return true;
   if (CLAUSE_ENDING.test(descriptor)) return true;
+  if (TEMPORAL_ROLE_ADVERB.test(descriptor)) return true;
 
   // `주제를 학생의 경험과 연결한다`처럼 목적어 뒤에 학생 문맥이
   // 이어지는 문장을 이름으로 오해하지 않는다. 목적격 표현은 이름과
