@@ -28,6 +28,9 @@ const genericPhrases = [
   "활동을 이어가며 학생의 설명을 살핀다.",
   "대화를 이어가고 교사가 확인 질문을 한다.",
   "활동을 이어가되 학생에게 생각할 시간을 준다.",
+  "질문 초안을 제안받고 교사가 직접 검토한다.",
+  "활동 대안을 제안받되 교사가 최종 판단한다.",
+  "대안을 제안받으며 교사가 준비 부담을 줄인다.",
 ];
 
 describe("ordinary phrases beside student and teacher roles", () => {
@@ -72,6 +75,8 @@ describe("ordinary phrases beside student and teacher roles", () => {
     "이어준 학생이 활동을 시작한다.",
     "학생 이름: 이어가며.",
     "교사 이름: 이어가고.",
+    "제안준 교사가 수업을 안내한다.",
+    "교사 이름: 제안받고.",
   ])("still blocks identifying names and explicit name labels: %s", (text) => {
     expect(detectPrivacyRisks(text).status).toBe("blocked");
   });
