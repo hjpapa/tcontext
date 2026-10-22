@@ -1,0 +1,2483 @@
+{
+  "target": "https://tcontext.vercel.app",
+  "beganAt": "2026-10-22T14:22:51.269Z",
+  "finishedAt": "2026-10-22T14:27:19.782Z",
+  "browserVersion": "151.0.7922.34",
+  "participants": 35,
+  "synthetic": true,
+  "bypass": false,
+  "distinctTabs": 35,
+  "succeeded": 35,
+  "failed": 0,
+  "generation": {
+    "requests": 35,
+    "peakConcurrent": 35,
+    "launchSpreadMs": 8,
+    "p50Ms": 33909,
+    "p95Ms": 38798,
+    "maxMs": 40193
+  },
+  "privacy": {
+    "requests": 35,
+    "peakConcurrent": 35,
+    "launchSpreadMs": 5,
+    "p50Ms": 1878,
+    "p95Ms": 2432,
+    "maxMs": 2512
+  },
+  "download": {
+    "requests": 35,
+    "peakConcurrent": 35,
+    "launchSpreadMs": 4,
+    "p50Ms": 4898,
+    "p95Ms": 6131,
+    "maxMs": 6213
+  },
+  "privacyClear": 34,
+  "privacyWarnings": 1,
+  "storage": {
+    "requested": true,
+    "serverConnection": true,
+    "unauthenticatedStatus": 401,
+    "createStatus": 201,
+    "securityChallenge": false,
+    "jsonResponse": true,
+    "retentionWithinLimit": true,
+    "rawAnswersAbsent": true,
+    "signedReviewUsed": true,
+    "consentAccepted": true,
+    "createdRowCount": 1,
+    "deleteStatus": 200,
+    "deleted": true,
+    "remainingRowCount": 0,
+    "ok": true
+  },
+  "results": [
+    {
+      "participant": 1,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 2,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679217175,
+        "durationMs": 38042,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 2,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226516,
+        "durationMs": 1878,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679231794,
+        "durationMs": 3716,
+        "bytes": 15743,
+        "sha256": "343c34ea57b38233a85016c337cc162d7a83ed59426f4952b0488d3c6b20984a",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 2,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679216954,
+        "durationMs": 37823,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226976,
+        "durationMs": 2335,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679231716,
+        "durationMs": 3638,
+        "bytes": 16081,
+        "sha256": "8f70b80fba0a2581709c11eed8f5c866490495f11ab9c10bbd2a5c172c7c0a7a",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 3,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679209550,
+        "durationMs": 30418,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226952,
+        "durationMs": 2313,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679231946,
+        "durationMs": 3868,
+        "bytes": 15439,
+        "sha256": "df645db322508bb642594f2d475485382625a828b398a072faf46cf7b361ed24",
+        "modules": 7
+      },
+      "answerCount": 17,
+      "inputCharacters": 3609,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 4,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212544,
+        "durationMs": 33412,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224637,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226872,
+        "durationMs": 2235,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679231496,
+        "durationMs": 3418,
+        "bytes": 16548,
+        "sha256": "3b0d38514d70a487d7cb742d2caed9e1f307ee1b29ace577d3f7bb8b5d7e9eda",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 5,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679209080,
+        "durationMs": 29948,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224637,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226922,
+        "durationMs": 2285,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679232170,
+        "durationMs": 4092,
+        "bytes": 15889,
+        "sha256": "d15734e33f4cfc64033eb6f044d7a427eb9312ba16ae44cd295122319ae127c4",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 6,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212487,
+        "durationMs": 33354,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 20,
+          "inferred": 2,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226958,
+        "durationMs": 2320,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228078,
+        "completedAtMs": 1792679230446,
+        "durationMs": 2368,
+        "bytes": 15884,
+        "sha256": "6e478b20a9af07a8bca6ccccdd154cb4c0b2c5e5e30ce99af674099092b707b0",
+        "modules": 7
+      },
+      "answerCount": 17,
+      "inputCharacters": 3609,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 7,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212445,
+        "durationMs": 33313,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224637,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679227030,
+        "durationMs": 2393,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679231868,
+        "durationMs": 3789,
+        "bytes": 16415,
+        "sha256": "8e6474d0f5be93ab9f92856daea687b5176a0036e15d7caef2cd8ec8ba69909b",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 8,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679219327,
+        "durationMs": 40193,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 25,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224642,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679227154,
+        "durationMs": 2512,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232021,
+        "durationMs": 3942,
+        "bytes": 16275,
+        "sha256": "aea558f5fc06aa5616e932653b14fc811ca6e9ea7a658e9c8bba97fddd9c5297",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 9,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214359,
+        "durationMs": 35226,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226187,
+        "durationMs": 1549,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232093,
+        "durationMs": 4014,
+        "bytes": 15862,
+        "sha256": "53c115b89de0eaaaafab1222fadfcf5cccd99ba986d7386b8fdb45a8f1d0586f",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 10,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179138,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679217657,
+        "durationMs": 38519,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 19,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226289,
+        "durationMs": 1650,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232977,
+        "durationMs": 4898,
+        "bytes": 17129,
+        "sha256": "4cefad7544d65a6200676614df09e6654e122a6201f1cc33642c5e8dd1600d1d",
+        "modules": 7
+      },
+      "answerCount": 16,
+      "inputCharacters": 3419,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 11,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679217930,
+        "durationMs": 38798,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 20,
+          "inferred": 2,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224637,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226831,
+        "durationMs": 2194,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232703,
+        "durationMs": 4624,
+        "bytes": 15995,
+        "sha256": "7a86bac4f058b15b80de708dba7a16b2220f2d448bb7cac9fca159dd9d0841dd",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 12,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679217080,
+        "durationMs": 37949,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 20,
+          "inferred": 2,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226263,
+        "durationMs": 1625,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232339,
+        "durationMs": 4260,
+        "bytes": 15472,
+        "sha256": "e42d28ca08faa683029a04ab453fa41368e269043ca2ff4a4a8f129cb342c311",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 13,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679213618,
+        "durationMs": 34484,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224637,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226082,
+        "durationMs": 1445,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232617,
+        "durationMs": 4538,
+        "bytes": 15276,
+        "sha256": "806f0d7cb1ab95448450a4351a69248c469364a45f0da4730a6005c6c50302a2",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 14,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179138,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679216206,
+        "durationMs": 37068,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679225072,
+        "durationMs": 434,
+        "schemaValid": true,
+        "source": "local",
+        "verdict": "needs_review",
+        "warningCount": 1,
+        "hasReviewToken": false,
+        "warningDiagnostics": [
+          {
+            "categories": [
+              "person_name"
+            ],
+            "paths": [
+              "profile.modules.6.claims.2.text"
+            ],
+            "hasNonDisclosureLanguage": false
+          }
+        ],
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228079,
+        "completedAtMs": 1792679232249,
+        "durationMs": 4170,
+        "bytes": 16471,
+        "sha256": "690186c05f6f60b7e0532500d3444cba1c406fe092290f3406d2b02720d903fb",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 15,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679208995,
+        "durationMs": 29864,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 18,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226946,
+        "durationMs": 2306,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679233396,
+        "durationMs": 5316,
+        "bytes": 15429,
+        "sha256": "035a8b27d8352b94941eb4c76cbfce4cf77913511ffd5d954201134cc378e90d",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 16,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179135,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679208925,
+        "durationMs": 29790,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 19,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226941,
+        "durationMs": 2303,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679232885,
+        "durationMs": 4805,
+        "bytes": 15598,
+        "sha256": "16f775749cc9f1c41da40e503ef2adfc650f53d85788c0923586468e18efd251",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 17,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679210152,
+        "durationMs": 31021,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679227065,
+        "durationMs": 2427,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679233233,
+        "durationMs": 5153,
+        "bytes": 16658,
+        "sha256": "ecd61d6b797c226b038297c8a3414db14c267d92d1876748b974273c9a51154b",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 18,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179135,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679208898,
+        "durationMs": 29763,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226231,
+        "durationMs": 1590,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679234140,
+        "durationMs": 6060,
+        "bytes": 15270,
+        "sha256": "6542d4a1e55fdfe7e3cc9788d4569e5834843feb697caee6002155b7b692cc33",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 19,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679210932,
+        "durationMs": 31801,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226044,
+        "durationMs": 1405,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679232793,
+        "durationMs": 4713,
+        "bytes": 16065,
+        "sha256": "de97c1f3cddd50a4885d1539b1fa89cbc0850698508334e4b683ef0e956f80f2",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 20,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179135,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679213014,
+        "durationMs": 33879,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226331,
+        "durationMs": 1692,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679233841,
+        "durationMs": 5761,
+        "bytes": 16235,
+        "sha256": "fa0db5b4f66c050780cb78c1161e02d13e87488a67f6fda5af7d73868c80246c",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 21,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212459,
+        "durationMs": 33327,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226991,
+        "durationMs": 2351,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679232528,
+        "durationMs": 4448,
+        "bytes": 16448,
+        "sha256": "8d35ffc0cb3ae45c7a6bee4f72efcd5dc425f01f76d729e52ad256331d9d7b85",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 22,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679216978,
+        "durationMs": 37844,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226518,
+        "durationMs": 1878,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679233316,
+        "durationMs": 5236,
+        "bytes": 16552,
+        "sha256": "d162f04631422bdae4e91a95dfcdda99855042c1cfb1485a1e85ed025223ea9e",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 23,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679215322,
+        "durationMs": 36188,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 19,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679227072,
+        "durationMs": 2432,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679232435,
+        "durationMs": 4355,
+        "bytes": 16179,
+        "sha256": "2108d41c85ced914c17e0450a85bb07b3009c87aa4ab60dc60fc7608eaebbe3b",
+        "modules": 7
+      },
+      "answerCount": 16,
+      "inputCharacters": 3419,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 24,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179132,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214411,
+        "durationMs": 35279,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679225947,
+        "durationMs": 1308,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228080,
+        "completedAtMs": 1792679233917,
+        "durationMs": 5837,
+        "bytes": 15883,
+        "sha256": "10b02d45c7c8c6a118c63fd7d33ae8e98b7e327c34ceed6054b030a9de8da741",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 25,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679215688,
+        "durationMs": 36555,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226420,
+        "durationMs": 1781,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233063,
+        "durationMs": 4982,
+        "bytes": 15803,
+        "sha256": "cc5e8bfec1faa61cfbc70f881b3dee4a460206ebea7bb764c716925f34cd9aa0",
+        "modules": 7
+      },
+      "answerCount": 16,
+      "inputCharacters": 3419,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 26,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214289,
+        "durationMs": 35155,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 19,
+          "inferred": 3,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224638,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226561,
+        "durationMs": 1923,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233542,
+        "durationMs": 5461,
+        "bytes": 15880,
+        "sha256": "ef0a53e4e5ecc0732363f75b4b6b7ae4501267c78c464cde479c558f77ab37a0",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 27,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212965,
+        "durationMs": 33832,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224639,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226246,
+        "durationMs": 1607,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233150,
+        "durationMs": 5069,
+        "bytes": 15600,
+        "sha256": "22e6d3bfa07a137bb7dde1ed550ad4c9e3ebeaa8c3fbfd1994ceb40d0383dbd0",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 28,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214441,
+        "durationMs": 35307,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 20,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226569,
+        "durationMs": 1929,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233470,
+        "durationMs": 5389,
+        "bytes": 15331,
+        "sha256": "0d409af3d0e7ff9c702485eea136ace3afbeb634fea48039a7414fad51bad260",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 29,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179135,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214537,
+        "durationMs": 35402,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 18,
+          "inferred": 5,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224640,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226331,
+        "durationMs": 1691,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679234294,
+        "durationMs": 6213,
+        "bytes": 15625,
+        "sha256": "8c08b63ca65b2b3f5068c1c463c4351f829235b94ed2b65e2ace745ab210b7d2",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 30,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179138,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212747,
+        "durationMs": 33609,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 21,
+          "inferred": 1,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226213,
+        "durationMs": 1572,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679234068,
+        "durationMs": 5987,
+        "bytes": 15710,
+        "sha256": "bdf76b8bcaab880f9a846b2c14f037e62f804a617a008b7e047caf9b378dfe5a",
+        "modules": 7
+      },
+      "answerCount": 17,
+      "inputCharacters": 3609,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 31,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179134,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679214005,
+        "durationMs": 34871,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226969,
+        "durationMs": 2328,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233616,
+        "durationMs": 5535,
+        "bytes": 15403,
+        "sha256": "e0f41cf5b40d8dd8209aa86b16841022c78a8ee9fe855446df811885cdd9a7fd",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 32,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179139,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212292,
+        "durationMs": 33153,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 23,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226512,
+        "durationMs": 1871,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233693,
+        "durationMs": 5612,
+        "bytes": 15205,
+        "sha256": "aee13975dad384b99498d9a899ffbcc94a97b621cd31dbd5d7cd823c4d952f13",
+        "modules": 7
+      },
+      "answerCount": 16,
+      "inputCharacters": 3419,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 33,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679212229,
+        "durationMs": 33096,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224642,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226139,
+        "durationMs": 1497,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228081,
+        "completedAtMs": 1792679233767,
+        "durationMs": 5686,
+        "bytes": 15620,
+        "sha256": "08ceb5b8585010e296be436e89d3705bc510ec0498201ce65f000bf9bd056679",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 34,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179133,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679210721,
+        "durationMs": 31588,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 22,
+          "inferred": 0,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226350,
+        "durationMs": 1709,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228082,
+        "completedAtMs": 1792679233996,
+        "durationMs": 5914,
+        "bytes": 15673,
+        "sha256": "a85b2395f818e99f6fe556ba0e8af4aba1b1d880ce444e6c4b0eea6be5f6932d",
+        "modules": 7
+      },
+      "answerCount": 15,
+      "inputCharacters": 3229,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    },
+    {
+      "participant": 35,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 0,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792679179131,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679213040,
+        "durationMs": 33909,
+        "schemaValid": true,
+        "model": "gpt-6-luna",
+        "basisCounts": {
+          "direct": 15,
+          "inferred": 6,
+          "needs_confirmation": 0
+        },
+        "conceptCoverage": {
+          "reasoning": true,
+          "steps": true,
+          "offlineAlternative": true,
+          "expressionChoice": true,
+          "feedback": true
+        },
+        "quality": {
+          "sevenPopulatedModules": true,
+          "groundedIds": true,
+          "notAutoConfirmed": true,
+          "actionable": true,
+          "noInventedClassNumbers": true,
+          "noPersonalityTypes": true
+        },
+        "checkpoint": "confirm-synthesis",
+        "reviewReady": true
+      },
+      "privacy": {
+        "requests": 1,
+        "startedAtMs": 1792679224641,
+        "status": 200,
+        "securityChallenge": false,
+        "completedAtMs": 1792679226257,
+        "durationMs": 1616,
+        "schemaValid": true,
+        "source": "openai",
+        "verdict": "clear",
+        "warningCount": 0,
+        "hasReviewToken": true,
+        "resultRendered": true
+      },
+      "download": {
+        "ok": true,
+        "requests": 1,
+        "startedAtMs": 1792679228082,
+        "completedAtMs": 1792679234213,
+        "durationMs": 6131,
+        "bytes": 15759,
+        "sha256": "7613a4c775cbaeda9df458a2c09d832457aa1236891cb15b3b4832079874b52f",
+        "modules": 7
+      },
+      "answerCount": 14,
+      "inputCharacters": 3039,
+      "contributionOffByDefault": true,
+      "exportWithoutStorage": true
+    }
+  ]
+}

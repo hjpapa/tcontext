@@ -1,0 +1,30 @@
+{
+  "project": "tcontext",
+  "userApprovedOneTimeReset": true,
+  "reset": {
+    "at": "2026-10-22T14:56:29.299Z",
+    "scope": "service-ai-day",
+    "before": 7500,
+    "deletedKeys": 1,
+    "after": 0,
+    "configuredCap": 7500,
+    "settingsChanged": false,
+    "otherCountersReset": false
+  },
+  "readOnlyAudit": {
+    "at": "2026-10-22T15:03:03.832Z",
+    "used": 552,
+    "cap": 7500,
+    "remaining": 6948
+  },
+  "finalVerification": {
+    "commit": "f8c4c7e01e1a82476d8957b716f35f61440654a0",
+    "deploymentId": "dpl_GH8nFyrnUfyvjUAKYvhkXhJ2g24D",
+    "participants": 35,
+    "succeeded": 35,
+    "failed": 0,
+    "privacyWarnings": 0,
+    "recoveredOutputValidationRetriesObserved": 1,
+    "report": "training-final-production-2026-10-23.json"
+  }
+}

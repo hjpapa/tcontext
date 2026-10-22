@@ -1,0 +1,957 @@
+{
+  "target": "https://tcontext.vercel.app",
+  "beganAt": "2026-10-22T14:46:10.069Z",
+  "finishedAt": "2026-10-22T14:48:56.340Z",
+  "browserVersion": "151.0.7922.34",
+  "participants": 35,
+  "synthetic": true,
+  "bypass": false,
+  "distinctTabs": 35,
+  "succeeded": 0,
+  "failed": 35,
+  "generation": {
+    "requests": 35,
+    "peakConcurrent": 35,
+    "launchSpreadMs": 4,
+    "p50Ms": 1283,
+    "p95Ms": 1509,
+    "maxMs": 1511
+  },
+  "privacy": {
+    "requests": 0,
+    "peakConcurrent": 0,
+    "launchSpreadMs": null,
+    "p50Ms": null,
+    "p95Ms": null,
+    "maxMs": null
+  },
+  "download": {
+    "requests": 0,
+    "peakConcurrent": 0,
+    "launchSpreadMs": null,
+    "p50Ms": null,
+    "p95Ms": null,
+    "maxMs": null
+  },
+  "privacyClear": 0,
+  "privacyWarnings": 0,
+  "storage": {
+    "requested": true,
+    "serverConnection": true,
+    "unauthenticatedStatus": 401,
+    "ok": false,
+    "errorType": "NoClearProfile"
+  },
+  "results": [
+    {
+      "participant": 1,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536042,
+        "durationMs": 1213,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 2,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536227,
+        "durationMs": 1397,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 17,
+      "inputCharacters": 3609
+    },
+    {
+      "participant": 3,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534826,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536137,
+        "durationMs": 1311,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 4,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536029,
+        "durationMs": 1200,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 16,
+      "inputCharacters": 3419
+    },
+    {
+      "participant": 5,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536138,
+        "durationMs": 1309,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 16,
+      "inputCharacters": 3419
+    },
+    {
+      "participant": 6,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536049,
+        "durationMs": 1219,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 7,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536218,
+        "durationMs": 1389,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 8,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680535479,
+        "durationMs": 651,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 9,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536091,
+        "durationMs": 1261,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 10,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536112,
+        "durationMs": 1283,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 11,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536050,
+        "durationMs": 1221,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 12,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536339,
+        "durationMs": 1511,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 13,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534827,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536103,
+        "durationMs": 1276,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 14,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536242,
+        "durationMs": 1413,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 15,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536246,
+        "durationMs": 1417,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 16,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536091,
+        "durationMs": 1262,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 17,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536339,
+        "durationMs": 1509,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 18,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536118,
+        "durationMs": 1288,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 19,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536034,
+        "durationMs": 1206,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 20,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536192,
+        "durationMs": 1364,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 21,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536111,
+        "durationMs": 1281,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 22,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536102,
+        "durationMs": 1274,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 23,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536102,
+        "durationMs": 1274,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 24,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536211,
+        "durationMs": 1383,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 15,
+      "inputCharacters": 3229
+    },
+    {
+      "participant": 25,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 1,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536252,
+        "durationMs": 1424,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 26,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 11,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534827,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536214,
+        "durationMs": 1387,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 27,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 12,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536242,
+        "durationMs": 1412,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 28,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 12,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536222,
+        "durationMs": 1392,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 29,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 11,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536091,
+        "durationMs": 1261,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 30,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 12,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536018,
+        "durationMs": 1188,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 31,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 14,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534828,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536035,
+        "durationMs": 1207,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 32,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 14,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536338,
+        "durationMs": 1509,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 33,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 14,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536080,
+        "durationMs": 1251,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 34,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 14,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534829,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536150,
+        "durationMs": 1321,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    },
+    {
+      "participant": 35,
+      "runtimeErrors": 0,
+      "failedResponses": [],
+      "submissionRequests": 0,
+      "followUpRequests": 14,
+      "followUpErrors": 14,
+      "fixedAnswers": 14,
+      "generation": {
+        "requests": 1,
+        "startedAtMs": 1792680534830,
+        "status": 429,
+        "securityChallenge": false,
+        "completedAtMs": 1792680536036,
+        "durationMs": 1206,
+        "errorCode": "rate_limit_exceeded",
+        "schemaValid": false,
+        "errorType": "AssertionError"
+      },
+      "privacy": {
+        "requests": 0
+      },
+      "download": {},
+      "answerCount": 14,
+      "inputCharacters": 3039
+    }
+  ]
+}
