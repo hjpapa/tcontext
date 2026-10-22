@@ -267,9 +267,35 @@ async function finishGeneration(session, responsePromise) {
     const { profile } = parsed.data;
     const claims = profile.modules.flatMap((module) => module.claims);
     const text = claims.map((claim) => claim.text).join("\n");
+    const synthesis = [
+      text,
+      profile.shortSummary,
+      ...profile.modules.map((module) => module.summary),
+      ...profile.teachingDesignPrinciples,
+      ...profile.classSupportConsiderations,
+      ...profile.realisticConstraints,
+      ...profile.aiCollaborationInstructions,
+    ].join("\n");
     // Bounded quality checks on fictional output; retain only booleans/counts.
     // Lexical relevance is not a guarantee of semantic faithfulness.
     result.generation.model = profile.metadata.modelName;
+    result.generation.basisCounts = Object.fromEntries(
+      ["direct", "inferred", "needs_confirmation"].map((basis) => [
+        basis,
+        claims.filter((claim) => claim.basis === basis).length,
+      ]),
+    );
+    // A detailed answer can already state the applicable practice. Do not force
+    // invented inferences to satisfy a quota; report their distribution separately.
+    result.generation.conceptCoverage = Object.fromEntries(
+      [
+        ["reasoning", /근거|이유/u],
+        ["steps", /단계|순서/u],
+        ["offlineAlternative", /종이|칠판|오프라인|비디지털/u],
+        ["expressionChoice", /선택|표현/u],
+        ["feedback", /피드백|수정/u],
+      ].map(([concept, pattern]) => [concept, pattern.test(synthesis)]),
+    );
     result.generation.quality = {
       sevenPopulatedModules:
         profile.modules.length === 7 &&
@@ -280,16 +306,6 @@ async function finishGeneration(session, responsePromise) {
           claim.evidenceQuestionIds.every((id) => session.answerIds.has(id)),
       ),
       notAutoConfirmed: claims.every((claim) => !claim.confirmedByUser),
-      directAndInferred:
-        claims.some((claim) => claim.basis === "direct") &&
-        claims.some((claim) => claim.basis === "inferred"),
-      relevantConcepts: [
-        /근거|이유/u,
-        /단계|순서/u,
-        /종이|칠판/u,
-        /선택|표현/u,
-        /피드백|수정/u,
-      ].every((pattern) => pattern.test(text)),
       actionable:
         profile.teachingDesignPrinciples.length > 0 &&
         profile.aiCollaborationInstructions.length > 0,
