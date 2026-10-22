@@ -10,6 +10,7 @@ import {
   type PrivacyReviewCandidate,
 } from "@/lib/ai/schemas/privacy";
 import { assertSafeGeneratedCharacters } from "@/lib/ai/text-quality";
+import { withoutGenericNonDisclosurePolicies } from "@/lib/privacy/non-disclosure-policy";
 import {
   collectProfileAuthoredTextFields,
   localAuthoredProfilePrivacyReview,
@@ -79,7 +80,10 @@ function hasIndividualStudentReference(text: string) {
 }
 
 function hasIdentifiableSensitiveContext(text: string) {
-  return SENSITIVE_DETAIL.test(text) && hasIndividualStudentReference(text);
+  const evidence = withoutGenericNonDisclosurePolicies(text);
+  return (
+    SENSITIVE_DETAIL.test(evidence) && hasIndividualStudentReference(evidence)
+  );
 }
 
 function hasCombinationRisk(text: string) {

@@ -1,4 +1,5 @@
 import { rewriteStudentDescription, suggestionForRisk } from "./rewrite";
+import { isGenericNonDisclosurePolicy } from "./non-disclosure-policy";
 import {
   isEducationalCompoundNoun,
   isGenericEducationalRoleDescriptor,
@@ -613,6 +614,7 @@ const PATTERNS: PatternDefinition[] = [
     ),
     reason:
       "특정 학생에게 연결된 의료·진단·상담·가정 정보가 포함되어 있습니다.",
+    ignore: isGenericNonDisclosurePolicy,
   },
   {
     type: "school_name",

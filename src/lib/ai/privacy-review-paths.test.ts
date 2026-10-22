@@ -33,6 +33,40 @@ describe("path-only AI privacy candidates", () => {
     vi.restoreAllMocks();
   });
 
+  it.each([
+    ["개별 학생의 건강 정보나 상담 기록은 AI에 입력하지 않는다.", "clear"],
+    [
+      "개별 학생의 건강 정보는 AI에 입력하지 않는다. 한 학생은 ADHD 진단을 받았다.",
+      "needs_review",
+    ],
+    ["김민수 학생의 건강 정보는 AI에 입력하지 않는다.", "needs_review"],
+  ])(
+    "checks sensitive evidence rather than generic non-disclosure instructions: %s",
+    async (shortSummary, status) => {
+      setOpenAIClientForTests({
+        responses: {
+          parse: vi.fn().mockResolvedValue({
+            output_parsed: {
+              items: [
+                {
+                  path: "profile.shortSummary",
+                  category: "identifiable_sensitive_context",
+                  reason: "민감 정보 후보",
+                  suggestedRewrite: "수업 지원 요구만 남깁니다.",
+                },
+              ],
+            },
+            usage: null,
+          }),
+        },
+      } as unknown as OpenAI);
+      const result = await reviewProfileWithAI(
+        profileWithSummary(shortSummary),
+      );
+      expect(result.review.status).toBe(status);
+    },
+  );
+
   it("reports the server's own copy of the field text and drops unknown paths", async () => {
     const parse = vi.fn().mockResolvedValue({
       output_parsed: {
