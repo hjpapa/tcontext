@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:openai:smoke": "node scripts/openai-smoke.mjs",
+    "test:training:browser": "node scripts/training-browser-load.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
