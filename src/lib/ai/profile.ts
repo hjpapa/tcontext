@@ -153,6 +153,11 @@ export async function generateProfile(input: GenerateInput): Promise<{
     // Losing a finished interview to one busy-provider answer is costly, so
     // only generation absorbs a single 429/5xx before surfacing the error.
     retryTransientErrorOnce: true,
+    retryInvalidResponseOnce: true,
+    validateOutput: (candidate) => {
+      assertSafeGeneratedCharacters(candidate);
+      assertEvidenceQuestionIds(candidate.profile, input);
+    },
     timeoutMs: OPENAI_TIMEOUT_MS.profile,
     totalTimeoutMs: PROFILE_TOTAL_TIMEOUT_MS,
   });

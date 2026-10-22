@@ -2,6 +2,7 @@
 import OpenAI from "openai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import { ApiError } from "@/lib/security/api-error";
 
 vi.mock("server-only", () => ({}));
 import {
@@ -52,6 +53,87 @@ afterEach(() => {
 });
 
 describe("provider retry budget for simultaneous draft generation", () => {
+  it("retries invalid structured output once without accepting the invalid draft", async () => {
+    const parse = vi
+      .fn()
+      .mockResolvedValueOnce({ output_parsed: { ok: "private invalid body" } })
+      .mockResolvedValue(success);
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(
+      runStructuredResponse({ ...options, retryInvalidResponseOnce: true }),
+    ).resolves.toEqual({ ok: true });
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain(
+      "private invalid body",
+    );
+  });
+
+  it("revalidates domain output within the remaining deadline", async () => {
+    const parse = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        vi.setSystemTime(Date.now() + 70_000);
+        return success;
+      })
+      .mockResolvedValue(success);
+    const validateOutput = vi.fn().mockImplementationOnce(() => {
+      throw new ApiError(
+        "ai_invalid_response",
+        502,
+        "synthetic invalid characters",
+      );
+    });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(
+      runStructuredResponse({
+        ...options,
+        timeoutMs: 90_000,
+        totalTimeoutMs: 110_000,
+        retryInvalidResponseOnce: true,
+        validateOutput,
+      }),
+    ).resolves.toEqual({ ok: true });
+    expect(parse.mock.calls.map((call) => call[1].timeout)).toEqual([
+      90_000, 40_000,
+    ]);
+    expect(validateOutput).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a refusal or a privacy rejection", async () => {
+    const parse = vi
+      .fn()
+      .mockResolvedValue({ output_parsed: null, status: "completed" });
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(
+      runStructuredResponse({ ...options, retryInvalidResponseOnce: true }),
+    ).rejects.toMatchObject({ code: "ai_invalid_response" });
+    expect(parse).toHaveBeenCalledTimes(1);
+    parse.mockClear().mockResolvedValue(success);
+    await expect(
+      runStructuredResponse({
+        ...options,
+        retryInvalidResponseOnce: true,
+        validateOutput: () => {
+          throw new ApiError("privacy_review_required", 422, "private");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "privacy_review_required" });
+    expect(parse).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the two-call cap when both validation attempts fail", async () => {
+    const parse = vi
+      .fn()
+      .mockRejectedValue(new SyntaxError("private invalid JSON"));
+    setOpenAIClientForTests({ responses: { parse } } as unknown as OpenAI);
+    await expect(
+      runStructuredResponse({ ...options, retryInvalidResponseOnce: true }),
+    ).rejects.toMatchObject({ code: "ai_invalid_response" });
+    expect(parse).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(vi.mocked(console.warn).mock.calls)).not.toContain(
+      "private invalid JSON",
+    );
+  });
   const extendedOptions = {
     ...options,
     timeoutMs: 90_000,

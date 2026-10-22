@@ -109,6 +109,7 @@ async function prepare(index) {
   const result = {
     participant: index + 1,
     runtimeErrors: 0,
+    failedResponses: [],
     submissionRequests: 0,
     followUpRequests: 0,
     followUpErrors: 0,
@@ -137,6 +138,22 @@ async function prepare(index) {
     }
   });
   page.on("response", (response) => {
+    const path = new URL(response.url()).pathname;
+    if (
+      !response.ok() &&
+      [
+        "/result",
+        "/review",
+        "/api/submissions/create",
+        "/api/submissions/delete",
+      ].includes(path)
+    ) {
+      result.failedResponses.push({
+        path,
+        status: response.status(),
+        challenge: response.headers()["x-vercel-mitigated"] === "challenge",
+      });
+    }
     if (
       new URL(response.url()).pathname === "/api/interview/follow-up" &&
       !response.ok()
@@ -413,7 +430,6 @@ async function finalReview(session) {
         .click();
     }
     await page.waitForURL("**/result");
-    result.privacy.resultRendered = true;
     const consent = page.getByRole("checkbox", {
       name: /검토한 최종 프로필을 선택적으로 기여/,
     });
@@ -424,8 +440,21 @@ async function finalReview(session) {
             .getByRole("button", { name: "동의하고 데이터 기여", exact: true })
             .isEnabled())
         : (await consent.count()) === 0;
+    result.privacy.resultRendered = true;
   } catch (error) {
     Object.assign(result.privacy, safeError(error));
+    result.privacy.emptyDocument = await page
+      .getByRole("heading", {
+        name: "완성된 문서가 없습니다.",
+        exact: true,
+      })
+      .count()
+      .then((count) => count > 0)
+      .catch(() => false);
+    result.privacy.securityPage = await page
+      .title()
+      .then((title) => /Vercel Security Checkpoint/u.test(title))
+      .catch(() => false);
   }
 }
 
@@ -516,6 +545,10 @@ async function verifyContribution(session) {
         .click(),
     ]);
     storage.createStatus = response.status();
+    storage.securityChallenge =
+      response.headers()["x-vercel-mitigated"] === "challenge";
+    storage.jsonResponse =
+      response.headers()["content-type"]?.includes("application/json") ?? false;
     assert(response.ok());
     const receiptBody = await response.json();
     // Retain cleanup credentials in memory before validating ancillary fields.

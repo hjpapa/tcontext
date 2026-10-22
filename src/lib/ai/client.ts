@@ -44,6 +44,8 @@ type StructuredResponseOptions<Schema extends z.ZodType> = {
    * expensive work after an already long wait.
    */
   retryTransientErrorOnce?: boolean;
+  retryInvalidResponseOnce?: boolean;
+  validateOutput?: (output: z.output<Schema>) => void;
   timeoutMs: number;
   /** Shared deadline across provider calls and retry backoff. */
   totalTimeoutMs?: number;
@@ -364,38 +366,73 @@ export async function runStructuredResponse<Schema extends z.ZodType>(
 
     for (const [attemptIndex, maxOutputTokens] of outputTokenLimits.entries()) {
       lastResponseDetails = undefined;
-      const response = await parseResponse(maxOutputTokens);
+      let validatingOutput = false;
+      try {
+        const response = await parseResponse(maxOutputTokens);
 
-      lastResponseDetails = responseDetailsOf(response);
-      if (response.output_parsed !== null) {
-        // Structured Outputs constrains generation; this second parse protects
-        // the application boundary even if a provider or SDK regression occurs.
-        const parsed = options.schema.parse(response.output_parsed);
-        logSuccess(options, startedAt, lastResponseDetails, attemptIndex + 1);
-        return parsed;
+        lastResponseDetails = responseDetailsOf(response);
+        if (response.output_parsed !== null) {
+          // Structured Outputs constrains generation; this second parse protects
+          // the application boundary even if a provider or SDK regression occurs.
+          validatingOutput = true;
+          const parsed = options.schema.parse(response.output_parsed);
+          options.validateOutput?.(parsed);
+          validatingOutput = false;
+          logSuccess(options, startedAt, lastResponseDetails, attemptIndex + 1);
+          return parsed;
+        }
+
+        const shouldRetry =
+          attemptIndex === 0 &&
+          providerAttempts < MAX_PROVIDER_ATTEMPTS &&
+          options.retryMaxOutputTokens !== undefined &&
+          lastResponseDetails.reason === "max_output_tokens";
+        if (shouldRetry) {
+          logRetry(options, startedAt, lastResponseDetails);
+          continue;
+        }
+
+        if (options.missingParsedFallback !== undefined) {
+          const fallback = options.schema.parse(options.missingParsedFallback);
+          logFallback(
+            options,
+            startedAt,
+            lastResponseDetails,
+            attemptIndex + 1,
+          );
+          return fallback;
+        }
+
+        throw new ApiError(
+          "ai_invalid_response",
+          502,
+          "AI가 검증 가능한 응답을 생성하지 못했습니다.",
+        );
+      } catch (error) {
+        // Retry validation failures only, never a refusal/missing output or a
+        // privacy decision. The shared two-call cap and deadline still apply.
+        if (
+          options.retryInvalidResponseOnce &&
+          attemptIndex === 0 &&
+          providerAttempts < MAX_PROVIDER_ATTEMPTS &&
+          remainingMs() > 0 &&
+          options.retryMaxOutputTokens !== undefined &&
+          (error instanceof z.ZodError ||
+            error instanceof SyntaxError ||
+            (validatingOutput &&
+              error instanceof ApiError &&
+              error.code === "ai_invalid_response"))
+        ) {
+          console.warn("openai_output_validation_retry", {
+            operation: options.operation,
+            model: options.model,
+            errorType: error.constructor.name,
+            durationMs: Date.now() - startedAt,
+          });
+          continue;
+        }
+        throw error;
       }
-
-      const shouldRetry =
-        attemptIndex === 0 &&
-        providerAttempts < MAX_PROVIDER_ATTEMPTS &&
-        options.retryMaxOutputTokens !== undefined &&
-        lastResponseDetails.reason === "max_output_tokens";
-      if (shouldRetry) {
-        logRetry(options, startedAt, lastResponseDetails);
-        continue;
-      }
-
-      if (options.missingParsedFallback !== undefined) {
-        const fallback = options.schema.parse(options.missingParsedFallback);
-        logFallback(options, startedAt, lastResponseDetails, attemptIndex + 1);
-        return fallback;
-      }
-
-      throw new ApiError(
-        "ai_invalid_response",
-        502,
-        "AI가 검증 가능한 응답을 생성하지 못했습니다.",
-      );
     }
 
     throw new ApiError(
