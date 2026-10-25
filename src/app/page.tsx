@@ -1,3 +1,4 @@
+import { SavedProfilesEntry } from "@/components/local-profiles/saved-profiles-entry";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -68,9 +69,10 @@ export default function Home() {
                   AI가 이해할 문서로.
                 </span>
               </h1>
+              <SavedProfilesEntry />
               <p className="text-muted-foreground mt-8 max-w-2xl text-lg leading-8 text-pretty sm:text-xl">
-                14개의 핵심 질문을 따라 나의 교육관, 개인적 가치, 수업 방식과
-                AI 협업 선호를 약 20분 동안 정리합니다. 교사가 검토한 결과만 여러
+                14개의 핵심 질문을 따라 나의 교육관, 개인적 가치, 수업 방식과 AI
+                협업 선호를 약 20분 동안 정리합니다. 교사가 검토한 결과만 여러
                 생성형 AI에서 활용할 수 있는 Markdown 문서로 완성됩니다.
               </p>
               <div className="mt-10 flex flex-col gap-3 sm:flex-row">

@@ -53,3 +53,14 @@
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: 실제 브라우저의 320px 레이아웃은 WU-9에서 확인한다. 기존 기여 테스트는 수정 없이 통과했다. 새 테스트의 Hook 의존성 경고를 수정했다(첫 수정 스크립트의 문법 오류로 1회 미적용되어 재적용 후 lint 통과).
 - 리뷰어에게 묻고 싶은 것: 없음
+
+
+## WU-6 내 프로파일 화면과 가져오기
+
+- 상태: 완료
+- 변경 파일: `src/app/profiles/page.tsx`, `src/components/local-profiles/{profile-library,backup-import,saved-profiles-entry,local-profile-delete-controls,profile-library.test}.tsx`, `src/app/page.tsx`, `src/components/layout/{primary-nav,app-shell}.tsx`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 812, 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: 내부 ConfirmLocalAction으로 파괴적 동작 확인을 공통 처리했다. 학교급은 기존 순수 표시 모듈의 한국어 라벨을 재사용했다. 내비게이션은 모바일에서 아이콘과 aria-label을 사용하고 헤더 여백을 줄였다.
+- 이전 WU 수정: 없음
+- 확인하지 못한 것·남은 위험: 새 통합 테스트에서 꺼진 상태의 방문·메모리 가져오기 무생성, 일치 recordId 가져오기 시 확정본 보존을 검증했다. 실제 키보드·Pixel 7·320px 화면과 전체 가져오기 선택지 E2E는 WU-9에서 확인한다. 기존 테스트 기대값은 변경하지 않았다.
+- 리뷰어에게 묻고 싶은 것: 없음

@@ -13,7 +13,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         data-print-hidden="true"
         className="bg-background/88 supports-[backdrop-filter]:bg-background/78 sticky top-0 z-50 border-b backdrop-blur-xl"
       >
-        <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-3 px-5 sm:px-8">
+        <div className="mx-auto flex min-h-18 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-3 sm:px-8">
           <Link
             href="/"
             className="group inline-flex min-h-11 items-center gap-3 rounded-xl"
@@ -66,6 +66,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href="/examples"
               >
                 문서 예시
+              </Link>
+              <Link
+                className="hover:text-primary underline-offset-4 hover:underline"
+                href="/profiles"
+              >
+                내 프로파일
               </Link>
               <Link
                 className="hover:text-primary underline-offset-4 hover:underline"
