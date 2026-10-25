@@ -240,46 +240,121 @@ WU-9(커밋) → WU-9a → WU-10 → WU-10a → WU-11 → WU-12
 - 범위와 완료 조건은 설계 11.4~11.8을 따른다.
 - **플랫폼 기능명, 단계, 공식 URL, 상태, 확인일은 `docs/codex/platform-facts.md`에 있는 내용만 쓴다.** 모르는 사실을 추측해 채우지 않는다. 필요한 사실이 그 문서에 없으면 해당 항목을 비워 두지 말고 멈춘다(4절 7번). 각 방법의 `verifiedAt`은 `2026-10-25`다.
 - 방법 구성과 상태는 `platform-facts.md` 5절(승인됨)을 그대로 쓴다.
-  - Gemini: `gemini-skill`(`recommended`), `gemini-gem`(`transitioning` + `migrationNote`), `gemini-chat-attachment`(`available`, fallback)
-  - ChatGPT: `chatgpt-project`(`recommended`), `chatgpt-chat-attachment`(`available`, fallback)
-  - Claude: `claude-project`(`recommended`), `claude-chat-attachment`(`available`, fallback)
+  - Gemini: `gemini-skill`(`recommended`, zip 패키지 업로드 — WU-10a), `gemini-gem`(`transitioning` + `migrationNote`), `gemini-chat-attachment`(`available`, fallback — A 방식: 지침 복사 또는 지침 `SKILL.md` 내려받기 + 교사 프로파일 문서 첨부)
+  - ChatGPT: `chatgpt-project`(`recommended`), `chatgpt-chat-attachment`(`available`, fallback — A 방식)
+  - Claude: `claude-project`(`recommended`), `claude-chat-attachment`(`available`, fallback — A 방식)
   - 설계 9장 결정 6의 이전 값(`gemini-skill`=`announced`)은 쓰지 않는다.
 - 렌더러에는 플랫폼 id 문자열 비교가 없어야 한다. 아키텍처 가드 테스트가 계속 통과해야 한다.
 - WU-12 완료 후 정지한다(최종 리뷰).
 
-### WU-10a. 단일 파일 `SKILL.md` 내보내기 (2026-10-25 승인, Phase 4에서 앞당김)
+### WU-10a. Agent Skill zip 패키지와 지침 전용 `SKILL.md` 내보내기 (2026-10-25 승인, Phase 4에서 앞당김)
 
-- 위치: `src/lib/export/skill.ts`(신규)와 테스트. 이 폴더는 아키텍처 가드 대상이므로 **플랫폼 이름을 쓰지 않는다.** 공개 Agent Skills 형식만 다룬다.
-- 함수: `createSkillFile({ profile, now }) → Result<ExportFile>`
+사용자 결정(2026-10-25): Gemini skill에는 **zip 패키지(`SKILL.md` + `references/teacher-profile.md`)**를 쓴다. 지침과 교사 프로필을 분리하고, Phase 4의 패키지 구조를 그대로 앞당긴다. 처음 승인한 "단일 파일 `SKILL.md`" 방식은 쓰지 않는다.
+
+- 산출물 두 가지: ① skill용 zip 패키지(3절), ② A 방식용 지침 전용 `SKILL.md`(3-1절)
+- 위치: `src/lib/export/zip.ts`, `src/lib/export/skill.ts`(신규)와 각 테스트. 이 폴더는 아키텍처 가드 대상이므로 **플랫폼 이름을 쓰지 않는다.** 공개 Agent Skills 형식만 다룬다.
+- **새 런타임 의존성 금지**(runbook 3.3). zip은 직접 작성한다.
+
+#### 1) `ExportFile` 확장 (`src/lib/export/files.ts`, `download.ts`)
+
+- `content: string | Uint8Array`로 넓히고, `mediaType`에 `"application/zip"`을 추가한다.
+- `downloadTextFile`은 `content`가 `Uint8Array`이면 BOM 옵션을 무시하고 바이트 그대로 Blob을 만든다.
+- 기존 Markdown·JSON 다운로드 동작과 테스트는 바뀌지 않아야 한다.
+
+#### 2) 무압축 zip 작성기 (`src/lib/export/zip.ts`)
+
+- 함수: `createStoredZip(entries: ReadonlyArray<{ path: string; content: Uint8Array }>, modifiedAt: Date) → Uint8Array`
+- 저장 방식은 무압축(method 0)이다.
+  - CRC-32는 표준 다항식 테이블로 계산한다.
+  - 각 항목에 로컬 파일 헤더 → 데이터를 쓰고, 끝에 중앙 디렉터리와 EOCD를 쓴다.
+  - 파일 이름은 UTF-8로 쓰고 general purpose flag bit 11을 켠다.
+  - 수정 시각은 `modifiedAt`에서 DOS 날짜·시각으로 만든다(결정적 출력).
+- 경로 규칙: `/` 구분자만 허용한다. 빈 경로, 절대 경로, `..`, `\`, 중복 경로는 오류(예외)다(프로그래밍 오류). 디렉터리 항목은 만들지 않는다.
+- ZIP64는 지원하지 않는다. 전체 크기가 4 GiB 이상이거나 항목 수가 65,535를 넘으면 오류다.
+
+#### 3) 패키지 생성 (`src/lib/export/skill.ts`)
+
+- 함수: `createSkillPackageFile({ profile, now }) → Result<ExportFile>`
   - 입력은 **확정본**만 받는다. `teacherContextProfileSchema` 검증에 실패하거나 privacyReview가 검사 대기 상태이면 오류다.
-  - `path`는 `"SKILL.md"`, `mediaType`은 `"text/markdown"`이다. BOM 없이 내려받는다.
-- 파일 구성(순서 고정)
+  - 결과 파일: `path` `"teacher-context.zip"`, `mediaType` `"application/zip"`
+- zip 내부 구조. 사용자가 시험한 표본 zip과 같은 배치이며, 디렉터리 항목 없이 파일 2개만 넣는다.
+
+```text
+teacher-context/SKILL.md
+teacher-context/references/teacher-profile.md
+```
+
+- `teacher-context/SKILL.md`(순서 고정, UTF-8, BOM 없음)
   1. YAML 머리말
-     - `name: teacher-context`(소문자·하이픈만, 상수로 둔다)
+     - `name: teacher-context`(상수, 소문자·하이픈만, 폴더 이름과 같아야 한다)
      - `description`: 고정 문구 "교사가 검토한 교육관·수업 방식·학급 맥락·AI 협업 원칙입니다. 수업 설계, 활동지, 평가, 수업 검토 같은 교육 관련 요청에서 참고합니다."
      - 값은 기존 `yamlQuoted`로 인용한다.
      - **프로필 제목이나 본문을 머리말에 넣지 않는다.**
-  2. `# 교사 컨텍스트 사용 지침`: WU-10의 `COMMON_USAGE_INSTRUCTIONS`
-  3. `## 사용 원칙`: 지침서 7.3의 7개 항목을 상수로 둔다(`src/content/usage-instructions.ts`에 함께 둠).
-  4. `---` 구분선 뒤에 `profileToMarkdown(profile)`의 결과
-     - **맨 앞의 YAML 머리말 블록만 제거해** 넣는다. 머리말이 두 개가 되지 않게 하기 위해서다.
-     - `profileToMarkdown` 자체는 수정하지 않는다(변경 금지 영역).
-     - 개인정보 경고·미확인 문장 경고 블록은 본문에 그대로 남는다.
-- 노출 위치: WU-11 가이드의 `gemini-skill` 방법에서 artifact `skill-file`로 제공한다.
-  - **순서**: WU-10에서는 `gemini-skill`의 `requiredArtifacts`를 `["profile-markdown", "usage-instructions"]`로 두어 콘텐츠 검증을 통과시킨다. WU-10a에서 `GuideArtifactId`와 `AVAILABLE_ARTIFACTS`에 `"skill-file"`을 추가하면서, `gemini-skill`의 `requiredArtifacts`를 `["skill-file", "profile-markdown"]`으로 바꾸고 단계 문구도 업로드 경로로 고친다.
-  - Phase 4의 `"skill-package"`(zip, references 폴더)는 계속 범위 밖이다.
+  2. `# 교사 컨텍스트 사용 지침`
+     - 첫 문단 고정: "교사 컨텍스트는 이 skill의 참고 파일 `references/teacher-profile.md`에 있습니다. 교육 관련 요청을 받으면 먼저 이 파일을 읽고 요청과 관련 있는 내용을 선별해 반영하세요."
+     - 이어서 WU-10의 `COMMON_USAGE_INSTRUCTIONS` 본문
+  3. `## 사용 원칙`: 지침서 7.3의 7개 항목. 첫 항목은 "교육 관련 요청에서 `references/teacher-profile.md`를 참고한다."로 쓴다. 상수는 `src/content/usage-instructions.ts`에 둔다.
+  4. **`---` 수평선을 본문에 쓰지 않는다.** 머리말 구분자와 혼동될 수 있다.
+- `teacher-context/references/teacher-profile.md`: `profileToMarkdown(profile)`의 결과를 **그대로** 넣는다(UTF-8, BOM 없음).
+  - Markdown 다운로드 파일과 내용이 같아야 한다.
+  - `profileToMarkdown`은 수정하지 않는다(변경 금지 영역).
+  - 개인정보 경고·미확인 문장 경고 블록은 그대로 들어간다.
+
+#### 3-1) 지침 전용 `SKILL.md` (A 방식용, `src/lib/export/skill.ts`)
+
+- 함수: `createUsageInstructionsFile() → ExportFile`
+  - 교사 프로필이 필요 없는 **고정 내용**이다. 문서가 메모리에 없어도 만들 수 있다.
+  - `path` `"SKILL.md"`, `mediaType` `"text/markdown"`, UTF-8, BOM 없음
+- 내용(순서 고정)
+  1. YAML 머리말: `name: teacher-context-guide`(zip 패키지의 `teacher-context`와 겹치지 않게 다른 이름), `description`: "대화에 첨부한 교사 프로파일 컨텍스트 문서를 함께 사용하기 위한 활용 지침입니다. 교육 관련 요청에서 참고합니다." 값은 `yamlQuoted`로 인용한다.
+  2. `# 교사 컨텍스트 활용 지침`
+     - 첫 문단 고정: "이 대화에 첨부된 교사 프로파일 컨텍스트 문서(TContext에서 내려받은 Markdown)를 교사 컨텍스트로 사용하세요. 문서가 첨부되어 있지 않으면 먼저 첨부를 요청하세요."
+     - 이어서 `COMMON_USAGE_INSTRUCTIONS`
+  3. `## 사용 원칙`: 지침서 7.3의 7개 항목. 첫 항목은 "교육 관련 요청에서 첨부된 교사 프로파일 컨텍스트 문서를 참고한다."로 쓴다.
+  4. 본문에 `---` 수평선을 쓰지 않는다.
+- 이 파일은 플랫폼을 가리지 않는다. 세 플랫폼의 A 방식(대화 첨부)에서 같은 파일을 쓴다.
+
+#### 4) 가이드 연결
+
+- **순서**
+  - WU-10에서는 `gemini-skill`의 `requiredArtifacts`를 `["profile-markdown", "usage-instructions"]`로 두어 콘텐츠 검증을 통과시킨다.
+  - WU-10a에서 `AVAILABLE_ARTIFACTS`에 `"skill-package"`를 추가하면서, `gemini-skill`의 `requiredArtifacts`를 `["skill-package"]`로 바꾸고 단계 문구를 아래 업로드 경로로 고친다.
+  - 설계 11.4의 `GuideArtifactId`에 이미 있는 `"skill-package"`를 쓴다. 이전 판의 `"skill-file"`은 쓰지 않는다.
 - 가이드 문구(`platform-facts.md` 2.2 기준)
-  - Gemini 웹에서 **Customize** → **Skills** → **Create** → **Upload** → 내려받은 `SKILL.md` 선택 → **Open** → 검토 → **Create**
-  - 대화에서는 `/`(또는 `@`)로 skill을 고른다.
-  - 만 18세 이상, Keep Activity 켜기, 업로드는 웹·Mac 앱에서만 된다는 조건을 표시한다.
-  - 브라우저가 파일명을 `SKILL (1).md`처럼 바꾸면 `SKILL.md`로 이름을 바꿔 올리라고 안내한다.
-  - TContext에서 문서를 고치면 skill을 **다시 업로드**해야 한다는 안내를 붙인다(Replace skill 또는 새로 만들기).
-- 테스트
-  - 머리말을 파싱하면 `name`이 `^[a-z0-9-]+$`를 만족하고, `description`이 비어 있지 않다.
-  - 머리말 구분선(`---`)이 파일 맨 앞에 한 쌍만 있다(본문의 수평선 `---`은 허용하되 머리말로 해석되지 않는 위치).
-  - 본문에 공통 지침, 사용 원칙, 프로필 제목과 모든 모듈 제목이 들어 있다.
-  - 경고 상태 프로필은 경고 블록을 포함한다.
-  - 검사 대기 상태나 유효하지 않은 프로필은 오류를 반환한다.
-  - 같은 입력이면 출력이 같다(결정적 출력).
-  - 아키텍처 가드가 통과한다.
-- 실측: 사용자가 표본 업로드 결과를 `platform-facts.md` 6절에 기록한다. 이 결과는 최종 리뷰에서 다룬다. Codex는 결과를 기다리지 않는다.
+  - 만들기: Gemini 웹에서 **Customize** → **Skills** → **Create** → **Upload** → 내려받은 `teacher-context.zip` 선택 → **Open** → 검토 → **Create**
+  - 사용: 대화에서 `/`(또는 `@`)를 입력하고 skill을 고른다.
+  - 조건: 만 18세 이상, Keep Activity 켜기, 업로드는 웹·Mac 앱에서만 된다는 점을 표시한다.
+  - 갱신: TContext에서 문서를 고치면 새 zip을 내려받아 해당 skill의 **Replace skill**로 다시 올려야 한다. Gemini에서는 참고 파일만 따로 고칠 수 없다(공식 문서: 파일을 바꾸려면 skill 전체를 다시 업로드).
+  - zip 파일 이름은 바뀌어도 괜찮다(`teacher-context (1).zip` 등). 안쪽 폴더 이름이 skill 이름이다.
+- **A 방식(대화에 붙이기)**: `gemini-chat-attachment`, `chatgpt-chat-attachment`, `claude-chat-attachment`에 같은 구성을 쓴다.
+  - `requiredArtifacts`: `["usage-instructions", "profile-markdown"]`
+  - 렌더러는 artifact `usage-instructions`에 버튼 두 개를 둔다: **지침 복사**, **지침 `SKILL.md` 내려받기**(`createUsageInstructionsFile`). 새 artifact id는 만들지 않는다.
+  - 단계 문구
+    1. 공통 지침을 복사해 대화 첫 메시지에 붙이거나, 지침 `SKILL.md`를 내려받아 대화에 첨부한다.
+    2. 교사 프로파일 컨텍스트 문서(Markdown)를 대화에 첨부한다.
+    3. 요청을 입력한다.
+  - 대화마다 다시 붙이거나 첨부해야 한다는 안내를 붙인다.
+  - 문서가 메모리에 없으면 Markdown 다운로드만 비활성화하고, 지침 복사·내려받기는 그대로 쓸 수 있다(설계 11.8 WU-11).
+
+#### 5) 테스트
+
+- **zip**
+  - CRC-32 표준 검증값: `"123456789"` → `0xCBF43926`
+  - 테스트 안의 최소 판독기(EOCD → 중앙 디렉터리 → 로컬 헤더)로 다시 읽었을 때 항목 이름, 크기, CRC, 내용 바이트가 입력과 같다. UTF-8 한글 파일 이름도 확인한다.
+  - 경로 규칙 위반은 오류다. 같은 입력과 시각이면 출력 바이트가 같다.
+- **패키지**
+  - 항목이 정확히 위 2개다.
+  - `SKILL.md` 머리말의 `name`이 `^[a-z0-9-]+$`이고 폴더 이름과 같다. `description`이 비어 있지 않다.
+  - `SKILL.md`에 `---`이 머리말 한 쌍 외에는 없다.
+  - `SKILL.md`가 `references/teacher-profile.md`를 가리킨다.
+  - 참고 파일이 `profileToMarkdown(profile)`과 바이트 단위로 같다.
+  - 경고 상태 프로필의 경고 블록이 참고 파일에 남아 있다.
+  - 검사 대기 상태이거나 유효하지 않은 프로필은 오류를 반환한다.
+- **지침 전용 `SKILL.md`**: 머리말 `name`이 `teacher-context-guide`이고 패키지 이름과 다르다. 본문에 공통 지침과 사용 원칙이 있고, `---`은 머리말 한 쌍뿐이다. 교사 프로필 내용이 들어가지 않는다(입력이 없다). 출력이 결정적이다.
+- **다운로드**: `Uint8Array` 내용이 BOM 없이 Blob으로 만들어진다. 기존 Markdown BOM 테스트는 그대로 통과한다.
+- 아키텍처 가드가 통과한다.
+
+#### 6) 실측
+
+- 사용자가 표본 zip(시험 C) 업로드 결과를 `platform-facts.md` 6절에 기록한다. 이 결과는 최종 리뷰에서 다룬다. Codex는 결과를 기다리지 않는다.
+- 최종 리뷰 전에 Codex가 만든 실제 zip으로 사용자가 한 번 더 업로드해 보는 것을 권장한다.

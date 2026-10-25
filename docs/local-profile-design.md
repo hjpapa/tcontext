@@ -775,10 +775,12 @@ type LocalProfileLink = {
    - Workspace 교육용·업무용 계정은 Gem을 더 오래 쓸 수 있으므로 `transitioning` 상태로 남긴다.
    - 근거는 `docs/codex/platform-facts.md` 2절이다.
 7. **가이드 경로**: **확정: `/ai-guide`(플랫폼 선택)와 `/ai-guide/[platform]`.** 플랫폼 목록은 콘텐츠 색인에서 `generateStaticParams`로 만든다. 결과 화면과 내 프로파일 화면에서 "AI에서 활용하기"로 들어간다.
-8. **단일 파일 `SKILL.md` 내보내기를 Phase 2로 앞당김(2026-10-25)**: **확정: WU-10a로 구현한다.**
-   - Gemini skill은 `SKILL.md` 업로드로만 파일을 담을 수 있기 때문이다.
-   - zip·references 폴더 패키지와 설치 자동화는 계속 Phase 4 이후이며, 이번 범위 밖이다.
-   - 긴 `SKILL.md`가 실제로 잘 동작하는지는 사용자가 표본 업로드로 확인하고, 실패하면 최종 리뷰에서 대화 첨부 안내로 되돌린다.
+8. **Agent Skill zip 패키지를 Phase 2로 앞당김(2026-10-25)**: **확정: WU-10a로 구현한다.**
+   - Gemini skill은 업로드로만 파일을 담을 수 있다. 그래서 `teacher-context/SKILL.md`(고정 지침)와 `teacher-context/references/teacher-profile.md`(교사 프로필)를 담은 zip을 만든다. 11.7의 Phase 4 구조를 그대로 앞당긴 것이다.
+   - 처음 승인한 단일 파일 `SKILL.md`는 표본 시험에서 프로필이 반영되지 않는 느낌이 있었다. 이후 사용자가 지침과 프로필을 분리하는 zip 구조로 결정했다.
+   - zip은 새 의존성 없이 무압축으로 직접 만든다. 설치 자동화와 다른 플랫폼용 변형은 계속 범위 밖이다.
+   - Gemini가 참고 파일을 실제로 반영하는지는 사용자 실측(`docs/codex/platform-facts.md` 6절)으로 확인한다. 확인되지 않으면 최종 리뷰에서 대화 첨부(A)를 기본 경로로 둔다.
+   - A(대화에 붙이기)는 모든 플랫폼의 대안 경로로 유지한다. 공통 지침을 복사하거나 지침 전용 `SKILL.md`(`teacher-context-guide`, 프로필 없음)를 내려받아 첨부하고, 교사 프로파일 Markdown을 함께 첨부한다.
 9. **CI E2E 실행 방식(2026-10-25)**: **확정: CI에서만 프로덕션 서버(`pnpm start`)로 E2E를 실행한다.** 개발 서버의 병렬 부하에서 전체 새로고침으로 인한 간헐적 실패가 재현되었기 때문이다. 로컬은 개발 서버를 유지한다(WU-9a F7).
 
 ---
@@ -786,7 +788,7 @@ type LocalProfileLink = {
 ## 10. Phase 1 범위 밖
 
 - AI 플랫폼별 활용 가이드 화면과 공통 실행 지침 복사(Phase 2, 구조는 11장)
-- Skill 패키지(zip·references 폴더) 생성과 플랫폼 설치 자동화. 단일 파일 `SKILL.md` 내보내기는 Phase 2의 WU-10a로 앞당겼다(9장 결정 8).
+- 플랫폼 설치 자동화와 플랫폼별 Skill 변형. 기본 Agent Skill zip 패키지는 Phase 2의 WU-10a로 앞당겼다(9장 결정 8).
 - 전체본·핵심본·모듈 선택본과 충실성 검사(Phase 3)
 - 확정본 스냅샷 이력, 이전 버전 비교·복원, 외부 AI 내보내기 이력, Agent Skill 패키지(Phase 4)
 - Markdown → JSON 가져오기
@@ -804,7 +806,7 @@ type LocalProfileLink = {
   - Phase 1: 아래 11.3의 최소 변경만 반영한다(파일 단위 산출물 타입, 아키텍처 가드).
   - Phase 2: 기존 방식대로 Gemini 활용 가이드를 제공하되, Gem과 Skill을 모두 담을 수 있는 데이터 구조로 만든다.
 - 이번 단계에서 하지 않는 일: Skill 패키지(zip·references 폴더) 생성, 플랫폼 설치 자동화, 플랫폼 계정 연동.
-  - 2026-10-25 변경: 단일 파일 `SKILL.md` 내보내기는 WU-10a로 앞당겨 Phase 2에서 구현한다(9장 결정 8).
+  - 2026-10-25 변경: 기본 Agent Skill zip 패키지(`SKILL.md` + `references/teacher-profile.md`)는 WU-10a로 앞당겨 Phase 2에서 구현한다(9장 결정 8).
 - 원칙
   1. 세 층으로 나눈다: canonical JSON → 플랫폼 중립 산출물(Markdown, JSON 백업, 향후 Skill 패키지) → 플랫폼별 안내(콘텐츠 데이터).
   2. 플랫폼 기능명, 설치 절차, URL은 `src/content/platform-guides/*`에만 둔다.
@@ -836,7 +838,7 @@ src/content/platform-guides/           플랫폼별 안내 데이터
 
 | 변경                                 | 내용                                                                                                                                                                                                                                                    |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/export/files.ts`            | `ExportFile = { path, mediaType, content }`. `mediaType`은 `text/markdown`, `application/json`, `text/plain` 중 하나다. `path`는 묶음 안의 상대 경로이며 단일 파일이면 파일명이다.                                                                      |
+| `src/lib/export/files.ts`            | `ExportFile = { path, mediaType, content }`. `mediaType`은 `text/markdown`, `application/json`, `text/plain` 중 하나다. `path`는 묶음 안의 상대 경로이며 단일 파일이면 파일명이다. WU-10a에서 `content: string                                          | Uint8Array`와 `application/zip`으로 넓힌다. |
 | `downloadTextFile(file: ExportFile)` | Markdown과 JSON 다운로드가 함께 쓴다. `downloadMarkdown`은 기존 시그니처를 유지하고 위임만 한다.                                                                                                                                                        |
 | 백업 형식                            | 플랫폼 필드를 넣지 않는다(6.1).                                                                                                                                                                                                                         |
 | 로컬 레코드                          | 플랫폼 관련 필드를 미리 만들지 않는다. Phase 4의 "최근 외부 AI에 내보낸 버전"은 `storageSchemaVersion 2` 마이그레이션으로 추가하고, 대상은 `gemini-gem` 같은 **불투명한 문자열 id**로만 저장한다. 그래야 플랫폼 이름이 바뀌어도 저장 스키마는 그대로다. |
@@ -906,25 +908,25 @@ Phase 2 구현 시점의 `gemini.ts` 방법 구성(9장 결정 6·8, 2026-10-25 
 
 | id                       | status          | requiredArtifacts                        | 안내 요지                                                                                                                                                   |
 | ------------------------ | --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gemini-skill`           | `recommended`   | `skill-file`, `profile-markdown`         | TContext가 만든 `SKILL.md`를 Customize → Skills → Create → Upload로 등록한다(WU-10a).                                                                       |
+| `gemini-skill`           | `recommended`   | `skill-package`                          | TContext가 만든 `teacher-context.zip`을 Customize → Skills → Create → Upload로 등록한다(WU-10a).                                                            |
 | `gemini-gem`             | `transitioning` | `profile-markdown`, `usage-instructions` | Workspace 교육용·업무용 계정에서만 새로 만들 수 있다. 개인 계정은 2026-11-17부터 읽기 전용이며 기존 Gem은 skill로 자동 전환된다는 `migrationNote`를 붙인다. |
-| `gemini-chat-attachment` | `available`     | `profile-markdown`, `usage-instructions` | 일반 대화에 파일을 첨부하거나 붙여 넣는 대안(`fallbackMethodId`)                                                                                            |
+| `gemini-chat-attachment` | `available`     | `profile-markdown`, `usage-instructions` | A 방식: 공통 지침 복사 또는 지침 `SKILL.md` 첨부 + Markdown 첨부(`fallbackMethodId`)                                                                        |
 
 이후 전환 시나리오(어느 경우에도 바꿀 파일은 `gemini.ts`뿐이며, Phase 4 패키지 지원만 생성기가 함께 바뀐다):
 
-| 시점                                   | `gemini-gem`                                 | `gemini-skill`                             | 변경 파일                                          |
-| -------------------------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
-| Phase 2 구현(2026-10-25 확정)          | `transitioning` + `migrationNote`            | `recommended` + `skill-file`               | —                                                  |
-| 교육용 계정까지 Gem 종료(2027-06 이후) | `retired`(숨김, 기존 사용자에게만 이전 안내) | `recommended`                              | `gemini.ts`                                        |
-| 표본 업로드가 실패한 경우              | 변동 없음                                    | `skill-file` 대신 직접 만들기 + 대화 첨부  | `gemini.ts`                                        |
-| Phase 4 Skill 패키지 지원              | —                                            | `requiredArtifacts`에 `skill-package` 추가 | `gemini.ts`, Phase 4 생성기, `AVAILABLE_ARTIFACTS` |
+| 시점                                   | `gemini-gem`                                 | `gemini-skill`                           | 변경 파일      |
+| -------------------------------------- | -------------------------------------------- | ---------------------------------------- | -------------- |
+| Phase 2 구현(2026-10-25 확정)          | `transitioning` + `migrationNote`            | `recommended` + `skill-package`          | —              |
+| 교육용 계정까지 Gem 종료(2027-06 이후) | `retired`(숨김, 기존 사용자에게만 이전 안내) | `recommended`                            | `gemini.ts`    |
+| 표본 업로드가 실패한 경우              | 변동 없음                                    | skill 안내 보류, 대화 첨부(A)를 기본으로 | `gemini.ts`    |
+| 플랫폼별 Skill 변형(Phase 4)           | —                                            | 필요 시 flavor 추가                      | Phase 4 생성기 |
 
 - 렌더러는 상태 배지(권장, 전환 중, 출시 예정, 종료)를 상태 값으로만 고른다. 플랫폼 id로 분기하는 코드가 생기면 리뷰에서 반려한다.
 - ChatGPT·Claude 가이드도 같은 구조를 쓴다. 다른 플랫폼에 비슷한 전환이 생겨도 같은 절차로 처리한다.
 
 ### 11.7 향후 Agent Skill 패키지 내보내기 구조(Phase 4 준비, 이번에 구현하지 않음)
 
-- 2026-10-25 변경: 이 구조 중 **단일 파일 `SKILL.md`**(머리말 + 공통 지침 + 사용 원칙 + 프로필 본문을 한 파일에 담은 형태)만 WU-10a로 앞당긴다. 상세 사양은 `docs/codex/runbook.md` WU-10a에 있다. 아래의 폴더·zip 패키지는 계속 Phase 4다.
+- 2026-10-25 변경: 아래 공통 형식(폴더 `teacher-context/`, `SKILL.md`, `references/teacher-profile.md`)의 zip 패키지를 WU-10a로 앞당긴다. 상세 사양은 `docs/codex/runbook.md` WU-10a에 있다. `SkillFlavor` 어댑터, 모듈 선택본, 다른 플랫폼 설치 안내는 계속 Phase 4다.
 - 생성기 시그니처(예정): `buildSkillPackage(profile, { flavor, modules? }): ExportFile[]`. `profile`은 확정본 `TeacherContextProfile`, `modules`는 Phase 3 이후의 모듈 선택이다.
 - 공통 형식(지침서 7.2)
 
@@ -959,9 +961,9 @@ Phase 1(WU-1~9)이 끝난 뒤 진행한다. Phase 1과 같은 파일을 동시�
     - [ ] Gemini에 11.6 표의 세 방법이 있다.
     - [ ] 모든 방법에 `officialUrl`과 `verifiedAt`이 있고, 구현할 때 공식 문서로 확인한 날짜다.
     - [ ] 아키텍처 가드 테스트가 통과한다.
-- **WU-10a. 단일 파일 `SKILL.md` 내보내기**(2026-10-25 추가)
-  - 범위: `src/lib/export/skill.ts`, 사용 원칙 상수, artifact `skill-file`. 상세 사양과 테스트는 runbook WU-10a에 있다.
-  - 완료 조건: 확정본에서만 만들고, 머리말이 한 번만 나오며, `profileToMarkdown`은 수정하지 않는다. 아키텍처 가드가 통과한다.
+- **WU-10a. Agent Skill zip 패키지 내보내기**(2026-10-25 추가)
+  - 범위: `src/lib/export/{zip,skill}.ts`, `ExportFile` 바이너리 확장, 사용 원칙 상수, artifact `skill-package`. 상세 사양과 테스트는 runbook WU-10a에 있다.
+  - 완료 조건: 확정본에서만 만들고, zip에 파일 2개만 들어가며, 참고 파일이 `profileToMarkdown` 결과와 같다. 새 런타임 의존성이 없고 아키텍처 가드가 통과한다.
 - **WU-11. 범용 가이드 화면**
   - 범위: `/ai-guide`, `/ai-guide/[platform]`(`generateStaticParams`, `dynamicParams = false`), `src/components/ai-guide/*`, /result와 /profiles의 "AI에서 활용하기" 진입점.
   - 완료 조건

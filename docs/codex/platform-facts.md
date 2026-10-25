@@ -128,36 +128,36 @@
 
 | id                       | status          | 안내 요지                                                                                                                                                                                        |
 | ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `gemini-skill`           | `recommended`   | 개인 계정(만 18세 이상)의 기본 경로. TContext가 만든 `SKILL.md`를 업로드한다(5.2 선택 B).                                                                                                        |
+| `gemini-skill`           | `recommended`   | 개인 계정(만 18세 이상)의 기본 경로. TContext가 만든 zip 패키지를 업로드한다(5.2, WU-10a).                                                                                                       |
 | `gemini-gem`             | `transitioning` | Workspace 교육용(2027-06-01 이전)·비즈니스(2027-03-01 이전) 계정에서만 새로 만들 수 있다. 개인 계정은 2026-11-17부터 읽기 전용이며, 기존 Gem은 skill로 자동 전환된다는 `migrationNote`를 붙인다. |
-| `gemini-chat-attachment` | `available`     | 모든 계정의 대안(`fallbackMethodId`)                                                                                                                                                             |
+| `gemini-chat-attachment` | `available`     | A 방식: 공통 지침 복사(또는 지침 전용 `SKILL.md` 내려받아 첨부) + 교사 프로파일 Markdown 첨부. 모든 계정의 대안(`fallbackMethodId`)                                                              |
 
-### 5.2 Gemini skill에 교사 문서를 넣는 방법 — 선택 B 승인됨
+### 5.2 Gemini skill에 교사 문서를 넣는 방법 — zip 패키지(C)로 결정
 
-공식 사양상 skill에 파일을 넣으려면 `SKILL.md`를 포함한 파일(또는 `.zip`)을 **업로드**해야 한다. 직접 만들기 화면에서는 파일을 붙일 수 없다.
+공식 사양상 skill에 파일을 넣으려면 `SKILL.md`를 포함한 파일, 폴더 또는 `.zip`을 **업로드**해야 한다. 직접 만들기 화면에서는 파일을 붙일 수 없다. 파일을 바꾸려면 skill 전체를 다시 업로드해야 한다(공식).
 
-- **선택 A (변경 최소)**: TContext는 skill 파일을 만들지 않는다.
-  - 안내: skill을 직접 만들고 지침 칸에 공통 지침을 붙여 넣는다. Markdown은 대화할 때마다 첨부한다.
-  - 추가 코드는 없다. 대신 교사가 매번 파일을 첨부해야 해서 반복 설명 부담을 줄이는 효과가 약하다.
-- **선택 B (권장)**: Phase 4의 skill 패키지 중 **단일 파일 `SKILL.md` 내보내기**만 앞당겨 구현한다(WU-10a).
-  - 내용: 머리말(`name: teacher-context`, `description`), 공통 지침과 지침서 7.3의 원칙, 확정본 `profileToMarkdown` 본문
-  - 형식: 단일 텍스트 파일이므로 zip 라이브러리가 필요 없다. 기존 `ExportFile` 다운로드 경로를 그대로 쓴다.
-  - 안내: Gemini에서 **Create** → **Upload** → 내려받은 `SKILL.md` 선택
-  - 이유: 공식 문서가 `SKILL.md` 업로드를 지원하고, 같은 파일을 나중에 다른 플랫폼에서도 쓸 수 있다.
-  - **확인되지 않은 점**: 본문이 긴(교사 프로필 전체를 담은) `SKILL.md`가 업로드 후 지침으로 잘 쓰이는지는 공식 문서로 확인할 수 없다.
-  - **확인 절차(승인 조건)**: 사용자가 Claude가 전달한 표본 `SKILL.md`(가상 교사 예시)를 실제 계정에 올려 본다. 결과는 **WU-12 최종 리뷰 전까지** 이 문서 6절에 기록한다.
-    - 구현(WU-10a)은 확인 결과를 기다리지 않고 진행한다.
-    - 확인이 실패하면 최종 리뷰에서 Gemini 안내를 선택 A로 바꾼다. 이 경우 바뀌는 것은 콘텐츠 값과 다운로드 버튼 노출 여부뿐이다.
+- **결정(2026-10-25, 사용자)**
+  - **skill 경로 = C**: zip 패키지(`teacher-context/SKILL.md` + `teacher-context/references/teacher-profile.md`)를 업로드한다(WU-10a).
+    - 지침(고정)과 교사 프로필(수시 변경)을 분리한다.
+    - Phase 4의 Agent Skill 패키지 구조와 같다.
+  - **대안 경로 = A**(`gemini-chat-attachment`): 공통 지침을 복사해 붙이거나 **지침 전용 `SKILL.md`**(`name: teacher-context-guide`, 프로필 없음)를 내려받아 첨부하고, 교사 프로파일 Markdown을 대화에 직접 첨부한다. 모든 계정에서 쓸 수 있으며 ChatGPT·Claude의 대안 경로도 같다.
+  - 이전에 승인한 "단일 파일 `SKILL.md`(선택 B)"는 쓰지 않는다.
+- 안내: Gemini 웹에서 **Customize** → **Skills** → **Create** → **Upload** → 내려받은 `teacher-context.zip` 선택 → **Open** → 검토 → **Create**. 갱신할 때는 새 zip을 **Replace skill**로 다시 올린다.
+- **확인되지 않은 점**: Gemini가 참고 파일(`references/teacher-profile.md`)을 실제로 읽어 답에 반영하는지는 공식 문서로 확인할 수 없다.
+- **확인 절차**: 사용자가 표본 zip(시험 C)과 Codex가 만든 실제 zip을 계정에 올려 보고, 결과를 6절에 기록한다. 구현(WU-10a)은 결과를 기다리지 않는다. 최종 리뷰 전까지 반영이 확인되지 않으면 skill 안내를 보류하고 A를 기본 경로로 둔다.
 
 ### 5.3 ChatGPT·Claude
 
 - `chatgpt-project`(recommended): 3절의 단계. 프로젝트 지침 칸에 공통 지침을 붙여 넣는다.
-- `chatgpt-chat-attachment`(available, fallback)
+- `chatgpt-chat-attachment`(available, fallback): A 방식(지침 복사 또는 지침 `SKILL.md` 첨부 + 교사 프로파일 Markdown 첨부)
 - `claude-project`(recommended): 4절의 단계. 지침을 쓸 수 없는 요금제를 위한 대안 문구를 포함한다.
-- `claude-chat-attachment`(available, fallback)
+- `claude-chat-attachment`(available, fallback): A 방식(지침 복사 또는 지침 `SKILL.md` 첨부 + 교사 프로파일 Markdown 첨부)
 
 ## 6. 사용자 실측 기록
 
-| 날짜 | 항목                                       | 결과   |
-| ---- | ------------------------------------------ | ------ |
-| -    | Gemini skill에 표본 `SKILL.md` 업로드·사용 | 미확인 |
+| 날짜       | 항목                                                      | 결과                                                                           |
+| ---------- | --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-25 | 표본 1(구분선 `---`이 있는 단일 `SKILL.md`) 업로드        | 업로드는 됨. 교사 프로필이 반영되지 않는 느낌(구분선에서 본문이 잘렸을 가능성) |
+| -          | 시험 B(구분선 없는 단일 `SKILL.md`)                       | 미확인                                                                         |
+| -          | 시험 C(zip: `SKILL.md` + `references/teacher-profile.md`) | 미확인                                                                         |
+| -          | Codex가 만든 실제 zip(WU-10a)                             | 미확인                                                                         |
