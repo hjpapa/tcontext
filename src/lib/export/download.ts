@@ -1,3 +1,4 @@
+import type { ExportFile } from "./files";
 import type { SchoolLevel } from "@/types/profile";
 
 export function profileMarkdownFilename(
@@ -34,19 +35,51 @@ export function downloadMarkdown(
   documentRef: Document = document,
   urlRef: Pick<typeof URL, "createObjectURL" | "revokeObjectURL"> = URL,
 ): void {
-  const blob = new Blob(["\uFEFF", markdown], {
-    type: "text/markdown;charset=utf-8",
-  });
-  const objectUrl = urlRef.createObjectURL(blob);
-  const anchor = documentRef.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = sanitizeDownloadFilename(filename);
-  anchor.rel = "noopener";
-  anchor.style.display = "none";
-  documentRef.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  urlRef.revokeObjectURL(objectUrl);
+  const result = downloadTextFile(
+    { path: filename, mediaType: "text/markdown", content: markdown },
+    { bom: true, documentRef, urlRef },
+  );
+  if (!result.ok) throw new Error("파일을 다운로드하지 못했습니다.");
+}
+
+export function downloadTextFile(
+  file: ExportFile,
+  options: {
+    bom?: boolean;
+    documentRef?: Document;
+    urlRef?: Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
+  } = {},
+): { ok: true } | { ok: false; error: "download_failed" } {
+  let objectUrl: string | undefined;
+  let anchor: HTMLAnchorElement | undefined;
+  const urlRef = options.urlRef ?? URL;
+  try {
+    const documentRef = options.documentRef ?? document;
+    const blob = new Blob([options.bom ? "\uFEFF" : "", file.content], {
+      type: `${file.mediaType};charset=utf-8`,
+    });
+    objectUrl = urlRef.createObjectURL(blob);
+    anchor = documentRef.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = sanitizeDownloadFilename(file.path);
+    anchor.rel = "noopener";
+    anchor.style.display = "none";
+    documentRef.body.append(anchor);
+    anchor.click();
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "download_failed" };
+  } finally {
+    anchor?.remove();
+    if (objectUrl !== undefined) urlRef.revokeObjectURL(objectUrl);
+  }
+}
+
+export function profileBackupFilename(
+  schoolLevel: SchoolLevel,
+  date: Date = new Date(),
+): string {
+  return profileMarkdownFilename(schoolLevel, date).replace(/\.md$/u, ".json");
 }
 
 export const createProfileFilename = profileMarkdownFilename;

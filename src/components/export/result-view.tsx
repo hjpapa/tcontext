@@ -29,7 +29,8 @@ export function ResultView({
   retentionDays: number;
 }) {
   const router = useRouter();
-  const { profile, markdown, clearBrowserRecords } = useInterviewSession();
+  const { profile, markdown, suggestedTags, clearBrowserRecords } =
+    useInterviewSession();
 
   if (!profile || !markdown) {
     return (
@@ -179,7 +180,11 @@ export function ResultView({
         </details>
       </section>
 
-      <ResultActions profile={profile} markdown={markdown} />
+      <ResultActions
+        profile={profile}
+        markdown={markdown}
+        suggestedTags={suggestedTags}
+      />
 
       <article
         className="space-y-10 border-y border-[#cfd8d0] py-10 print:border-0"
