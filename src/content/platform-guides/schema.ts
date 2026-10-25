@@ -3,12 +3,14 @@ import { z } from "zod";
 export const guideArtifactIdSchema = z.enum([
   "profile-markdown",
   "usage-instructions",
+  "skill-file",
   "skill-package",
 ]);
 export type GuideArtifactId = z.infer<typeof guideArtifactIdSchema>;
 export const AVAILABLE_ARTIFACTS: readonly GuideArtifactId[] = [
   "profile-markdown",
   "usage-instructions",
+  "skill-file",
 ];
 export const guideMethodStatusSchema = z.enum([
   "recommended",

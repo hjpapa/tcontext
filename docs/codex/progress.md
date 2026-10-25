@@ -129,3 +129,13 @@ corepack pnpm test:e2e
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: 외부 서비스 화면은 직접 조작하지 않았다. 플랫폼 사실은 2026-10-25 검증 자료이며 사용자별 요금제·배포 상태에 따라 달라질 수 있다. 아직 생성하지 않는 skill-package는 콘텐츠 검증에서 거절한다.
 - 리뷰어에게 묻고 싶은 것: 없음
+
+## WU-10a 단일 파일 SKILL.md 내보내기
+
+- 상태: 완료
+- 변경 파일: `src/lib/export/{skill,skill.test}.ts`, `src/content/usage-instructions.ts`, `src/content/platform-guides/{schema,gemini}.ts`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 849, 기존 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: 없음. 고정 name·description만 YAML 머리말에 넣고 기존 Markdown의 맨 앞 머리말만 제거했다. now는 지정된 입력 시그니처에 포함하지만 산출물 시각은 canonical 문서의 생성 메타데이터를 그대로 사용한다. 공개 형식 생성기에는 플랫폼 이름을 넣지 않았으며 기존 Markdown 생성기는 수정하지 않았다.
+- 이전 WU 수정: WU-10의 skill 방법에 skill-file artifact를 연결하고 승인된 업로드 단계·계정 조건·파일명 확인·수정 후 재업로드 안내로 바꿨다.
+- 확인하지 못한 것·남은 위험: platform-facts.md 6절의 실제 계정 표본 업로드·사용은 아직 미확인이다. 승인된 지시에 따라 이 결과를 기다리지 않고 구현했으며 최종 리뷰에서 확인해야 한다. zip 패키지는 만들지 않는다.
+- 리뷰어에게 묻고 싶은 것: 표본 SKILL.md의 실제 업로드와 활용 결과를 최종 리뷰 때 확인해 주세요.

@@ -11,24 +11,27 @@ export const GEMINI_GUIDE: PlatformGuide = {
       label: "skill",
       status: "recommended",
       replaces: "gemini-gem",
-      requiredArtifacts: ["profile-markdown", "usage-instructions"],
+      requiredArtifacts: ["skill-file", "profile-markdown"],
       steps: [
         {
           title: "Skills 열기",
           body: "Gemini 웹의 사이드바에서 Customize → Skills를 누릅니다. Customize가 보이지 않으면 More를 먼저 누릅니다.",
         },
         {
-          title: "직접 만들기",
-          body: "Create → Create manually에서 이름, 설명과 공통 활용 지침을 입력한 뒤 Create를 누릅니다. 직접 만들기 화면에서는 참고 파일을 붙일 수 없습니다.",
+          title: "SKILL.md 업로드",
+          body: "Create → Upload에서 내려받은 SKILL.md를 선택하고 Open을 누릅니다. 내용을 검토한 뒤 Create를 누릅니다. 직접 만들기 화면에서는 참고 파일을 붙일 수 없습니다.",
+        },
+        {
+          title: "파일명 확인",
+          body: "브라우저가 파일명을 SKILL (1).md처럼 바꿨다면 SKILL.md로 이름을 바꿔 올려 주세요.",
         },
         {
           title: "대화에서 사용",
-          body: "대화에 교사 Markdown을 첨부하고 / 또는 @로 skill을 고릅니다.",
+          body: "대화에서 / 또는 @로 skill을 고릅니다. TContext에서 문서를 고치면 skill 전체를 다시 업로드해야 합니다.",
         },
       ],
-      instructionTarget: "Create manually의 instructions",
       availabilityNote:
-        "만 18세 이상, 로그인과 Keep Activity 켜기가 필요합니다. Workspace 계정에는 2026-10-13부터 배포되어 2026-11 중순 완료 예정입니다.",
+        "만 18세 이상, 로그인과 Keep Activity 켜기가 필요합니다. 업로드는 웹앱과 Mac 앱에서만 가능합니다. Workspace 계정에는 2026-10-13부터 배포되어 2026-11 중순 완료 예정입니다.",
       officialUrl:
         "https://support.google.com/gemini/answer/17094296?hl=en&co=GENIE.Platform%3DDesktop",
       verifiedAt: "2026-10-25",
