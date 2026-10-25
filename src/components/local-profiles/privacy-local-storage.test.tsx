@@ -72,7 +72,7 @@ it("explains opt-in retention and keeps tab deletion separate from confirmed dat
   );
   fireEvent.click(
     within(screen.getByRole("alertdialog")).getByRole("button", {
-      name: "계속",
+      name: "모두 삭제",
     }),
   );
   await waitFor(async () => expect(await factory.databases()).toEqual([]));

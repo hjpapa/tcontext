@@ -14,7 +14,9 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "pnpm dev --port 3100",
+        command: process.env.CI
+          ? "pnpm start --port 3100"
+          : "pnpm dev --port 3100",
         url: "http://localhost:3100/interview",
         reuseExistingServer: false,
       },

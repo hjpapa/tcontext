@@ -10,7 +10,6 @@
 - 확인하지 못한 것·남은 위험: 외부 서비스 연동 테스트 4개는 기존 설정에 따라 건너뛰었다. 실제 IndexedDB 검증은 WU-2 및 WU-9에서 수행한다. 최초 관문의 테스트 fixture 오삽입을 1회 수정한 뒤 모든 필수 관문과 변경 코드 6개 파일의 Prettier 일치를 확인했다.
 - 리뷰어에게 묻고 싶은 것: 없음
 
-
 ## WU-2 IndexedDB 저장 계층
 
 - 상태: 완료
@@ -20,7 +19,6 @@
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: fake-indexeddb에서 databases 지원·미지원·예외 경로 모두 동의 전 DB 미생성을 확인했다. 실제 브라우저의 업그레이드 중단, databases, durability 동작은 WU-9에서 확인한다. 디스크 내구성은 메모리 구현에서 검증할 수 없다. 최초 lint의 미사용 타입 import를 1회 수정했다. 설치 중 기존 ESLint·하위 의존성 deprecated 및 peer 경고가 있었으며 의존성 변경은 fake-indexeddb 6.2.5뿐이다.
 - 리뷰어에게 묻고 싶은 것: 없음
-
 
 ## WU-3 JSON 백업 생성·파싱과 결과 화면 다운로드
 
@@ -32,7 +30,6 @@
 - 확인하지 못한 것·남은 위험: 실제 브라우저 다운로드·가져오기 흐름은 WU-9에서 확인한다. RTL에서 IDB open 0회, 다운로드 실패 안내, JSON 무BOM·Markdown BOM 및 파일명 정리를 검증했다. React 체크리스트의 이벤트 처리, 상태 분리, 접근 가능한 오류 안내를 확인했다.
 - 리뷰어에게 묻고 싶은 것: 없음
 
-
 ## WU-4 세션 연결과 태그 보존
 
 - 상태: 완료
@@ -43,7 +40,6 @@
 - 확인하지 못한 것·남은 위험: 기존 RTL을 수정 없이 통과했다. 새 통합 테스트의 응답 필드·태그 비교 및 React 검사 지적을 1회 수정했다. 빌드와 typecheck 동시 실행 시 생성 파일 경합이 발생하여 이후 순차 실행한다. 최종 상태로 빌드를 다시 통과했다. 실제 브라우저 회귀는 WU-9에서 수행한다.
 - 리뷰어에게 묻고 싶은 것: 없음
 
-
 ## WU-5 결과 화면 로컬 저장(opt-in)
 
 - 상태: 완료
@@ -53,7 +49,6 @@
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: 실제 브라우저의 320px 레이아웃은 WU-9에서 확인한다. 기존 기여 테스트는 수정 없이 통과했다. 새 테스트의 Hook 의존성 경고를 수정했다(첫 수정 스크립트의 문법 오류로 1회 미적용되어 재적용 후 lint 통과).
 - 리뷰어에게 묻고 싶은 것: 없음
-
 
 ## WU-6 내 프로파일 화면과 가져오기
 
@@ -114,3 +109,13 @@ corepack pnpm test:e2e
 - 브랜치·커밋: `feat/local-profiles`. WU-1a~WU-8은 각각 1개, 총 8개 커밋 완료. WU-9와 이 요약도 정정된 runbook 및 WU-9a 0단계에 따라 함께 커밋한다.
 - 남은 위험: 개발 서버 E2E에서 재로드로 1건 실패했으나 프로덕션 빌드 전체 실행은 통과했다. 실제 기기·다른 브라우저와 강제 종료 직전 저장·장기 보존은 확인하지 못했다.
 - 리뷰 요청: WU-4·WU-7의 세션·태그·저장 큐·다중 탭 충돌을 우선 검토하고, WU-9 커밋은 2026-10-25 중간 리뷰와 사용자 지시로 승인되었다.
+
+## WU-9a Phase 1 중간 리뷰 후속 수정
+
+- 상태: 완료
+- 변경 파일: `src/components/local-profiles/{edit-again-button,review-fixes.test,local-save-panel,local-profile-delete-controls,local-draft-status,saved-profiles-entry,profile-library,backup-import,local-review.test,privacy-local-storage.test,profile-library.test}.tsx`, `src/components/export/result-view.tsx`, `src/components/profile/profile-review.tsx`, `playwright.config.ts`, `e2e/local-profiles.spec.ts`, `docs/data-dictionary.md`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 837, 기존 건너뜀 4) build ✓ e2e ✓(chromium 27, mobile 27, 총 54 통과; CI=1, 재시도 0)
+- 설계·지시와 다르게 구현한 부분과 이유: EditAgainButton은 기존 탐색 링크의 의미와 접근 가능한 이름을 유지하면서 클릭 시 저장소를 확인한다. F4의 승인된 접근성 이름·확인 버튼 문구 변경에 맞춰 Phase 1에서 추가한 테스트의 선택자만 갱신했고, 동작 기대값과 bd81a2e 이전 테스트는 바꾸지 않았다. F6 지정 파일을 포맷했다.
+- 이전 WU 수정: F1~F5에 따라 기존 초안 이어서 수정·확정본에서 시작 선택, 저장 중·실패 표시, 확정 충돌 덮어쓰기, 기준 확정본 없는 문서 안내, 접근성·배지·가져오기 제목·홈 진입점·학교급 라벨·상한 상수를 수정했다. F7은 CI에서만 프로덕션 서버를 실행하며 ci.yml은 수정하지 않았다.
+- 확인하지 못한 것·남은 위험: 저장 형식·스키마·저장소 API는 바꾸지 않았다. CI=1 및 PLAYWRIGHT_BASE_URL 미설정으로 실행했고 WebServer 로그에서 next start를 확인했다. 현재 PATH의 Codex 런타임 pnpm 래퍼를 서버 실행에 사용할 수 있어 corepack enable이나 별도 서버 우회는 필요하지 않았다. 관문 명령은 corepack pnpm으로 실행했다.
+- 리뷰어에게 묻고 싶은 것: 없음

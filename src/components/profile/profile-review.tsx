@@ -408,7 +408,7 @@ function ProfileReviewBody() {
   });
   const changes = useMemo(
     () =>
-      profile && localProfileLink
+      profile && localProfileLink?.baseline
         ? diffProfiles(localProfileLink.baseline, profile)
         : null,
     [profile, localProfileLink],
@@ -927,9 +927,13 @@ function ProfileReviewBody() {
         onReload={() => void reloadLocalProfile()}
         onRetry={() => void autosave.retry()}
       />
-      {changes ? (
-        <p aria-live="polite">확정본 대비 변경 {changes.changedCount}곳</p>
+      {localProfileLink && !localProfileLink.baseline ? (
+        <p>
+          확정본이 없는 가져온 초안입니다. 모든 문장을 다시 확인한 뒤 검토를
+          마쳐 주세요.
+        </p>
       ) : null}
+      {changes ? <p>확정본 대비 변경 {changes.changedCount}곳</p> : null}
       <div className="max-w-4xl space-y-4">
         <p className="eyebrow">AI 초안 검토</p>
         <h1
@@ -1076,7 +1080,9 @@ function ProfileReviewBody() {
                     change.reordered
                   );
                 })() ? (
-                  <span>변경</span>
+                  <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                    변경
+                  </span>
                 ) : null}
                 {moduleUnresolved > 0 ? (
                   <span className="bg-destructive/10 text-destructive rounded-full px-1.5 py-0.5 text-[10px]">
@@ -1243,6 +1249,7 @@ function ProfileReviewBody() {
             <Button
               type="button"
               variant="outline"
+              aria-label={`${PROFILE_MODULE_TITLES[module.id]} 문장 추가`}
               onClick={() => {
                 const claim = createTeacherAuthoredClaim(
                   module.id,
@@ -1286,11 +1293,15 @@ function ProfileReviewBody() {
                           {changes?.modules[module.id].added.includes(
                             claim.id,
                           ) ? (
-                            <span>새 문장</span>
+                            <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                              새 문장
+                            </span>
                           ) : changes?.modules[module.id].edited.includes(
                               claim.id,
                             ) ? (
-                            <span>수정됨</span>
+                            <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                              수정됨
+                            </span>
                           ) : null}
                           {claim.confirmedByUser ? (
                             <span className="inline-flex items-center gap-1 text-sm font-bold text-[#28684c]">

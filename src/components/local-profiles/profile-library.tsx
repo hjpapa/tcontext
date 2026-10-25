@@ -1,5 +1,5 @@
 "use client";
-import { SCHOOL_LEVEL_LABELS } from "@/lib/admin/presentation";
+import { SCHOOL_LEVEL_DISPLAY_LABELS } from "@/content/profile-document";
 import { TEACHER_ROLE_LABELS, type TeacherRole } from "@/types/interview";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ import {
   getLocalProfile,
   type LocalProfileListItem,
 } from "@/lib/storage/profiles/repository";
+import { MAX_LOCAL_PROFILES } from "@/lib/storage/profiles/schema";
 import { toEditableSession } from "@/lib/storage/profiles/serialize";
 import { createProfileBackupFile } from "@/lib/storage/profiles/backup";
 import { downloadTextFile } from "@/lib/export/download";
@@ -168,7 +169,9 @@ export function ProfileLibrary() {
         </section>
       ) : availability === "enabled" ? (
         <>
-          <p>저장한 프로파일 {items.length}개 / 10개</p>
+          <p>
+            저장한 프로파일 {items.length}개 / {MAX_LOCAL_PROFILES}개
+          </p>
           <ul className="space-y-4">
             {items.map((item, index) => (
               <li
@@ -181,7 +184,7 @@ export function ProfileLibrary() {
                       {item.title || "제목 없는 초안"}
                     </h2>
                     <p>
-                      {SCHOOL_LEVEL_LABELS[item.schoolLevel]} ·{" "}
+                      {SCHOOL_LEVEL_DISPLAY_LABELS[item.schoolLevel]} ·{" "}
                       {TEACHER_ROLE_LABELS[item.role as TeacherRole] ??
                         item.role}
                     </p>
@@ -236,6 +239,8 @@ export function ProfileLibrary() {
                           </Button>
                           <ConfirmLocalAction
                             label="초안 버리기"
+                            confirmLabel="초안 버리기"
+                            destructive
                             description="편집 초안을 버립니다. 확정본이 없으면 이 항목도 삭제됩니다."
                             onConfirm={() => void discard(item)}
                           />
@@ -243,6 +248,8 @@ export function ProfileLibrary() {
                       ) : null}
                       <ConfirmLocalAction
                         label="프로파일 삭제"
+                        confirmLabel="삭제"
+                        destructive
                         description="이 프로파일과 편집 초안을 삭제합니다. 필요한 경우 JSON 백업을 먼저 내려받아 주세요."
                         onConfirm={() => void remove(item.id)}
                       />
@@ -258,6 +265,8 @@ export function ProfileLibrary() {
                     {item.id !== null ? (
                       <ConfirmLocalAction
                         label="기록 삭제"
+                        confirmLabel="삭제"
+                        destructive
                         description="읽을 수 없는 기록을 삭제합니다. 복구할 수 없으므로 필요한 백업이 있는지 확인해 주세요."
                         onConfirm={() => void remove(item.id!)}
                       />

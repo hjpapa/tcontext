@@ -38,6 +38,8 @@ export function LocalDraftStatus({
       <div className="flex flex-wrap gap-2">
         <ConfirmLocalAction
           label="초안 버리기"
+          confirmLabel="초안 버리기"
+          destructive
           description="이 편집 초안을 버리고 확정본으로 돌아갑니다. 확정본이 없는 가져온 문서는 삭제됩니다."
           onConfirm={onDiscard}
         />
@@ -45,6 +47,8 @@ export function LocalDraftStatus({
           <>
             <ConfirmLocalAction
               label="이 탭 내용으로 저장"
+              confirmLabel="덮어쓰기"
+              destructive
               description="다른 탭의 최신 편집 초안을 이 탭의 내용으로 덮어씁니다. 기존 확정본은 유지됩니다."
               onConfirm={onOverwrite}
             />

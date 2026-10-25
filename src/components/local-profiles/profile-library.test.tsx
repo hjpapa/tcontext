@@ -109,7 +109,7 @@ it("imports into an existing draft without replacing the confirmed snapshot", as
       name: "기존 프로파일의 편집 초안으로 불러오기",
     }),
   );
-  fireEvent.click(await screen.findByRole("button", { name: "계속" }));
+  fireEvent.click(await screen.findByRole("button", { name: "덮어쓰기" }));
   await waitFor(() => expect(push).toHaveBeenCalledWith("/review"));
   const result = await getLocalProfile(created.value.id, options);
   expect(result).toMatchObject({

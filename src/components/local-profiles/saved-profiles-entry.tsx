@@ -7,7 +7,7 @@ export function SavedProfilesEntry() {
   useEffect(() => {
     if (availability === "enabled") void refresh();
   }, [availability, refresh]);
-  if (availability !== "enabled") return null;
+  if (availability !== "enabled" || items.length === 0) return null;
   return (
     <Link
       href="/profiles"

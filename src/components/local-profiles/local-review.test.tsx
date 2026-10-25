@@ -107,7 +107,7 @@ it("adds an unconfirmed teacher-authored empty claim and blocks finalization", a
     </InterviewSessionProvider>,
   );
   fireEvent.click(screen.getByRole("button", { name: "문서 열기" }));
-  fireEvent.click(screen.getAllByRole("button", { name: "문장 추가" })[0]!);
+  fireEvent.click(screen.getAllByRole("button", { name: /문장 추가$/ })[0]!);
   expect(screen.getByText("새 문장")).toBeInTheDocument();
   fireEvent.click(
     screen.getByRole("checkbox", { name: /문서 제목, 전체·모듈 요약/ }),

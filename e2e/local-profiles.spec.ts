@@ -140,7 +140,15 @@ async function confirmAction(page: Page, name: string) {
   await page.getByRole("button", { name, exact: true }).click();
   await page
     .getByRole("alertdialog")
-    .getByRole("button", { name: "계속", exact: true })
+    .getByRole("button", {
+      name:
+        name === "로컬 저장 끄고 모두 삭제"
+          ? "모두 삭제"
+          : name === "프로파일 삭제"
+            ? "삭제"
+            : "덮어쓰기",
+      exact: true,
+    })
     .click();
 }
 
@@ -158,13 +166,11 @@ async function importSaved(page: Page) {
   await expect(
     page.getByText("저장한 프로파일 0개 / 10개", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByLabel("JSON 백업 파일 선택")
-    .setInputFiles({
-      name: "profile.json",
-      mimeType: "application/json",
-      buffer: Buffer.from(JSON.stringify(readyProfile)),
-    });
+  await page.getByLabel("JSON 백업 파일 선택").setInputFiles({
+    name: "profile.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(readyProfile)),
+  });
   await page
     .getByRole("button", { name: "새 항목으로 저장", exact: true })
     .click();
@@ -187,6 +193,44 @@ function firstModule(page: Page) {
 
 test.describe("opt-in local profiles", () => {
   test.setTimeout(120_000);
+
+  test("resumes an existing draft from confirmed view without replacing it", async ({
+    page,
+  }) => {
+    await mockApis(page);
+    await importSaved(page);
+    await page
+      .getByRole("link", { name: "다시 수정하기", exact: true })
+      .click();
+    await firstModule(page).getByLabel("문장 직접 수정").fill(editedClaim);
+    await expect
+      .poll(
+        async () =>
+          (await readRecords(page))[0]?.draft?.profile.modules[0]?.claims[0]
+            ?.text,
+      )
+      .toBe(editedClaim);
+    const before = (await readRecords(page))[0]!.draft;
+    await page
+      .getByRole("navigation", { name: "주요 메뉴" })
+      .getByRole("link", { name: "내 프로파일" })
+      .click();
+    await page.getByRole("button", { name: "보기", exact: true }).click();
+    await page
+      .getByRole("link", { name: "다시 수정하기", exact: true })
+      .click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(
+      dialog.getByRole("heading", { name: "편집 중인 초안이 있습니다" }),
+    ).toBeVisible();
+    await dialog
+      .getByRole("button", { name: "초안 이어서 수정", exact: true })
+      .click();
+    await expect(firstModule(page).getByLabel("문장 직접 수정")).toHaveValue(
+      editedClaim,
+    );
+    expect((await readRecords(page))[0]!.draft).toEqual(before);
+  });
 
   test("saves an interview, reopens a browser, restores edits and round-trips a JSON backup", async ({
     page,
@@ -237,7 +281,10 @@ test.describe("opt-in local profiles", () => {
         firstModule(next).getByText("수정됨", { exact: true }),
       ).toBeVisible();
       await firstModule(next)
-        .getByRole("button", { name: "문장 추가", exact: true })
+        .getByRole("button", {
+          name: "교사 기본 프로파일과 현재 역할 문장 추가",
+          exact: true,
+        })
         .click();
       await firstModule(next)
         .getByLabel("문장 직접 수정")
@@ -321,13 +368,11 @@ test.describe("opt-in local profiles", () => {
       await next
         .getByRole("button", { name: "로컬 저장 켜기", exact: true })
         .click();
-      await next
-        .getByLabel("JSON 백업 파일 선택")
-        .setInputFiles({
-          name: backup.suggestedFilename(),
-          mimeType: "application/json",
-          buffer: backupBytes,
-        });
+      await next.getByLabel("JSON 백업 파일 선택").setInputFiles({
+        name: backup.suggestedFilename(),
+        mimeType: "application/json",
+        buffer: backupBytes,
+      });
       await next
         .getByRole("button", { name: "새 항목으로 저장", exact: true })
         .click();
@@ -444,13 +489,11 @@ test.describe("opt-in local profiles", () => {
       .getByRole("navigation", { name: "주요 메뉴" })
       .getByRole("link", { name: "내 프로파일" })
       .click();
-    await page
-      .getByLabel("JSON 백업 파일 선택")
-      .setInputFiles({
-        name: "backup.json",
-        mimeType: "application/json",
-        buffer: bytes,
-      });
+    await page.getByLabel("JSON 백업 파일 선택").setInputFiles({
+      name: "backup.json",
+      mimeType: "application/json",
+      buffer: bytes,
+    });
     await page
       .getByRole("button", { name: "저장하지 않고 열기", exact: true })
       .click();

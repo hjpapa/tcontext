@@ -56,13 +56,13 @@
 
 교사가 켠 경우에만 DB `tcontext-local-profiles`(버전 1)를 만든다. 저장 형식 버전은 1이며 최대 10개 프로파일을 보관한다. Web Storage에는 프로파일 본문을 저장하지 않는다.
 
-| store | 필드 | 목적 |
-| --- | --- | --- |
-| `meta` | `key: "settings"`, `enabledAt`, `storageSchemaVersion` | 명시적 활성화 시각과 저장 형식 버전 |
+| store      | 필드                                                                         | 목적                                                       |
+| ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `meta`     | `key: "settings"`, `enabledAt`, `storageSchemaVersion`                       | 명시적 활성화 시각과 저장 형식 버전                        |
 | `profiles` | `id`, `storageSchemaVersion`, `createdAt`, `updatedAt`, `revision`, `origin` | 무작위 문서 ID, 버전·시각, 충돌 검출, 인터뷰·가져오기 구분 |
-| `profiles` | `suggestedTags` | 검토 때 다시 선택할 수 있는 통제된 제안 태그 |
-| `profiles` | `confirmed: { profile, confirmedAt } \| null` | 검토 완료된 구조화 프로필과 확정 시각 |
-| `profiles` | `draft: { profile, baseConfirmedAt, updatedAt } \| null` | 미완성 문장을 허용하는 편집 초안과 기준 확정 시각 |
+| `profiles` | `suggestedTags`                                                              | 검토 때 다시 선택할 수 있는 통제된 제안 태그               |
+| `profiles` | `confirmed: { profile, confirmedAt } \| null`                                | 검토 완료된 구조화 프로필과 확정 시각                      |
+| `profiles` | `draft: { profile, baseConfirmedAt, updatedAt } \| null`                     | 미완성 문장을 허용하는 편집 초안과 기준 확정 시각          |
 
 프로필에는 7개 모듈, 종합 목록 4종, 확인 태그와 생성 메타데이터가 포함된다. 초안의 개인정보 검사 결과는 검사 대기 값으로만 보관하며 확정본은 실제 검사 상태를 보존한다. `profiles`의 keyPath는 `id`, `updatedAt` 인덱스는 수정 순서 조회용이다.
 

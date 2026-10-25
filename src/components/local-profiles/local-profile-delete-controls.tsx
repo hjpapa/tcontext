@@ -22,11 +22,15 @@ export function ConfirmLocalAction({
   description,
   onConfirm,
   children,
+  confirmLabel = "계속",
+  destructive = false,
 }: {
   label: string;
   description: string;
   onConfirm: () => void;
   children?: ReactNode;
+  confirmLabel?: string;
+  destructive?: boolean;
 }) {
   return (
     <AlertDialog>
@@ -40,7 +44,12 @@ export function ConfirmLocalAction({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>취소</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>계속</AlertDialogAction>
+          <AlertDialogAction
+            variant={destructive ? "destructive" : "default"}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -63,6 +72,8 @@ export function LocalProfileDeleteControls() {
     <div className="space-y-3">
       <ConfirmLocalAction
         label="로컬 저장 끄고 모두 삭제"
+        confirmLabel="모두 삭제"
+        destructive
         description="이 브라우저의 모든 프로파일과 편집 초안을 삭제합니다. 복구하려면 JSON 백업이 필요합니다. 현재 탭의 문서는 유지됩니다."
         onConfirm={() => void remove()}
       />

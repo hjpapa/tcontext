@@ -7,11 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   createLocalProfile,
   enableLocalProfiles,
+  getLocalProfile,
+  saveConfirmed,
   type LocalProfileErrorCode,
 } from "@/lib/storage/profiles/repository";
 import { MAX_LOCAL_PROFILES } from "@/lib/storage/profiles/schema";
 import { toConfirmedSnapshot } from "@/lib/storage/profiles/serialize";
 import { useLocalProfiles } from "./local-profiles-provider";
+import { ConfirmLocalAction } from "./local-profile-delete-controls";
 
 export const LOCAL_PROFILE_ERROR_MESSAGES: Record<
   LocalProfileErrorCode,
@@ -41,7 +44,7 @@ export const LOCAL_PROFILE_ERROR_MESSAGES: Record<
 export function LocalSavePanel() {
   const { profile, suggestedTags, localProfileLink, setLocalProfileLink } =
     useInterviewSession();
-  const { availability, items, options, refresh, writeStatus } =
+  const { availability, items, options, refresh, writeStatus, setWriteStatus } =
     useLocalProfiles();
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -105,6 +108,61 @@ export function LocalSavePanel() {
       await refresh();
     }
   };
+  const overwrite = async () => {
+    if (!localProfileLink || busy) return;
+    const link = localProfileLink;
+    const status = {
+      recordId: link.recordId,
+      openedAt: link.openedAt,
+      kind: "confirmed" as const,
+    };
+    setBusy(true);
+    setWriteStatus({ ...status, phase: "saving" });
+    try {
+      const current = await getLocalProfile(link.recordId, options);
+      if (!current.ok) {
+        setWriteStatus({ ...status, phase: "error", error: current.error });
+        return;
+      }
+      const snapshot = toConfirmedSnapshot(profile, new Date().toISOString());
+      if (!snapshot.ok) {
+        setWriteStatus({ ...status, phase: "error", error: "invalid" });
+        return;
+      }
+      const result = await saveConfirmed(
+        link.recordId,
+        {
+          confirmed: snapshot.snapshot,
+          suggestedTags,
+          expectedRevision: current.value.revision,
+        },
+        options,
+      );
+      if (!result.ok) {
+        setWriteStatus({ ...status, phase: "error", error: result.error });
+        return;
+      }
+      setLocalProfileLink((active) =>
+        active?.recordId === link.recordId && active.openedAt === link.openedAt
+          ? {
+              ...active,
+              revision: result.value.revision,
+              baseline: structuredClone(snapshot.snapshot.profile),
+            }
+          : active,
+      );
+      setWriteStatus({
+        ...status,
+        phase: "saved",
+        savedAt: result.value.savedAt,
+      });
+      await refresh();
+    } catch {
+      setWriteStatus({ ...status, phase: "error", error: "unavailable" });
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <section
       aria-labelledby="local-save-title"
@@ -124,12 +182,14 @@ export function LocalSavePanel() {
         <p role="status">{LOCAL_PROFILE_ERROR_MESSAGES[availability]}</p>
       ) : linked ? (
         <div className="space-y-2">
-          <p role="status">
-            저장됨
-            {savedTime
-              ? ` · ${new Date(savedTime).toLocaleString("ko-KR")}`
-              : ""}
-          </p>
+          {!currentWrite || currentWrite.phase === "saved" ? (
+            <p role="status">
+              저장됨
+              {savedTime
+                ? ` · ${new Date(savedTime).toLocaleString("ko-KR")}`
+                : ""}
+            </p>
+          ) : null}
           <Button asChild variant="outline">
             <Link href="/profiles">내 프로파일 열기</Link>
           </Button>
@@ -161,10 +221,24 @@ export function LocalSavePanel() {
         <p role="status">확정본 저장 중…</p>
       ) : null}
       {currentWrite?.phase === "error" ? (
-        <p role="alert">
-          {LOCAL_PROFILE_ERROR_MESSAGES[currentWrite.error ?? "unavailable"]}{" "}
-          Markdown·JSON 다운로드는 계속 사용할 수 있습니다.
-        </p>
+        <div className="space-y-3">
+          <h3 className="font-bold">
+            최신 확정본을 이 브라우저에 저장하지 못했습니다
+          </h3>
+          <p role="alert">
+            {LOCAL_PROFILE_ERROR_MESSAGES[currentWrite.error ?? "unavailable"]}{" "}
+            Markdown·JSON 다운로드는 계속 사용할 수 있습니다.
+          </p>
+          {currentWrite.error === "conflict" ? (
+            <ConfirmLocalAction
+              label="이 확정본으로 덮어쓰기"
+              confirmLabel="덮어쓰기"
+              destructive
+              description="다른 탭에서 저장한 내용이 이 확정본으로 바뀝니다."
+              onConfirm={() => void overwrite()}
+            />
+          ) : null}
+        </div>
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </section>

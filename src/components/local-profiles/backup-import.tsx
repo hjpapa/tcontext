@@ -1,5 +1,5 @@
 "use client";
-import { SCHOOL_LEVEL_LABELS } from "@/lib/admin/presentation";
+import { SCHOOL_LEVEL_DISPLAY_LABELS } from "@/content/profile-document";
 import { TEACHER_ROLE_LABELS, type TeacherRole } from "@/types/interview";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,7 @@ export function BackupImport({
       aria-labelledby="backup-import-title"
     >
       <h2 id="backup-import-title" className="text-xl font-bold">
-        JSON 불러와 저장하지 않고 열기
+        JSON 백업 불러오기
       </h2>
       <label className="block space-y-2">
         <span>JSON 백업 파일 선택</span>
@@ -188,7 +188,7 @@ export function BackupImport({
             {preview.title || "제목 없는 초안"}
           </h3>
           <p>
-            {SCHOOL_LEVEL_LABELS[preview.schoolLevel]} ·{" "}
+            {SCHOOL_LEVEL_DISPLAY_LABELS[preview.schoolLevel]} ·{" "}
             {TEACHER_ROLE_LABELS[preview.role as TeacherRole] ?? preview.role} ·{" "}
             {preview.kind === "confirmed" ? "확정본 백업" : "초안 백업"} ·{" "}
             {preview.source === "bare_profile" ? "순수 프로파일" : "백업 v1"}
@@ -238,6 +238,8 @@ export function BackupImport({
             {matched ? (
               <ConfirmLocalAction
                 label="기존 프로파일의 편집 초안으로 불러오기"
+                confirmLabel="덮어쓰기"
+                destructive
                 description={
                   matched.draft
                     ? "기존 편집 초안을 대체합니다. 확정본은 그대로 유지됩니다."

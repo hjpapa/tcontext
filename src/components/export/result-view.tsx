@@ -1,4 +1,5 @@
 "use client";
+import { EditAgainButton } from "@/components/local-profiles/edit-again-button";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -189,9 +190,9 @@ export function ResultView({
       />
 
       <LocalSavePanel />
-      <Button asChild variant="outline" data-print-hidden="true">
-        <Link href="/review">다시 수정하기</Link>
-      </Button>
+      <div data-print-hidden="true">
+        <EditAgainButton />
+      </div>
 
       <article
         className="space-y-10 border-y border-[#cfd8d0] py-10 print:border-0"
