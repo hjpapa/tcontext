@@ -52,6 +52,7 @@ import {
   hasUnresolvedClaims,
   isUnverifiedPrivacyReview,
   PROFILE_MODULE_TITLES,
+  PENDING_PRIVACY_REVIEW,
   UNVERIFIED_PRIVACY_REVIEW,
   type ControlledTagCategory,
   type PrivacyReview,
@@ -142,17 +143,6 @@ const TAG_LABELS: Record<string, string> = {
   fact_check_required: "사실 확인 필수",
   copyright_review: "저작권 확인",
   disclose_ai_use: "AI 사용 알림",
-};
-
-const PENDING_PRIVACY_REVIEW: PrivacyReview = {
-  status: "needs_review",
-  items: [
-    {
-      text: "최종 개인정보 검사를 완료하지 않은 초안",
-      reason: "현재 내용은 최종 개인정보 검사를 다시 받아야 합니다.",
-      suggestedRewrite: "검토를 마친 뒤 최종 개인정보 검사를 실행해 주세요.",
-    },
-  ],
 };
 
 function markPrivacyReviewPending(

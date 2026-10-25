@@ -158,3 +158,54 @@ describe("confirmedTagsFromCandidates", () => {
     expect(teacherContextProfileSchema.safeParse(raw).success).toBe(false);
   });
 });
+
+
+describe("local profile shared validation", () => {
+  it("recognizes only the exact pending review marker", async () => {
+    const {
+      isPendingPrivacyReview,
+      PENDING_PRIVACY_REVIEW,
+      UNVERIFIED_PRIVACY_REVIEW,
+    } = await import("./profile");
+    expect(isPendingPrivacyReview(PENDING_PRIVACY_REVIEW)).toBe(true);
+    expect(isPendingPrivacyReview(UNVERIFIED_PRIVACY_REVIEW)).toBe(false);
+    expect(isPendingPrivacyReview({ status: "clear", items: [] })).toBe(false);
+    for (const key of ["text", "reason", "suggestedRewrite"] as const) {
+      const review = structuredClone(PENDING_PRIVACY_REVIEW);
+      review.items[0]![key] += "변경";
+      expect(isPendingPrivacyReview(review)).toBe(false);
+    }
+  });
+  it("preserves refinement messages, paths and ordering", async () => {
+    const { refineTeacherContextProfile } = await import("./profile");
+    const { z } = await import("zod");
+    const p = fictionalProfile();
+    p.confirmedTags.aiBoundaries = ["no_personal_data", "no_personal_data"];
+    p.modules[0]!.claims[0]!.basis = "needs_confirmation";
+    const missing = p.modules.pop()!.id;
+    const result = z
+      .custom<typeof p>()
+      .superRefine(refineTeacherContextProfile)
+      .safeParse(p);
+    expect(result.success).toBe(false);
+    if (!result.success)
+      expect(result.error.issues).toEqual([
+        {
+          code: "custom",
+          message: "aiBoundaries 태그는 중복될 수 없습니다.",
+          path: ["confirmedTags", "aiBoundaries"],
+        },
+        {
+          code: "custom",
+          message:
+            "확인된 문장은 needs_confirmation 대신 direct 또는 inferred여야 합니다.",
+          path: ["modules", 0, "claims", 0, "confirmedByUser"],
+        },
+        {
+          code: "custom",
+          message: `프로파일에는 ${missing} 모듈이 정확히 한 번 포함되어야 합니다.`,
+          path: ["modules"],
+        },
+      ]);
+  });
+});
