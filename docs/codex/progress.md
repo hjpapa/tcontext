@@ -119,3 +119,13 @@ corepack pnpm test:e2e
 - 이전 WU 수정: F1~F5에 따라 기존 초안 이어서 수정·확정본에서 시작 선택, 저장 중·실패 표시, 확정 충돌 덮어쓰기, 기준 확정본 없는 문서 안내, 접근성·배지·가져오기 제목·홈 진입점·학교급 라벨·상한 상수를 수정했다. F7은 CI에서만 프로덕션 서버를 실행하며 ci.yml은 수정하지 않았다.
 - 확인하지 못한 것·남은 위험: 저장 형식·스키마·저장소 API는 바꾸지 않았다. CI=1 및 PLAYWRIGHT_BASE_URL 미설정으로 실행했고 WebServer 로그에서 next start를 확인했다. 현재 PATH의 Codex 런타임 pnpm 래퍼를 서버 실행에 사용할 수 있어 corepack enable이나 별도 서버 우회는 필요하지 않았다. 관문 명령은 corepack pnpm으로 실행했다.
 - 리뷰어에게 묻고 싶은 것: 없음
+
+## WU-10 콘텐츠 스키마와 데이터
+
+- 상태: 완료
+- 변경 파일: `src/content/usage-instructions.ts`, `src/content/platform-guides/{schema,chatgpt,gemini,claude,index,schema.test}.ts`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 846, 기존 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: 없음. 플랫폼 사실·상태·URL·확인일은 platform-facts.md만 사용했다. 공통 지침은 instruct.md 4.6과 원문 일치 테스트로 고정했다. 스키마 파싱은 테스트에서만 수행한다. runbook의 단계 순서대로 이 커밋에서는 skill 방법에 Markdown·공통 지침만 연결하며, WU-10a에서 skill-file을 추가한다.
+- 이전 WU 수정: 없음
+- 확인하지 못한 것·남은 위험: 외부 서비스 화면은 직접 조작하지 않았다. 플랫폼 사실은 2026-10-25 검증 자료이며 사용자별 요금제·배포 상태에 따라 달라질 수 있다. 아직 생성하지 않는 skill-package는 콘텐츠 검증에서 거절한다.
+- 리뷰어에게 묻고 싶은 것: 없음
