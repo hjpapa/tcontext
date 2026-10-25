@@ -51,3 +51,57 @@ it("retries collisions at most ten times after the initial attempt", () => {
     createTeacherAuthoredClaim("identity_and_role", [], () => "!invalid"),
   ).toThrow();
 });
+
+it("diffs title, summary, claims and synthesis without treating tags or confirmation as content", async () => {
+  const { diffProfiles } = await import("./changes");
+  const baseline = structuredClone(FICTIONAL_PROFILES[0]!);
+  const profile = structuredClone(baseline);
+  expect(diffProfiles(baseline, profile).changedCount).toBe(0);
+  profile.confirmedTags.aiBoundaries = [];
+  profile.modules[0]!.claims[0]!.confirmedByUser = false;
+  expect(diffProfiles(baseline, profile).changedCount).toBe(0);
+  profile.profileTitle += " 수정";
+  profile.shortSummary += " 수정";
+  profile.modules[0]!.title += " 수정";
+  profile.modules[0]!.summary += " 수정";
+  const originalId = profile.modules[0]!.claims[0]!.id;
+  profile.modules[0]!.claims[0]!.text += " 수정";
+  const removed = profile.modules[1]!.claims.pop()!;
+  const added = createTeacherAuthoredClaim(
+    profile.modules[0]!.id,
+    [],
+    () => "12345678",
+  );
+  profile.modules[0]!.claims.push(added);
+  profile.teachingDesignPrinciples.push("추가 원칙");
+  const diff = diffProfiles(baseline, profile);
+  expect(diff).toMatchObject({
+    profileTitleChanged: true,
+    shortSummaryChanged: true,
+    modules: {
+      identity_and_role: {
+        titleChanged: true,
+        summaryChanged: true,
+        added: [added.id],
+        edited: [originalId],
+        reordered: false,
+      },
+      educational_philosophy: { removedCount: 1 },
+    },
+    synthesis: { teachingDesignPrinciples: { changed: true } },
+  });
+  expect(removed).toBeDefined();
+  const beforeOrder = structuredClone(baseline);
+  beforeOrder.modules[0]!.claims.push({
+    ...beforeOrder.modules[0]!.claims[0]!,
+    id: "second-order-claim",
+  });
+  const reordered = structuredClone(beforeOrder);
+  reordered.modules[0]!.claims.reverse();
+  expect(
+    diffProfiles(beforeOrder, reordered).modules.identity_and_role,
+  ).toMatchObject({ reordered: true, edited: [], added: [], removedCount: 0 });
+  expect(diffProfiles(null, baseline).modules.identity_and_role.added).toEqual(
+    baseline.modules[0]!.claims.map((claim) => claim.id),
+  );
+});

@@ -64,3 +64,13 @@
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: 새 통합 테스트에서 꺼진 상태의 방문·메모리 가져오기 무생성, 일치 recordId 가져오기 시 확정본 보존을 검증했다. 실제 키보드·Pixel 7·320px 화면과 전체 가져오기 선택지 E2E는 WU-9에서 확인한다. 기존 테스트 기대값은 변경하지 않았다.
 - 리뷰어에게 묻고 싶은 것: 없음
+
+## WU-7 검토 화면 편집 강화와 자동 저장
+
+- 상태: 완료
+- 변경 파일: `src/lib/profile/{changes,changes.test}.ts`, `src/components/profile/profile-review.tsx`, `src/components/local-profiles/{use-local-draft-autosave,use-local-draft-autosave.test,local-draft-status,local-review.test,local-profiles-provider,local-save-panel}.tsx`(자동 저장 훅 본체는 `.ts`), `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 822, 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: 훅 내부 컨트롤러가 초안·확정 저장을 직렬화하고 화면을 떠난 뒤에도 큐를 마친다. 상태는 Provider에 올려 결과 화면에서 표시하며 recordId와 openedAt으로 연결을 구분한다. 충돌 덮어쓰기는 명시적 확인 이후 최신 revision으로 재시도한다.
+- 이전 WU 수정: WU-4 Provider와 WU-5 저장 패널에 확정 저장 결과 전달을 추가했다. 초안만 있는 기록을 버릴 때 메모리 문서도 비워 삭제된 문서가 남지 않게 했다.
+- 확인하지 못한 것·남은 위험: 새 테스트의 타입·fixture와 lint 지적을 1회 수정 후 관문을 통과했다. 기존 늦은 응답 테스트를 포함해 기존 테스트는 변경하지 않았다. 종료 직전 IndexedDB 저장 완료는 브라우저 종료 시점에 따라 보장할 수 없다. 실제 재접속·다중 탭은 WU-9에서 검증한다.
+- 리뷰어에게 묻고 싶은 것: 직렬 큐의 확정 우선 처리와 다중 탭 충돌 해소 흐름을 중점 검토해 주세요.

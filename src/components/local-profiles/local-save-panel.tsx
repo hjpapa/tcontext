@@ -41,7 +41,8 @@ export const LOCAL_PROFILE_ERROR_MESSAGES: Record<
 export function LocalSavePanel() {
   const { profile, suggestedTags, localProfileLink, setLocalProfileLink } =
     useInterviewSession();
-  const { availability, items, options, refresh } = useLocalProfiles();
+  const { availability, items, options, refresh, writeStatus } =
+    useLocalProfiles();
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +56,16 @@ export function LocalSavePanel() {
   const savedItem = items.find(
     (item) => item.kind === "record" && item.id === localProfileLink?.recordId,
   );
+  const currentWrite =
+    writeStatus?.recordId === localProfileLink?.recordId &&
+    writeStatus?.openedAt === localProfileLink?.openedAt &&
+    writeStatus?.kind === "confirmed"
+      ? writeStatus
+      : null;
   const savedTime =
-    savedAt ?? (savedItem?.kind === "record" ? savedItem.updatedAt : null);
+    currentWrite?.savedAt ??
+    savedAt ??
+    (savedItem?.kind === "record" ? savedItem.updatedAt : null);
   const save = async () => {
     if (busy || (availability === "disabled" && !consent)) return;
     setBusy(true);
@@ -148,6 +157,15 @@ export function LocalSavePanel() {
           )}
         </>
       )}
+      {currentWrite?.phase === "saving" ? (
+        <p role="status">확정본 저장 중…</p>
+      ) : null}
+      {currentWrite?.phase === "error" ? (
+        <p role="alert">
+          {LOCAL_PROFILE_ERROR_MESSAGES[currentWrite.error ?? "unavailable"]}{" "}
+          Markdown·JSON 다운로드는 계속 사용할 수 있습니다.
+        </p>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </section>
   );
