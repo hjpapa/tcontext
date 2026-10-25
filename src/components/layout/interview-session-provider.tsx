@@ -7,10 +7,14 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
+  type Dispatch,
+  type SetStateAction,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 
+import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import type { SuggestedTag } from "@/lib/ai/schemas/profile";
 import {
   clearLocalProgress,
@@ -41,7 +45,23 @@ export type RestoredProgressNotice = {
   restoredQuestionNumber: number;
 };
 
+export type LocalProfileLink = {
+  recordId: string;
+  revision: number;
+  baseline: TeacherContextProfile | null;
+  openedAt: number;
+};
+export type OpenProfileInput = {
+  profile: TeacherContextProfile;
+  suggestedTags: SuggestedTag[];
+  mode: "view" | "edit";
+  link: Omit<LocalProfileLink, "openedAt"> | null;
+};
+
 type InterviewSessionValue = {
+  localProfileLink: LocalProfileLink | null;
+  setLocalProfileLink: Dispatch<SetStateAction<LocalProfileLink | null>>;
+  openProfile: (input: OpenProfileInput) => void;
   interview: InterviewState | null;
   profile: TeacherContextProfile | null;
   suggestedTags: SuggestedTag[];
@@ -158,6 +178,9 @@ export function InterviewSessionProvider({
 }: {
   children: ReactNode;
 }) {
+  const [localProfileLink, setLocalProfileLink] =
+    useState<LocalProfileLink | null>(null);
+  const lastOpenedAt = useRef(0);
   const [initialProgress] = useState(readInitialProgress);
   const [interview, setInterviewState] = useState<InterviewState | null>(
     initialProgress?.interview ?? null,
@@ -210,7 +233,21 @@ export function InterviewSessionProvider({
     [interview],
   );
 
+  const openProfile = useCallback((input: OpenProfileInput) => {
+    const openedAt = Math.max(Date.now(), lastOpenedAt.current + 1);
+    lastOpenedAt.current = openedAt;
+    setProfile(structuredClone(input.profile));
+    setSuggestedTags(structuredClone(input.suggestedTags));
+    setMarkdown(input.mode === "view" ? profileToMarkdown(input.profile) : "");
+    setPrivacyReviewToken(null);
+    setContributionReceipt(null);
+    setLocalProfileLink(
+      input.link ? { ...structuredClone(input.link), openedAt } : null,
+    );
+  }, []);
+
   const clearBrowserRecords = useCallback(() => {
+    setLocalProfileLink(null);
     setInterviewState(null);
     setRestoredProgress(null);
     setProfile(null);
@@ -238,6 +275,9 @@ export function InterviewSessionProvider({
 
   const value = useMemo(
     () => ({
+      localProfileLink,
+      setLocalProfileLink,
+      openProfile,
       interview,
       profile,
       suggestedTags,
@@ -258,6 +298,8 @@ export function InterviewSessionProvider({
     }),
     [
       clearBrowserRecords,
+      localProfileLink,
+      openProfile,
       contributionReceipt,
       deviceProgressEnabled,
       interview,

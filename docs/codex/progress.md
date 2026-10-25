@@ -31,3 +31,14 @@
 - 이전 WU 수정: 없음
 - 확인하지 못한 것·남은 위험: 실제 브라우저 다운로드·가져오기 흐름은 WU-9에서 확인한다. RTL에서 IDB open 0회, 다운로드 실패 안내, JSON 무BOM·Markdown BOM 및 파일명 정리를 검증했다. React 체크리스트의 이벤트 처리, 상태 분리, 접근 가능한 오류 안내를 확인했다.
 - 리뷰어에게 묻고 싶은 것: 없음
+
+
+## WU-4 세션 연결과 태그 보존
+
+- 상태: 완료
+- 변경 파일: `src/components/layout/interview-session-provider.tsx`, `src/components/interview/interview-flow.tsx`, `src/components/profile/profile-review.tsx`, `src/components/local-profiles/{local-profiles-provider,session-integration.test}.tsx`, `src/app/layout.tsx`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 808, 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: openedAt은 같은 밀리초에 다시 열어도 증가하도록 이전 값+1과 Date.now의 최댓값을 사용한다. Provider는 마운트 시 availability만 읽고, 명시적 refresh와 채널 알림에서 목록을 읽는다. 기존 단독 컴포넌트 테스트와 저장 비활성 환경을 위해 기본 context는 unknown 상태다.
+- 이전 WU 수정: 없음
+- 확인하지 못한 것·남은 위험: 기존 RTL을 수정 없이 통과했다. 새 통합 테스트의 응답 필드·태그 비교 및 React 검사 지적을 1회 수정했다. 빌드와 typecheck 동시 실행 시 생성 파일 경합이 발생하여 이후 순차 실행한다. 최종 상태로 빌드를 다시 통과했다. 실제 브라우저 회귀는 WU-9에서 수행한다.
+- 리뷰어에게 묻고 싶은 것: 없음

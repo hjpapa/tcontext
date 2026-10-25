@@ -43,12 +43,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { downloadMarkdown } from "@/lib/export/download";
+import {
+  confirmedTagsFromSelection,
+  selectedTagKeysFromConfirmedTags,
+} from "@/lib/profile/tags";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { rateLimitMessage } from "@/lib/http/retry-after";
 import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
-  confirmedTagsFromCandidates,
   hasUnresolvedClaims,
   isUnverifiedPrivacyReview,
   PROFILE_MODULE_TITLES,
@@ -361,6 +364,11 @@ function focusReviewField(targetId: string) {
 }
 
 export function ProfileReview() {
+  const { localProfileLink } = useInterviewSession();
+  return <ProfileReviewBody key={localProfileLink?.openedAt ?? "interview"} />;
+}
+
+function ProfileReviewBody() {
   const router = useRouter();
   const {
     profile,
@@ -370,7 +378,11 @@ export function ProfileReview() {
     setPrivacyReviewToken,
     clearBrowserRecords,
   } = useInterviewSession();
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(() =>
+    profile
+      ? selectedTagKeysFromConfirmedTags(profile.confirmedTags)
+      : new Set(),
+  );
   const [privacyReview, setPrivacyReview] = useState<PrivacyReview | null>(
     null,
   );
@@ -632,11 +644,9 @@ export function ProfileReview() {
     setPrivacyReviewToken(null);
     setPrivacyRetryNotice(null);
     try {
-      const confirmedTags = confirmedTagsFromCandidates(
-        suggestedTags.map((tag) => ({
-          ...tag,
-          confirmedByUser: selectedTags.has(`${tag.category}:${tag.tag}`),
-        })),
+      const confirmedTags = confirmedTagsFromSelection(
+        suggestedTags,
+        selectedTags,
       );
       const withTags: TeacherContextProfile = {
         ...markPrivacyReviewPending(profile),

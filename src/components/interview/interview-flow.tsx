@@ -109,6 +109,7 @@ export function InterviewFlow() {
     interview,
     setInterview,
     setProfile,
+    setLocalProfileLink,
     setSuggestedTags,
     deviceProgressEnabled,
     progressHydrated,
@@ -299,6 +300,7 @@ export function InterviewFlow() {
       profile: Parameters<typeof setProfile>[0];
       suggestedTags: Parameters<typeof setSuggestedTags>[0];
     };
+    setLocalProfileLink(null);
     setProfile(result.profile);
     setSuggestedTags(result.suggestedTags);
     router.push("/review");
