@@ -6,25 +6,24 @@
 
 ```text
 WU-1a → WU-2 → WU-3 → WU-4 → WU-5 → WU-6 → WU-7 → WU-8 → WU-9
-   ▶ 중간 정지: Claude 리뷰 + 플랫폼 사실 확인 문서(platform-facts.md) 작성
-WU-10 → WU-11 → WU-12
-   ▶ 최종 정지: Claude 최종 리뷰
+   ▶ 중간 정지(완료, 2026-10-25): Claude 리뷰 + platform-facts.md 작성 + 사용자 결정
+WU-9(커밋) → WU-9a → WU-10 → WU-10a → WU-11 → WU-12
+   ▶ 최종 정지: Claude 최종 리뷰(WU-9a 포함)
 ```
 
-- **WU-9가 끝나면 반드시 멈춘다.** 이유는 세 가지다.
-  - Phase 1(로컬 프로파일 관리)은 그 자체로 배포할 수 있는 단위다.
-  - WU-4·WU-7의 회귀 위험이 Phase 2 위로 쌓이기 전에 확인해야 한다.
-  - WU-10의 플랫폼 안내는 **공식 문서로 확인한 사실**이 필요하다. 이 확인은 Claude가 `docs/codex/platform-facts.md`로 제공한다.
-- 사용자가 다시 시작을 지시하면 WU-10부터 이어 간다.
+- 중간 정지는 끝났다. 남은 단계는 `docs/codex/wu-09a-phase1-review-fixes.md`의 0단계(WU-9 커밋)부터 시작해 **WU-12까지 멈추지 않고** 이어 간다(4절의 멈춤 조건은 계속 적용).
+- WU-10a는 2026-10-25 사용자 승인으로 Phase 4에서 앞당긴 "단일 파일 `SKILL.md` 내보내기"다(5절).
 
 ## 2. 입력 문서와 우선순위
 
 충돌하면 위의 문서가 우선한다.
 
 1. `AGENTS.md`(저장소 불변 조건)
-2. WU별 상세 지시문
+2. WU별 상세 지시문과 사실 문서
    - `docs/codex/wu-01a-serialize-migrate-hardening.md`
    - `docs/codex/wu-02-indexeddb-repository.md`
+   - `docs/codex/wu-09a-phase1-review-fixes.md`
+   - `docs/codex/platform-facts.md`(WU-10~12의 플랫폼 사실과 승인된 콘텐츠 값)
 3. 이 문서 5절의 WU별 지침
 4. `docs/local-profile-design.md` 7장(WU 범위·완료 조건)과 11.8절(WU-10~12)
 5. `docs/local-profile-design.md`의 나머지 본문(근거·배경)
@@ -95,7 +94,9 @@ WU-10 → WU-11 → WU-12
 4. 같은 WU에서 관문을 세 번 고쳐도 통과하지 못한다.
 5. 기존 테스트의 기대값을 바꿔야 한다.
 6. 새 런타임 의존성이 필요하다.
-7. WU-9 완료(1절의 정지 지점), 또는 WU-10 시작 시 `docs/codex/platform-facts.md`가 없을 때
+7. WU-10~12에서 `docs/codex/platform-facts.md`에 없는 플랫폼 사실(기능명, 단계, URL, 일정, 요금제 조건)이 필요할 때
+
+**정지 지점(1절: WU-9 완료, WU-12 완료)은 위의 "커밋하지 않는" 경우가 아니다.** 관문을 모두 통과했으면 그 WU를 평소처럼 커밋한 **뒤에** 멈춘다. (2026-10-25 정정: 이전 판의 7번이 정지 지점을 커밋 금지 목록에 넣어 WU-9가 미커밋으로 남았다.)
 
 "작은 설계 판단"(내부 함수 분리, 컴포넌트 이름, 문구 다듬기)은 멈추지 말고 결정한 뒤 진행 기록에 남긴다.
 
@@ -237,7 +238,48 @@ WU-10 → WU-11 → WU-12
 ### WU-10 ~ WU-12. AI 플랫폼 활용 가이드(Phase 2)
 
 - 범위와 완료 조건은 설계 11.4~11.8을 따른다.
-- **플랫폼 기능명, 단계, 공식 URL, 상태, 확인일은 `docs/codex/platform-facts.md`에 있는 내용만 쓴다.** 모르는 사실을 추측해 채우지 않는다. 필요한 사실이 그 문서에 없으면 해당 항목을 비워 두지 말고 멈춘다(4절 7번).
-- Gemini는 `gemini-gem`, `gemini-skill`(`announced`), `gemini-chat-attachment` 세 방법으로 구성한다(설계 9장 결정 6).
+- **플랫폼 기능명, 단계, 공식 URL, 상태, 확인일은 `docs/codex/platform-facts.md`에 있는 내용만 쓴다.** 모르는 사실을 추측해 채우지 않는다. 필요한 사실이 그 문서에 없으면 해당 항목을 비워 두지 말고 멈춘다(4절 7번). 각 방법의 `verifiedAt`은 `2026-10-25`다.
+- 방법 구성과 상태는 `platform-facts.md` 5절(승인됨)을 그대로 쓴다.
+  - Gemini: `gemini-skill`(`recommended`), `gemini-gem`(`transitioning` + `migrationNote`), `gemini-chat-attachment`(`available`, fallback)
+  - ChatGPT: `chatgpt-project`(`recommended`), `chatgpt-chat-attachment`(`available`, fallback)
+  - Claude: `claude-project`(`recommended`), `claude-chat-attachment`(`available`, fallback)
+  - 설계 9장 결정 6의 이전 값(`gemini-skill`=`announced`)은 쓰지 않는다.
 - 렌더러에는 플랫폼 id 문자열 비교가 없어야 한다. 아키텍처 가드 테스트가 계속 통과해야 한다.
 - WU-12 완료 후 정지한다(최종 리뷰).
+
+### WU-10a. 단일 파일 `SKILL.md` 내보내기 (2026-10-25 승인, Phase 4에서 앞당김)
+
+- 위치: `src/lib/export/skill.ts`(신규)와 테스트. 이 폴더는 아키텍처 가드 대상이므로 **플랫폼 이름을 쓰지 않는다.** 공개 Agent Skills 형식만 다룬다.
+- 함수: `createSkillFile({ profile, now }) → Result<ExportFile>`
+  - 입력은 **확정본**만 받는다. `teacherContextProfileSchema` 검증에 실패하거나 privacyReview가 검사 대기 상태이면 오류다.
+  - `path`는 `"SKILL.md"`, `mediaType`은 `"text/markdown"`이다. BOM 없이 내려받는다.
+- 파일 구성(순서 고정)
+  1. YAML 머리말
+     - `name: teacher-context`(소문자·하이픈만, 상수로 둔다)
+     - `description`: 고정 문구 "교사가 검토한 교육관·수업 방식·학급 맥락·AI 협업 원칙입니다. 수업 설계, 활동지, 평가, 수업 검토 같은 교육 관련 요청에서 참고합니다."
+     - 값은 기존 `yamlQuoted`로 인용한다.
+     - **프로필 제목이나 본문을 머리말에 넣지 않는다.**
+  2. `# 교사 컨텍스트 사용 지침`: WU-10의 `COMMON_USAGE_INSTRUCTIONS`
+  3. `## 사용 원칙`: 지침서 7.3의 7개 항목을 상수로 둔다(`src/content/usage-instructions.ts`에 함께 둠).
+  4. `---` 구분선 뒤에 `profileToMarkdown(profile)`의 결과
+     - **맨 앞의 YAML 머리말 블록만 제거해** 넣는다. 머리말이 두 개가 되지 않게 하기 위해서다.
+     - `profileToMarkdown` 자체는 수정하지 않는다(변경 금지 영역).
+     - 개인정보 경고·미확인 문장 경고 블록은 본문에 그대로 남는다.
+- 노출 위치: WU-11 가이드의 `gemini-skill` 방법에서 artifact `skill-file`로 제공한다.
+  - **순서**: WU-10에서는 `gemini-skill`의 `requiredArtifacts`를 `["profile-markdown", "usage-instructions"]`로 두어 콘텐츠 검증을 통과시킨다. WU-10a에서 `GuideArtifactId`와 `AVAILABLE_ARTIFACTS`에 `"skill-file"`을 추가하면서, `gemini-skill`의 `requiredArtifacts`를 `["skill-file", "profile-markdown"]`으로 바꾸고 단계 문구도 업로드 경로로 고친다.
+  - Phase 4의 `"skill-package"`(zip, references 폴더)는 계속 범위 밖이다.
+- 가이드 문구(`platform-facts.md` 2.2 기준)
+  - Gemini 웹에서 **Customize** → **Skills** → **Create** → **Upload** → 내려받은 `SKILL.md` 선택 → **Open** → 검토 → **Create**
+  - 대화에서는 `/`(또는 `@`)로 skill을 고른다.
+  - 만 18세 이상, Keep Activity 켜기, 업로드는 웹·Mac 앱에서만 된다는 조건을 표시한다.
+  - 브라우저가 파일명을 `SKILL (1).md`처럼 바꾸면 `SKILL.md`로 이름을 바꿔 올리라고 안내한다.
+  - TContext에서 문서를 고치면 skill을 **다시 업로드**해야 한다는 안내를 붙인다(Replace skill 또는 새로 만들기).
+- 테스트
+  - 머리말을 파싱하면 `name`이 `^[a-z0-9-]+$`를 만족하고, `description`이 비어 있지 않다.
+  - 머리말 구분선(`---`)이 파일 맨 앞에 한 쌍만 있다(본문의 수평선 `---`은 허용하되 머리말로 해석되지 않는 위치).
+  - 본문에 공통 지침, 사용 원칙, 프로필 제목과 모든 모듈 제목이 들어 있다.
+  - 경고 상태 프로필은 경고 블록을 포함한다.
+  - 검사 대기 상태나 유효하지 않은 프로필은 오류를 반환한다.
+  - 같은 입력이면 출력이 같다(결정적 출력).
+  - 아키텍처 가드가 통과한다.
+- 실측: 사용자가 표본 업로드 결과를 `platform-facts.md` 6절에 기록한다. 이 결과는 최종 리뷰에서 다룬다. Codex는 결과를 기다리지 않는다.

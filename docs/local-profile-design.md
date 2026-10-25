@@ -770,15 +770,23 @@ type LocalProfileLink = {
 3. **첫 저장 시점**: **확정: 확정 후 /result에서만.** 검토 전 AI 초안은 저장하지 않는다(지침서 "교사가 검토한 프로파일 JSON만 저장"). 이후 편집 초안은 자동 저장한다.
 4. **종합 확인 체크(`synthesisConfirmed`)**: **확정: 저장하지 않음.** 다시 확정할 때마다 교사가 다시 확인한다.
 5. **Markdown 가져오기**: 지침서 3.5의 "후속 지원" 항목으로, Phase 1 범위에서 제외한다. 역변환 정확도 설계가 따로 필요하다.
-6. **Gemini Skill 방법의 초기 상태**: **확정: `announced`(출시 예정)로 두고, Gem 안내 아래에 접힌 형태로 보여준다.** 현재 쓸 수 있는 경로(Gem, 일반 대화 첨부)를 먼저 안내하고, Skill을 쓸 수 있는 교사는 같은 Markdown과 공통 지침으로 직접 등록할 수 있다고 알린다. 정식 출시가 확인되면 `gemini.ts`에서 상태만 바꾼다.
+6. **Gemini 방법 구성(2026-10-25 재확정)**: **확정: `gemini-skill`=`recommended`, `gemini-gem`=`transitioning`, `gemini-chat-attachment`=`available`(fallback).**
+   - 처음 확정한 값("Gem 권장, skill은 출시 예정")은 Phase 1 중간 점검에서 공식 일정을 확인한 뒤 바꿨다. 개인 계정의 Gem은 2026-11-17부터 읽기 전용이고 2026-12-17에 제거된다.
+   - Workspace 교육용·업무용 계정은 Gem을 더 오래 쓸 수 있으므로 `transitioning` 상태로 남긴다.
+   - 근거는 `docs/codex/platform-facts.md` 2절이다.
 7. **가이드 경로**: **확정: `/ai-guide`(플랫폼 선택)와 `/ai-guide/[platform]`.** 플랫폼 목록은 콘텐츠 색인에서 `generateStaticParams`로 만든다. 결과 화면과 내 프로파일 화면에서 "AI에서 활용하기"로 들어간다.
+8. **단일 파일 `SKILL.md` 내보내기를 Phase 2로 앞당김(2026-10-25)**: **확정: WU-10a로 구현한다.**
+   - Gemini skill은 `SKILL.md` 업로드로만 파일을 담을 수 있기 때문이다.
+   - zip·references 폴더 패키지와 설치 자동화는 계속 Phase 4 이후이며, 이번 범위 밖이다.
+   - 긴 `SKILL.md`가 실제로 잘 동작하는지는 사용자가 표본 업로드로 확인하고, 실패하면 최종 리뷰에서 대화 첨부 안내로 되돌린다.
+9. **CI E2E 실행 방식(2026-10-25)**: **확정: CI에서만 프로덕션 서버(`pnpm start`)로 E2E를 실행한다.** 개발 서버의 병렬 부하에서 전체 새로고침으로 인한 간헐적 실패가 재현되었기 때문이다. 로컬은 개발 서버를 유지한다(WU-9a F7).
 
 ---
 
 ## 10. Phase 1 범위 밖
 
 - AI 플랫폼별 활용 가이드 화면과 공통 실행 지침 복사(Phase 2, 구조는 11장)
-- Gemini Skill 패키지 자동 생성과 설치(요구사항상 제외)
+- Skill 패키지(zip·references 폴더) 생성과 플랫폼 설치 자동화. 단일 파일 `SKILL.md` 내보내기는 Phase 2의 WU-10a로 앞당겼다(9장 결정 8).
 - 전체본·핵심본·모듈 선택본과 충실성 검사(Phase 3)
 - 확정본 스냅샷 이력, 이전 버전 비교·복원, 외부 AI 내보내기 이력, Agent Skill 패키지(Phase 4)
 - Markdown → JSON 가져오기
@@ -790,11 +798,13 @@ type LocalProfileLink = {
 
 ### 11.1 전제와 원칙
 
-- 전제(사용자 제공): Google Gemini의 Gem 기능이 2026~2027년에 Skill로 전환될 예정이다. 일정, 명칭, 등록 방법, 요금제 조건은 아직 확정된 사실로 취급하지 않는다. 지침서 4.3의 원칙대로 가이드를 구현하거나 갱신할 때마다 공식 문서를 다시 확인한다.
+- 전제(사용자 제공): Google Gemini의 Gem 기능이 2026~2027년에 Skill로 전환될 예정이다. 지침서 4.3의 원칙대로 가이드를 구현하거나 갱신할 때마다 공식 문서를 다시 확인한다.
+  - 2026-10-25 공식 문서 확인 결과: 개인 계정은 2026-11-17 읽기 전용, 2026-12-17 제거. Workspace 업무용은 2027-03-01 이후, 교육용은 2027-06-01 이후에 전환된다. skill은 공개 `SKILL.md` 형식을 따른다. 상세 내용은 `docs/codex/platform-facts.md`에 있다.
 - 이번 단계에서 하는 일
   - Phase 1: 아래 11.3의 최소 변경만 반영한다(파일 단위 산출물 타입, 아키텍처 가드).
   - Phase 2: 기존 방식대로 Gemini 활용 가이드를 제공하되, Gem과 Skill을 모두 담을 수 있는 데이터 구조로 만든다.
-- 이번 단계에서 하지 않는 일: Skill 패키지(`SKILL.md`) 자동 생성, 플랫폼 설치 자동화, 플랫폼 계정 연동.
+- 이번 단계에서 하지 않는 일: Skill 패키지(zip·references 폴더) 생성, 플랫폼 설치 자동화, 플랫폼 계정 연동.
+  - 2026-10-25 변경: 단일 파일 `SKILL.md` 내보내기는 WU-10a로 앞당겨 Phase 2에서 구현한다(9장 결정 8).
 - 원칙
   1. 세 층으로 나눈다: canonical JSON → 플랫폼 중립 산출물(Markdown, JSON 백업, 향후 Skill 패키지) → 플랫폼별 안내(콘텐츠 데이터).
   2. 플랫폼 기능명, 설치 절차, URL은 `src/content/platform-guides/*`에만 둔다.
@@ -892,28 +902,29 @@ type PlatformGuide = {
 
 ### 11.6 Gemini 가이드 모델링(Gem과 Skill 공존)
 
-Phase 2 시작 시점의 `gemini.ts` 방법 구성(권장안, 9장 결정 6):
+Phase 2 구현 시점의 `gemini.ts` 방법 구성(9장 결정 6·8, 2026-10-25 재확정):
 
-| id                       | status        | requiredArtifacts                        | 안내 요지                                                                                                                      |
-| ------------------------ | ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `gemini-gem`             | `recommended` | `profile-markdown`, `usage-instructions` | 지침서 4.4의 Gem 생성 → 지식 영역에 Markdown 등록 → 공통 지침 입력 → 저장 후 재사용                                            |
-| `gemini-skill`           | `announced`   | `profile-markdown`, `usage-instructions` | Skill을 쓸 수 있는 계정이라면 같은 Markdown과 공통 지침으로 직접 등록할 수 있다. TContext는 아직 Skill 패키지를 만들지 않는다. |
-| `gemini-chat-attachment` | `available`   | `profile-markdown`, `usage-instructions` | 일반 대화에 파일을 첨부하거나 붙여 넣는 대안(`fallbackMethodId`)                                                               |
+| id                       | status          | requiredArtifacts                        | 안내 요지                                                                                                                                                   |
+| ------------------------ | --------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gemini-skill`           | `recommended`   | `skill-file`, `profile-markdown`         | TContext가 만든 `SKILL.md`를 Customize → Skills → Create → Upload로 등록한다(WU-10a).                                                                       |
+| `gemini-gem`             | `transitioning` | `profile-markdown`, `usage-instructions` | Workspace 교육용·업무용 계정에서만 새로 만들 수 있다. 개인 계정은 2026-11-17부터 읽기 전용이며 기존 Gem은 skill로 자동 전환된다는 `migrationNote`를 붙인다. |
+| `gemini-chat-attachment` | `available`     | `profile-markdown`, `usage-instructions` | 일반 대화에 파일을 첨부하거나 붙여 넣는 대안(`fallbackMethodId`)                                                                                            |
 
-전환 시나리오(어느 경우에도 바꿀 파일은 `gemini.ts`뿐이며, Phase 4 패키지 지원만 생성기가 함께 바뀐다):
+이후 전환 시나리오(어느 경우에도 바꿀 파일은 `gemini.ts`뿐이며, Phase 4 패키지 지원만 생성기가 함께 바뀐다):
 
-| 시점                      | `gemini-gem`                                 | `gemini-skill`                             | 변경 파일                                          |
-| ------------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
-| 현재                      | `recommended`                                | `announced`(접힘)                          | 없음                                               |
-| Skill 정식 출시 확인      | `transitioning` + `migrationNote`            | `recommended`, `replaces: "gemini-gem"`    | `gemini.ts`의 상태·단계·확인일                     |
-| Gem 종료                  | `retired`(숨김, 기존 사용자에게만 이전 안내) | `recommended`                              | `gemini.ts`                                        |
-| Phase 4 Skill 패키지 지원 | —                                            | `requiredArtifacts`에 `skill-package` 추가 | `gemini.ts`, Phase 4 생성기, `AVAILABLE_ARTIFACTS` |
+| 시점                                   | `gemini-gem`                                 | `gemini-skill`                             | 변경 파일                                          |
+| -------------------------------------- | -------------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
+| Phase 2 구현(2026-10-25 확정)          | `transitioning` + `migrationNote`            | `recommended` + `skill-file`               | —                                                  |
+| 교육용 계정까지 Gem 종료(2027-06 이후) | `retired`(숨김, 기존 사용자에게만 이전 안내) | `recommended`                              | `gemini.ts`                                        |
+| 표본 업로드가 실패한 경우              | 변동 없음                                    | `skill-file` 대신 직접 만들기 + 대화 첨부  | `gemini.ts`                                        |
+| Phase 4 Skill 패키지 지원              | —                                            | `requiredArtifacts`에 `skill-package` 추가 | `gemini.ts`, Phase 4 생성기, `AVAILABLE_ARTIFACTS` |
 
 - 렌더러는 상태 배지(권장, 전환 중, 출시 예정, 종료)를 상태 값으로만 고른다. 플랫폼 id로 분기하는 코드가 생기면 리뷰에서 반려한다.
 - ChatGPT·Claude 가이드도 같은 구조를 쓴다. 다른 플랫폼에 비슷한 전환이 생겨도 같은 절차로 처리한다.
 
 ### 11.7 향후 Agent Skill 패키지 내보내기 구조(Phase 4 준비, 이번에 구현하지 않음)
 
+- 2026-10-25 변경: 이 구조 중 **단일 파일 `SKILL.md`**(머리말 + 공통 지침 + 사용 원칙 + 프로필 본문을 한 파일에 담은 형태)만 WU-10a로 앞당긴다. 상세 사양은 `docs/codex/runbook.md` WU-10a에 있다. 아래의 폴더·zip 패키지는 계속 Phase 4다.
 - 생성기 시그니처(예정): `buildSkillPackage(profile, { flavor, modules? }): ExportFile[]`. `profile`은 확정본 `TeacherContextProfile`, `modules`는 Phase 3 이후의 모듈 선택이다.
 - 공통 형식(지침서 7.2)
 
@@ -948,6 +959,9 @@ Phase 1(WU-1~9)이 끝난 뒤 진행한다. Phase 1과 같은 파일을 동시�
     - [ ] Gemini에 11.6 표의 세 방법이 있다.
     - [ ] 모든 방법에 `officialUrl`과 `verifiedAt`이 있고, 구현할 때 공식 문서로 확인한 날짜다.
     - [ ] 아키텍처 가드 테스트가 통과한다.
+- **WU-10a. 단일 파일 `SKILL.md` 내보내기**(2026-10-25 추가)
+  - 범위: `src/lib/export/skill.ts`, 사용 원칙 상수, artifact `skill-file`. 상세 사양과 테스트는 runbook WU-10a에 있다.
+  - 완료 조건: 확정본에서만 만들고, 머리말이 한 번만 나오며, `profileToMarkdown`은 수정하지 않는다. 아키텍처 가드가 통과한다.
 - **WU-11. 범용 가이드 화면**
   - 범위: `/ai-guide`, `/ai-guide/[platform]`(`generateStaticParams`, `dynamicParams = false`), `src/components/ai-guide/*`, /result와 /profiles의 "AI에서 활용하기" 진입점.
   - 완료 조건
