@@ -74,3 +74,13 @@
 - 이전 WU 수정: WU-4 Provider와 WU-5 저장 패널에 확정 저장 결과 전달을 추가했다. 초안만 있는 기록을 버릴 때 메모리 문서도 비워 삭제된 문서가 남지 않게 했다.
 - 확인하지 못한 것·남은 위험: 새 테스트의 타입·fixture와 lint 지적을 1회 수정 후 관문을 통과했다. 기존 늦은 응답 테스트를 포함해 기존 테스트는 변경하지 않았다. 종료 직전 IndexedDB 저장 완료는 브라우저 종료 시점에 따라 보장할 수 없다. 실제 재접속·다중 탭은 WU-9에서 검증한다.
 - 리뷰어에게 묻고 싶은 것: 직렬 큐의 확정 우선 처리와 다중 탭 충돌 해소 흐름을 중점 검토해 주세요.
+
+## WU-8 개인정보 안내·문서
+
+- 상태: 완료
+- 변경 파일: `README.md`, `docs/{privacy-design,data-dictionary,product-spec}.md`, `src/app/privacy/page.tsx`, `src/components/privacy/browser-record-controls.tsx`, `src/components/profile/profile-review.tsx`, `src/components/export/result-view.tsx`, `src/components/layout/app-shell.tsx`, `src/components/local-profiles/privacy-local-storage.test.tsx`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 823, 건너뜀 4) build ✓ e2e -
+- 설계·지시와 다르게 구현한 부분과 이유: 없음。원문 답변 미저장, opt-in 로컬 보관과 서버 기여의 차이, 자동 만료 없음, 공용 기기·소실 주의, 삭제 범위를 문서와 화면에 반영했다. 홈의 “저장 없이도 완성” 제목은 유지했다.
+- 이전 WU 수정: WU-4 검토 빈 화면, WU-5 결과 빈 화면, WU-6 푸터의 안내를 현재 저장 정책에 맞췄다.
+- 확인하지 못한 것·남은 위험: 안내 문구를 검색 점검했고 RTL에서 탭 기록 삭제 후 저장본 유지, 전체 삭제 취소 시 보존, 확인 시 DB와 설정 제거를 검증했다. 실제 브라우저 삭제·재접속 검증은 WU-9에서 수행한다.
+- 리뷰어에게 묻고 싶은 것: 없음

@@ -49,6 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="text-muted-foreground mt-3 text-sm leading-6">
               교사의 실제 수업 맥락을 AI가 이해할 수 있는 문서로 정리합니다.
               로그인 없이 사용할 수 있으며 원문 인터뷰 답변은 저장하지 않습니다.
+              프로파일은 선생님이 켠 경우에만 이 브라우저에 보관합니다.
             </p>
             <p className="text-primary mt-4 flex items-center gap-2 text-xs font-semibold">
               <ShieldCheck aria-hidden="true" className="size-4" />

@@ -38,7 +38,8 @@ export function ResultView({
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">완성된 문서가 없습니다.</h1>
         <p className="mt-4 text-lg leading-8 text-[#536159]">
-          새로고침하면 이 탭의 문서는 사라집니다. JSON 백업을 보관해 두거나,
+          새로고침하면 이 탭의 메모리 문서는 사라집니다. 보관한 프로파일이나
+          JSON 백업은 내 프로파일에서 열 수 있습니다. 보관한 문서가 없다면
           인터뷰를 다시 진행해 주세요.
         </p>
         <Button

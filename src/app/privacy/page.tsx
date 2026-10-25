@@ -2,6 +2,7 @@ import Link from "next/link";
 import { EyeOff, HardDrive, Server, ShieldCheck } from "lucide-react";
 
 import { BrowserRecordControls } from "@/components/privacy/browser-record-controls";
+import { LocalProfileDeleteControls } from "@/components/local-profiles/local-profile-delete-controls";
 import { Button } from "@/components/ui/button";
 import { getRetentionDays } from "@/lib/consent/policy";
 
@@ -49,7 +50,8 @@ export default function PrivacyPage() {
             <h2 className="mt-3 text-xl font-bold">기여는 기본 꺼짐</h2>
             <p className="text-muted-foreground mt-2 leading-7">
               다운로드와 무관한 별도 동의를 해야만 검토 완료된 최종 문서가
-              저장됩니다.
+              서버에 기여됩니다. 이 브라우저에 보관하는 로컬 저장과는
+              별개입니다.
             </p>
           </div>
         </section>
@@ -134,6 +136,41 @@ export default function PrivacyPage() {
         </section>
 
         <BrowserRecordControls />
+
+        <section
+          aria-labelledby="local-storage-title"
+          className="feature-card space-y-4"
+        >
+          <h2 id="local-storage-title" className="text-2xl font-bold">
+            이 브라우저에 보관하는 내 프로파일
+          </h2>
+          <p className="leading-7">
+            로컬 저장은 기본 꺼짐이며 교사가 켠 경우에만 이 브라우저의
+            IndexedDB에 보관합니다. 서버로 보내는 기여와 동의가 분리되어 있고,
+            저장하지 않아도 Markdown과 JSON 백업을 다운로드할 수 있습니다.
+          </p>
+          <p className="leading-7">
+            확정본, 편집 초안, 제안·확인 태그, 저장·수정 시각과 버전 정보를 최대
+            10개 프로파일까지 보관합니다. 원문 답변은 IndexedDB에 저장하지
+            않습니다. 서명된 검사 토큰, 기여 영수증, 경고 확인 체크 상태도
+            저장하지 않습니다. 다시 수정하거나 JSON을 가져오면 개인정보 검사를
+            새로 받아야 합니다.
+          </p>
+          <p className="leading-7">
+            교사가 지우거나 브라우저가 지울 때까지 보관하며 자동 만료는
+            없습니다. 공용 기기에서는 다른 사용자가 문서를 열 수 있으니 보관에
+            주의해 주세요. 브라우저 데이터 정리나 기기 변경으로 사라질 수
+            있으므로 JSON 백업을 권장합니다. 백업 파일에도 문서 내용이 있으므로
+            안전하게 보관해 주세요.
+          </p>
+          <p className="leading-7">
+            내 프로파일에서 개별 문서나 편집 초안을 삭제할 수 있습니다. 아래
+            버튼은 모든 확정본·초안과 저장 설정을 지우고 로컬 저장을 끕니다.
+            내려받은 백업 파일과 Supabase에 별도로 기여한 데이터는 지우지
+            않습니다.
+          </p>
+          <LocalProfileDeleteControls />
+        </section>
 
         <section aria-labelledby="limits-title" className="feature-card">
           <h2 id="limits-title" className="text-2xl font-bold">

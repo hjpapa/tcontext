@@ -487,8 +487,9 @@ function ProfileReviewBody() {
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">검토할 초안이 없습니다.</h1>
         <p className="mt-4 text-lg leading-8 text-[#536159]">
-          답변과 초안은 서버나 브라우저 저장소에 보관하지 않습니다. 새로고침한
-          경우 인터뷰를 다시 시작해 주세요.
+          원문 답변과 저장하지 않은 초안은 새로고침하면 사라집니다. 보관한
+          프로파일이나 JSON 백업이 있다면 내 프로파일에서 열어 주세요. 보관한
+          문서가 없다면 인터뷰를 다시 시작해 주세요.
         </p>
         <Button
           asChild
