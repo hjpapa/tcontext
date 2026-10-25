@@ -89,7 +89,18 @@ it.each([
     p.confirmedTags.aiBoundaries = ["no_personal_data", "no_personal_data"];
   if (kind === "privacy")
     p.privacyReview = { status: "needs_review", items: [] };
-  expect(localDraftProfileSchema.safeParse(p).success).toBe(false);
+  const expectedPaths: Record<string, PropertyKey[]> = {
+    missing: ["modules"],
+    "duplicate module": ["modules"],
+    "duplicate claim": ["modules"],
+    unknown: ["modules", 0],
+    confirmation: ["modules", 0, "claims", 0, "confirmedByUser"],
+    evidence: ["modules", 0, "claims", 0, "evidenceQuestionIds"],
+    length: ["profileTitle"],
+    tags: ["confirmedTags", "aiBoundaries"],
+    privacy: ["privacyReview", "items"],
+  };
+  expectIssue(localDraftProfileSchema.safeParse(p), expectedPaths[kind]!);
 });
 it.each([
   "empty",
@@ -124,7 +135,16 @@ it.each([
     r.draft = { profile: p, baseConfirmedAt: null, updatedAt: now };
   }
   if (kind === "uuid") r.id = "bad";
-  expect(localProfileRecordSchema.safeParse(r).success).toBe(false);
+  const expectedPaths: Record<string, PropertyKey[]> = {
+    empty: [],
+    "pending confirmed": ["confirmed", "profile", "privacyReview"],
+    "reviewed draft": ["draft", "profile", "privacyReview"],
+    tags: ["suggestedTags"],
+    version: ["confirmed", "profile", "metadata", "schemaVersion"],
+    "draft version": ["draft", "profile", "metadata", "schemaVersion"],
+    uuid: ["id"],
+  };
+  expectIssue(localProfileRecordSchema.safeParse(r), expectedPaths[kind]!);
 });
 it("accepts pending drafts and both strict backup kinds", () => {
   const p = profile();
@@ -149,4 +169,69 @@ it("accepts pending drafts and both strict backup kinds", () => {
       profileBackupFileSchema.safeParse({ ...backup, extra: true }).success,
     ).toBe(false);
   }
+});
+
+function expectIssue(
+  result: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } },
+  path: PropertyKey[],
+) {
+  expect(result.success).toBe(false);
+  expect(
+    result.error?.issues.some((issue) =>
+      path.every((part, index) => issue.path[index] === part),
+    ),
+  ).toBe(true);
+}
+it("accepts imported draft-only records and blank draft backups", () => {
+  const p = profile();
+  p.privacyReview = structuredClone(PENDING_PRIVACY_REVIEW);
+  p.profileTitle = "";
+  p.modules[0]!.claims[0]!.text = "";
+  expect(
+    localProfileRecordSchema.safeParse({
+      ...record(),
+      origin: "import",
+      confirmed: null,
+      draft: { profile: p, baseConfirmedAt: null, updatedAt: now },
+    }).success,
+  ).toBe(true);
+  expect(
+    profileBackupFileSchema.safeParse({
+      format: PROFILE_BACKUP_FORMAT,
+      formatVersion: 1,
+      exportedAt: now,
+      kind: "draft",
+      profile: p,
+      suggestedTags: [],
+    }).success,
+  ).toBe(true);
+});
+it("rejects unknown record fields, zero revisions, offset times and invalid backup ids", () => {
+  expectIssue(
+    localProfileRecordSchema.safeParse({ ...record(), extra: true }),
+    [],
+  );
+  expectIssue(
+    localProfileRecordSchema.safeParse({ ...record(), revision: 0 }),
+    ["revision"],
+  );
+  expectIssue(
+    localProfileRecordSchema.safeParse({
+      ...record(),
+      updatedAt: "2026-10-25T09:00:00+09:00",
+    }),
+    ["updatedAt"],
+  );
+  expectIssue(
+    profileBackupFileSchema.safeParse({
+      format: PROFILE_BACKUP_FORMAT,
+      formatVersion: 1,
+      exportedAt: now,
+      kind: "confirmed",
+      profile: profile(),
+      suggestedTags: [],
+      recordId: "invalid",
+    }),
+    ["recordId"],
+  );
 });

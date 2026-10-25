@@ -3,6 +3,7 @@ import { FICTIONAL_PROFILES } from "@/content/examples";
 import {
   PENDING_PRIVACY_REVIEW,
   UNVERIFIED_PRIVACY_REVIEW,
+  teacherContextProfileSchema,
 } from "@/types/profile";
 import { selectedTagKeysFromConfirmedTags } from "@/lib/profile/tags";
 import {
@@ -160,4 +161,87 @@ it("opens draft first with an independent baseline and independent nested values
   r.draft = before.draft;
   r.confirmed = null;
   expect(toEditableSession(r).baseline).toBeNull();
+});
+
+it.each([0, 2])(
+  "preserves optional subject presence for example %s",
+  (index) => {
+    const source = structuredClone(FICTIONAL_PROFILES[index]!);
+    if (index === 0) delete source.metadata.teachingSubject;
+    const confirmed = toConfirmedSnapshot(source, now);
+    const draft = toDraftSnapshot({
+      profile: source,
+      suggestedTags: [],
+      selectedTagKeys: [],
+      baseConfirmedAt: now,
+      now,
+    });
+    expect(confirmed.ok).toBe(true);
+    expect(draft.ok).toBe(true);
+    if (!confirmed.ok || !draft.ok) throw new Error("Invalid fixture");
+    expect(confirmed.snapshot.profile).toStrictEqual(
+      teacherContextProfileSchema.parse(source),
+    );
+    const session = toEditableSession({
+      id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
+      storageSchemaVersion: 1,
+      createdAt: now,
+      updatedAt: now,
+      revision: 1,
+      origin: "interview",
+      suggestedTags: [],
+      confirmed: confirmed.snapshot,
+      draft: draft.snapshot,
+    });
+    for (const p of [
+      confirmed.snapshot.profile,
+      draft.snapshot.profile,
+      session.profile,
+      session.baseline!,
+    ]) {
+      expect(Object.hasOwn(p.metadata, "teachingSubject")).toBe(index !== 0);
+      expect(p.metadata.teachingSubject).toBe(source.metadata.teachingSubject);
+    }
+  },
+);
+it("restores unchecked confirmed tags as choices without selecting them", () => {
+  const a = { category: "preferredTeachingMethods", tag: "inquiry" } as const;
+  const b = {
+    category: "preferredTeachingMethods",
+    tag: "discussion",
+  } as const;
+  const c = { category: "preferredTeachingMethods", tag: "making" } as const;
+  const confirmedProfile = profile();
+  const draftProfile = profile();
+  for (const p of [confirmedProfile, draftProfile])
+    p.confirmedTags = {
+      preferredTeachingMethods: [],
+      participationPriorities: [],
+      emotionalSupportPriorities: [],
+      assessmentPriorities: [],
+      environmentConstraints: [],
+      aiBoundaries: [],
+    };
+  confirmedProfile.confirmedTags.preferredTeachingMethods = [a.tag, b.tag];
+  draftProfile.confirmedTags.preferredTeachingMethods = [a.tag, c.tag];
+  const session = toEditableSession({
+    id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
+    storageSchemaVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    revision: 1,
+    origin: "interview",
+    suggestedTags: [a],
+    confirmed: { profile: confirmedProfile, confirmedAt: now },
+    draft: { profile: draftProfile, baseConfirmedAt: now, updatedAt: now },
+  });
+  expect(session.suggestedTags).toEqual([a, b, c]);
+  expect(
+    selectedTagKeysFromConfirmedTags(session.profile.confirmedTags),
+  ).toEqual(
+    new Set([
+      "preferredTeachingMethods:inquiry",
+      "preferredTeachingMethods:making",
+    ]),
+  );
 });

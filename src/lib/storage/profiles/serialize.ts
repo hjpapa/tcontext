@@ -10,6 +10,7 @@ import {
   isPendingPrivacyReview,
   teacherContextProfileSchema,
   type PrivacyReview,
+  type ConfirmedTags,
   type TeacherContextProfile,
 } from "@/types/profile";
 import { localDraftProfileSchema, type LocalProfileRecord } from "./schema";
@@ -18,6 +19,15 @@ export type ConfirmedSnapshot = NonNullable<LocalProfileRecord["confirmed"]>;
 export type DraftSnapshot = NonNullable<LocalProfileRecord["draft"]>;
 export type SerializeError =
   "invalid_profile" | "not_finalized" | "invalid_draft";
+
+const EMPTY: ConfirmedTags = {
+  preferredTeachingMethods: [],
+  participationPriorities: [],
+  emotionalSupportPriorities: [],
+  assessmentPriorities: [],
+  environmentConstraints: [],
+  aiBoundaries: [],
+};
 
 function copyProfile(
   profile: TeacherContextProfile,
@@ -28,7 +38,9 @@ function copyProfile(
     metadata: {
       schoolLevel: profile.metadata.schoolLevel,
       role: profile.metadata.role,
-      teachingSubject: profile.metadata.teachingSubject,
+      ...(profile.metadata.teachingSubject === undefined
+        ? {}
+        : { teachingSubject: profile.metadata.teachingSubject }),
       generatedAt: profile.metadata.generatedAt,
       schemaVersion: profile.metadata.schemaVersion,
       modelName: profile.metadata.modelName,
@@ -155,7 +167,12 @@ export function toEditableSession(
       : null,
     suggestedTags: mergeSuggestedTags(
       record.suggestedTags,
-      suggestedTagsFromConfirmedTags(profile.confirmedTags),
+      suggestedTagsFromConfirmedTags(
+        record.confirmed?.profile.confirmedTags ?? EMPTY,
+      ),
+      suggestedTagsFromConfirmedTags(
+        record.draft?.profile.confirmedTags ?? EMPTY,
+      ),
     ).map((tag) => ({ category: tag.category, tag: tag.tag }) as SuggestedTag),
     source: record.draft ? "draft" : "confirmed",
   };

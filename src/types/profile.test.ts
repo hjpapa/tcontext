@@ -159,7 +159,6 @@ describe("confirmedTagsFromCandidates", () => {
   });
 });
 
-
 describe("local profile shared validation", () => {
   it("recognizes only the exact pending review marker", async () => {
     const {

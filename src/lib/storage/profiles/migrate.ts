@@ -17,19 +17,28 @@ export type RecordMigrationResult =
       error: "corrupted" | "unsupported_version";
       id: string | null;
     };
-const upgrades: Record<
-  number,
-  (raw: Record<string, unknown>) => Record<string, unknown>
-> = {};
+export type RecordUpgrade = (
+  raw: Record<string, unknown>,
+) => Record<string, unknown>;
+const RECORD_UPGRADES: Readonly<Record<number, RecordUpgrade>> = {};
 function isObject(raw: unknown): raw is Record<string, unknown> {
-  return (
-    raw !== null &&
-    typeof raw === "object" &&
-    (Object.getPrototypeOf(raw) === Object.prototype ||
-      Object.getPrototypeOf(raw) === null)
-  );
+  return Object.prototype.toString.call(raw) === "[object Object]";
 }
-export function migrateLocalProfileRecord(raw: unknown): RecordMigrationResult {
+function peekProfileSchemaVersion(value: unknown): string | null {
+  return isObject(value) &&
+    isObject(value.metadata) &&
+    typeof value.metadata.schemaVersion === "string"
+    ? value.metadata.schemaVersion
+    : null;
+}
+function hasUnsupportedProfileVersion(value: unknown): boolean {
+  const version = peekProfileSchemaVersion(value);
+  return version !== null && !isSupportedProfileSchemaVersion(version);
+}
+export function migrateLocalProfileRecord(
+  raw: unknown,
+  upgrades: Readonly<Record<number, RecordUpgrade>> = RECORD_UPGRADES,
+): RecordMigrationResult {
   const id = isObject(raw) && typeof raw.id === "string" ? raw.id : null;
   if (!isObject(raw)) return { ok: false, error: "corrupted", id };
   let candidate = raw;
@@ -39,6 +48,10 @@ export function migrateLocalProfileRecord(raw: unknown): RecordMigrationResult {
     version > LOCAL_PROFILE_STORAGE_SCHEMA_VERSION
   )
     return { ok: false, error: "unsupported_version", id };
+  for (const snapshot of [raw.confirmed, raw.draft]) {
+    if (isObject(snapshot) && hasUnsupportedProfileVersion(snapshot.profile))
+      return { ok: false, error: "unsupported_version", id };
+  }
   let migrated = false;
   while (
     typeof version === "number" &&
@@ -46,7 +59,13 @@ export function migrateLocalProfileRecord(raw: unknown): RecordMigrationResult {
   ) {
     const upgrade = upgrades[version];
     if (!upgrade) return { ok: false, error: "corrupted", id };
-    candidate = upgrade(candidate);
+    try {
+      const upgraded = upgrade(structuredClone(candidate));
+      if (!isObject(upgraded)) return { ok: false, error: "corrupted", id };
+      candidate = upgraded;
+    } catch {
+      return { ok: false, error: "corrupted", id };
+    }
     const next = candidate.storageSchemaVersion;
     if (
       typeof next !== "number" ||
@@ -88,11 +107,15 @@ export function migrateBackupFile(
       raw.formatVersion > PROFILE_BACKUP_FORMAT_VERSION
     )
       return { ok: false, error: "unsupported_format_version" };
+    if (hasUnsupportedProfileVersion(raw.profile))
+      return { ok: false, error: "unsupported_profile_schema" };
     const parsed = profileBackupFileSchema.safeParse(raw);
     if (!parsed.success) return { ok: false, error: "invalid_backup" };
     backup = parsed.data;
     source = "backup_v1";
   } else if (!("format" in raw)) {
+    if (hasUnsupportedProfileVersion(raw))
+      return { ok: false, error: "unsupported_profile_schema" };
     const profile = teacherContextProfileSchema.safeParse(raw);
     if (!profile.success) return { ok: false, error: "unknown_format" };
     const parsed = profileBackupFileSchema.safeParse({
