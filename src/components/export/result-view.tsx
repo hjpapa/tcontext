@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { LocalSavePanel } from "@/components/local-profiles/local-save-panel";
 import { ContributionPanel } from "@/components/consent/contribution-panel";
 import { ResultActions } from "@/components/export/result-actions";
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
@@ -37,7 +38,7 @@ export function ResultView({
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">완성된 문서가 없습니다.</h1>
         <p className="mt-4 text-lg leading-8 text-[#536159]">
-          개인정보 보호를 위해 문서는 이 탭의 메모리에만 둡니다. 새로고침했다면
+          새로고침하면 이 탭의 문서는 사라집니다. JSON 백업을 보관해 두거나,
           인터뷰를 다시 진행해 주세요.
         </p>
         <Button
@@ -185,6 +186,11 @@ export function ResultView({
         markdown={markdown}
         suggestedTags={suggestedTags}
       />
+
+      <LocalSavePanel />
+      <Button asChild variant="outline" data-print-hidden="true">
+        <Link href="/review">다시 수정하기</Link>
+      </Button>
 
       <article
         className="space-y-10 border-y border-[#cfd8d0] py-10 print:border-0"
