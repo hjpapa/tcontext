@@ -36,15 +36,19 @@ export const CLAUDE_GUIDE: PlatformGuide = {
       id: "claude-chat-attachment",
       label: "일반 대화에 첨부",
       status: "available",
-      requiredArtifacts: ["profile-markdown", "usage-instructions"],
+      requiredArtifacts: ["usage-instructions", "profile-markdown"],
       steps: [
         {
-          title: "교사 문서 전달",
-          body: "대화에 Markdown 파일을 첨부하거나 내용을 붙여 넣습니다.",
+          title: "공통 지침 전달",
+          body: "공통 지침을 복사해 대화 첫 메시지에 붙이거나, 지침 SKILL.md를 내려받아 대화에 첨부합니다.",
         },
         {
-          title: "지침과 작업 요청 전달",
-          body: "공통 활용 지침과 함께 지금 필요한 교육 관련 작업을 적습니다.",
+          title: "교사 문서 첨부",
+          body: "교사 프로파일 컨텍스트 문서(Markdown)를 대화에 첨부합니다. 지침과 교사 문서는 대화마다 다시 붙이거나 첨부해야 합니다.",
+        },
+        {
+          title: "작업 요청 전달",
+          body: "지금 필요한 교육 관련 작업을 입력합니다.",
         },
       ],
       instructionTarget: "대화 입력창",

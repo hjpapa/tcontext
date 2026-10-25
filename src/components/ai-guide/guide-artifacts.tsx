@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
 import { COMMON_USAGE_INSTRUCTIONS } from "@/content/usage-instructions";
@@ -10,7 +10,10 @@ import {
   profileMarkdownFilename,
 } from "@/lib/export/download";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
-import { createSkillFile } from "@/lib/export/skill";
+import {
+  createSkillPackageFile,
+  createUsageInstructionsFile,
+} from "@/lib/export/skill";
 
 export function GuideArtifacts({
   artifacts,
@@ -28,22 +31,25 @@ export function GuideArtifacts({
       setMessage("복사하지 못했습니다. 아래 지침을 직접 선택해 복사해 주세요.");
     }
   };
-  const download = (kind: "profile-markdown" | "skill-file") => {
-    if (!hasDocument || !profile) return;
+  const download = (kind: GuideArtifactId) => {
+    if (kind !== "usage-instructions" && (!hasDocument || !profile)) return;
     try {
-      if (kind === "profile-markdown")
+      if (kind === "usage-instructions") {
+        if (!downloadTextFile(createUsageInstructionsFile(), { bom: false }).ok)
+          throw new Error("download_failed");
+      } else if (kind === "profile-markdown" && profile)
         downloadMarkdown(
           profileToMarkdown(profile),
           profileMarkdownFilename(profile.metadata.schoolLevel),
         );
       else {
-        const result = createSkillFile({
+        const result = createSkillPackageFile({
           profile,
           now: new Date().toISOString(),
         });
         if (!result.ok) {
           setMessage(
-            "검토를 마친 문서에서만 SKILL.md를 만들 수 있습니다. 문서를 다시 검토해 주세요.",
+            "검토를 마친 문서에서만 ZIP 패키지를 만들 수 있습니다. 문서를 다시 검토해 주세요.",
           );
           return;
         }
@@ -51,9 +57,11 @@ export function GuideArtifacts({
           throw new Error("download_failed");
       }
       setMessage(
-        kind === "skill-file"
-          ? "SKILL.md 다운로드를 시작했습니다."
-          : "Markdown 다운로드를 시작했습니다.",
+        kind === "skill-package"
+          ? "ZIP 패키지 다운로드를 시작했습니다."
+          : kind === "usage-instructions"
+            ? "지침 SKILL.md 다운로드를 시작했습니다."
+            : "Markdown 다운로드를 시작했습니다.",
       );
     } catch {
       setMessage(
@@ -82,21 +90,26 @@ export function GuideArtifacts({
                   교사 Markdown 다운로드
                 </Button>
               );
-            case "skill-file":
+            case "skill-package":
               return (
                 <Button
                   key={id}
                   disabled={!hasDocument}
                   onClick={() => download(id)}
                 >
-                  SKILL.md 다운로드
+                  ZIP 패키지 다운로드
                 </Button>
               );
             case "usage-instructions":
               return (
-                <Button key={id} variant="outline" onClick={() => void copy()}>
-                  공통 활용 지침 복사
-                </Button>
+                <Fragment key={id}>
+                  <Button variant="outline" onClick={() => void copy()}>
+                    공통 활용 지침 복사
+                  </Button>
+                  <Button variant="outline" onClick={() => download(id)}>
+                    지침 SKILL.md 내려받기
+                  </Button>
+                </Fragment>
               );
             default:
               return <p key={id}>현재 제공하지 않는 산출물입니다.</p>;

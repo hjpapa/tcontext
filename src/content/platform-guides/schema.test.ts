@@ -5,6 +5,30 @@ import { PLATFORM_GUIDES } from "./index";
 import { platformGuidesSchema, type PlatformGuide } from "./schema";
 import { COMMON_USAGE_INSTRUCTIONS } from "../usage-instructions";
 
+it("requires package export for skills and identical chat attachment artifacts", () => {
+  const methods = PLATFORM_GUIDES.flatMap((guide) => guide.methods);
+  expect(
+    methods.find((method) => method.id === "gemini-skill")!.requiredArtifacts,
+  ).toEqual(["skill-package"]);
+  for (const method of methods.filter((method) =>
+    method.id.endsWith("-chat-attachment"),
+  )) {
+    expect(method.requiredArtifacts).toEqual([
+      "usage-instructions",
+      "profile-markdown",
+    ]);
+    expect(method.steps).toHaveLength(3);
+    expect(method.steps[0]!.body).toContain("지침 SKILL.md");
+    expect(method.steps[1]!.body).toContain("대화마다");
+  }
+  const data = structuredClone(PLATFORM_GUIDES);
+  const invalid = {
+    ...data[0],
+    methods: [{ ...data[0]!.methods[0], requiredArtifacts: ["skill-file"] }],
+  };
+  expect(platformGuidesSchema.safeParse([invalid]).success).toBe(false);
+});
+
 it("validates approved platform methods, dates, links and available artifacts", () => {
   expect(platformGuidesSchema.safeParse(PLATFORM_GUIDES).success).toBe(true);
   expect(
@@ -66,9 +90,9 @@ it.each([
     },
   ],
   [
-    "unavailable artifact",
+    "duplicate artifacts",
     (g: PlatformGuide[]) => {
-      g[0]!.methods[0]!.requiredArtifacts = ["skill-package"];
+      g[0]!.methods[0]!.requiredArtifacts = ["skill-package", "skill-package"];
     },
   ],
 ] as const)("rejects %s", (_name, mutate) => {

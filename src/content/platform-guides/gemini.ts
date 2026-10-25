@@ -11,23 +11,23 @@ export const GEMINI_GUIDE: PlatformGuide = {
       label: "skill",
       status: "recommended",
       replaces: "gemini-gem",
-      requiredArtifacts: ["skill-file", "profile-markdown"],
+      requiredArtifacts: ["skill-package"],
       steps: [
         {
           title: "Skills 열기",
           body: "Gemini 웹의 사이드바에서 Customize → Skills를 누릅니다. Customize가 보이지 않으면 More를 먼저 누릅니다.",
         },
         {
-          title: "SKILL.md 업로드",
-          body: "Create → Upload에서 내려받은 SKILL.md를 선택하고 Open을 누릅니다. 내용을 검토한 뒤 Create를 누릅니다. 직접 만들기 화면에서는 참고 파일을 붙일 수 없습니다.",
+          title: "ZIP 패키지 업로드",
+          body: "Create → Upload에서 내려받은 teacher-context.zip을 선택하고 Open을 누릅니다. 내용을 검토한 뒤 Create를 누릅니다. 직접 만들기 화면에서는 참고 파일을 붙일 수 없습니다.",
         },
         {
           title: "파일명 확인",
-          body: "브라우저가 파일명을 SKILL (1).md처럼 바꿨다면 SKILL.md로 이름을 바꿔 올려 주세요.",
+          body: "zip 파일 이름은 teacher-context (1).zip처럼 바뀌어도 괜찮습니다. 안쪽 폴더 이름이 skill 이름입니다.",
         },
         {
           title: "대화에서 사용",
-          body: "대화에서 / 또는 @로 skill을 고릅니다. TContext에서 문서를 고치면 skill 전체를 다시 업로드해야 합니다.",
+          body: "대화에서 / 또는 @로 skill을 고릅니다. TContext에서 문서를 고치면 새 zip을 내려받아 Replace skill로 다시 올려 주세요. 참고 파일만 따로 고칠 수 없으므로 skill 전체를 다시 업로드해야 합니다.",
         },
       ],
       availabilityNote:
@@ -68,15 +68,19 @@ export const GEMINI_GUIDE: PlatformGuide = {
       id: "gemini-chat-attachment",
       label: "일반 대화에 첨부",
       status: "available",
-      requiredArtifacts: ["profile-markdown", "usage-instructions"],
+      requiredArtifacts: ["usage-instructions", "profile-markdown"],
       steps: [
         {
-          title: "교사 문서 첨부",
-          body: "일반 대화에 Markdown 파일을 첨부합니다. 대화마다 다시 첨부해야 합니다.",
+          title: "공통 지침 전달",
+          body: "공통 지침을 복사해 대화 첫 메시지에 붙이거나, 지침 SKILL.md를 내려받아 대화에 첨부합니다.",
         },
         {
-          title: "지침과 작업 요청 전달",
-          body: "공통 활용 지침과 함께 지금 필요한 교육 관련 작업을 적습니다.",
+          title: "교사 문서 첨부",
+          body: "교사 프로파일 컨텍스트 문서(Markdown)를 대화에 첨부합니다. 지침과 교사 문서는 대화마다 다시 붙이거나 첨부해야 합니다.",
+        },
+        {
+          title: "작업 요청 전달",
+          body: "지금 필요한 교육 관련 작업을 입력합니다.",
         },
       ],
       instructionTarget: "대화 입력창",

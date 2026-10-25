@@ -149,3 +149,29 @@ corepack pnpm test:e2e
 - 이전 WU 수정: 결과 화면과 내 프로파일 화면에 AI에서 활용하기 진입점을 연결했다.
 - 확인하지 못한 것·남은 위험: 프로덕션 서버에서 목록과 세 상세 경로를 320px·393px로 검사하여 모두 HTTP 200, 가로 넘침 0, 페이지 오류 0, main 영역 1개를 확인했다. 320px 스크린샷도 확인했다. 전체 E2E와 실제 다운로드·클립보드는 WU-12에서 검증한다. 외부 서비스에 자동 업로드하지 않는다.
 - 리뷰어에게 묻고 싶은 것: 없음
+
+## WU-12 중단 및 재개 이력
+
+- 최초에는 문서 변경 `b863e55` 확인을 놓쳐 WU-10a·11을 이전 단일 파일 사양으로 구현한 사실을 발견했다. 기존 테스트 기대값 변경이 필요하여 runbook 4절 5번에 따라 WU-12를 커밋하지 않고 멈췄다.
+- 사용자가 WU-10a·11의 최신 ZIP·지침 전용 파일 사양 반영과 관련 테스트 변경을 승인했다. runbook WU-10a 절과 platform-facts.md 5절을 다시 읽고 같은 WU-12에서 재개했다. 기존 커밋은 수정하지 않았다.
+- 위 WU-10a·11 기록은 당시 구현·검증 결과다. 최신 사양 충족 여부는 아래 최종 기록을 따른다.
+
+## WU-12 가이드 E2E와 전환 시뮬레이션
+
+- 상태: 완료. WU-10a·11의 최신 사양 보정을 함께 포함한다.
+- 변경 파일: `src/lib/export/{files,download,skill,skill.test,zip,zip.test,zip.test-helper,download-binary.test}.ts`, `src/content/usage-instructions.ts`, `src/content/platform-guides/{schema,schema.test,gemini,chatgpt,claude}.ts`, `src/components/ai-guide/{guide-artifacts,guide.test,transition.test}.tsx`, `src/components/ai-guide/renderer-contract.test.ts`, `e2e/ai-guide.spec.ts`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 871, 기존 건너뜀 4) build ✓ e2e ✓(Chromium 31, mobile 31, 총 62 통과; CI=1, 재시도 0, 프로덕션 next start)
+- 설계·지시와 다르게 구현한 부분과 이유: ExportFile은 Content 제네릭으로 string·Uint8Array를 지원하되 기본값은 string으로 두어 기존 JSON 백업 생성기의 공개 반환 타입을 보존했다. 다운로드 경계는 두 형식을 모두 받는다. ZIP 날짜는 UTC를 쓰고 DOS 날짜 표현 범위(1980~2107)로 제한한다. 테스트 전용 독립 ZIP 판독기를 단위 검사와 E2E에서 공유한다. 플랫폼 사실·상태·URL·확인일은 승인된 문서 값을 유지한다.
+- 이전 WU 수정: WU-10a의 단일 파일 생성기를 createSkillPackageFile로 교체하여 `teacher-context/SKILL.md`와 `teacher-context/references/teacher-profile.md` 두 파일을 무압축 ZIP으로 만든다. 참고 파일은 기존 profileToMarkdown 결과와 바이트 단위로 같다. createUsageInstructionsFile은 프로필 없이 지침 전용 SKILL.md를 만든다. WU-11은 skill-package 다운로드와 문서 없이 가능한 지침 파일 다운로드를 연결하고, 세 플랫폼의 A 방식 단계와 Gemini Replace skill 안내를 최신 사양으로 바꿨다. 사용자 승인에 따라 WU-10·10a·11에서 추가한 콘텐츠·산출물 테스트를 새 계약으로 갱신했다. bd81a2e 이전 테스트, 기존 Markdown·JSON 계약, 서버·저장 스키마·의존성은 변경하지 않았다.
+- 검증 근거: ZIP CRC-32 표준값, UTF-8 한글 경로, 로컬 헤더·중앙 디렉터리·EOCD, 크기·내용·결정성, 경로/ZIP64 한도 거부, 바이너리 BOM 미삽입을 검사했다. 개인정보·미확인 경고 보존, 검사 대기/잘못된 입력 거부, 고정 지침에 프로필 미포함을 확인했다. RTL은 콘텐츠 상태 변경만으로 권장·종료·출시 예정 표시가 전환됨을 검사한다. E2E는 세 플랫폼의 실제 파일·클립보드, 메모리 없는 지침 다운로드, DB 미생성, 외부 링크 고지, 320px 넘침 없음과 미등록 경로 404를 검사한다.
+- 관문 보정 이력: 새 RTL 선택자의 지원되지 않는 exact 옵션 3곳을 제거해 타입 검사를 통과했다(이름 문자열의 정확 일치 의미는 유지). 전체 테스트 871개는 통과했고 해당 RTL도 수정 후 재통과했다. 첫 E2E는 기존 54개 통과·새 8개 실패였으며 원인은 Windows 클립보드의 CRLF 반환이었다. 클립보드 경계의 CRLF만 LF로 정규화하고 문구 전체 일치 검사를 유지한 뒤 전체 62개를 재실행하여 통과했다. lint·typecheck도 최종 수정 후 재통과했다.
+- 확인하지 못한 것·남은 위험: 실제 계정의 ZIP 업로드·참고 문서 반영은 platform-facts.md 6절에서 미확인이다. 지시에 따라 실측을 기다리지 않았다. 외부 API는 모킹했고 실제 기기·Safari·Firefox는 검증하지 않았다. 미등록 가이드 경로는 HTTP 404 검증을 통과했지만 Next.js 서버에 Internal: NoFallbackError 로그가 두 프로젝트에서 각각 남았다. 원인은 이번 범위에서 규명하지 않았고 dynamicParams=false는 유지했다. 실행 환경의 NO_COLOR/FORCE_COLOR 경고도 남았다.
+- 리뷰어에게 묻고 싶은 것: 실제 생성 ZIP의 업로드와 참고 파일 반영을 최종 리뷰에서 확인해 주세요. 미확인이면 platform-facts.md 5.2에 따라 skill 안내 보류와 A 기본 경로 전환을 결정해야 합니다. 미등록 경로의 404 내부 로그도 검토 대상으로 남깁니다.
+
+## Phase 2 요약
+
+- 완료 범위: WU-9 커밋, WU-9a 리뷰 수정, WU-10 콘텐츠, WU-10a ZIP·지침 파일, WU-11 범용 가이드, WU-12 E2E·상태 전환 검증을 완료했다. WU-10a·11의 최신 사양 보정은 사용자 승인에 따라 WU-12에 포함했다.
+- 최종 관문: lint·typecheck·build 통과. 단위·컴포넌트 테스트 871개 통과, 기존 4개 건너뜀. E2E 62개 통과(Chromium 31, mobile 31; 기존 54개와 새 가이드 8개), 재시도 0.
+- 브랜치·커밋: `feat/local-profiles`에서 WU별 1개 커밋을 유지한다. WU-12 커밋에 이 요약을 포함하고 최종 리뷰를 위해 멈춘다. 기존 커밋 amend/rebase, 푸시·배포는 하지 않았다.
+- 보호한 계약: 서버/API, 로컬 저장 스키마·DB 이름·버전·키, JSON 백업 형식, canonical Markdown, 기존 테스트를 유지했다. 새 런타임·개발 의존성을 추가하지 않았다. 가이드는 외부 업로드를 자동 실행하지 않는다.
+- 남은 위험·리뷰 요청: 실제 ZIP 업로드 및 참고 파일 반영은 미확인이다. platform-facts.md 5.2의 실측/대안 경로 결정을 최종 리뷰에서 확인해야 한다. 미등록 가이드 경로의 HTTP 404는 정상 응답하지만 NoFallbackError 서버 로그가 남는다. 실제 기기와 다른 브라우저는 별도 검증 대상이다.

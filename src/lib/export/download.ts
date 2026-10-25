@@ -43,7 +43,7 @@ export function downloadMarkdown(
 }
 
 export function downloadTextFile(
-  file: ExportFile,
+  file: ExportFile<string | Uint8Array>,
   options: {
     bom?: boolean;
     documentRef?: Document;
@@ -55,9 +55,12 @@ export function downloadTextFile(
   const urlRef = options.urlRef ?? URL;
   try {
     const documentRef = options.documentRef ?? document;
-    const blob = new Blob([options.bom ? "\uFEFF" : "", file.content], {
-      type: `${file.mediaType};charset=utf-8`,
-    });
+    const blob =
+      typeof file.content === "string"
+        ? new Blob([options.bom ? "\uFEFF" : "", file.content], {
+            type: `${file.mediaType};charset=utf-8`,
+          })
+        : new Blob([new Uint8Array(file.content)], { type: file.mediaType });
     objectUrl = urlRef.createObjectURL(blob);
     anchor = documentRef.createElement("a");
     anchor.href = objectUrl;
