@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ProfileLibrary } from "@/components/local-profiles/profile-library";
 export const metadata: Metadata = {
   title: "내 프로파일",
@@ -13,6 +14,12 @@ export default function ProfilesPage() {
         있습니다.
       </p>
       <ProfileLibrary />
+      <Link
+        href="/ai-guide"
+        className="text-primary inline-flex min-h-11 items-center font-semibold underline"
+      >
+        AI에서 활용하기
+      </Link>
     </section>
   );
 }

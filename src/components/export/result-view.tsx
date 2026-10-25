@@ -190,6 +190,9 @@ export function ResultView({
       />
 
       <LocalSavePanel />
+      <Button asChild variant="outline" data-print-hidden="true">
+        <Link href="/ai-guide">AI에서 활용하기</Link>
+      </Button>
       <div data-print-hidden="true">
         <EditAgainButton />
       </div>

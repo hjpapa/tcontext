@@ -139,3 +139,13 @@ corepack pnpm test:e2e
 - 이전 WU 수정: WU-10의 skill 방법에 skill-file artifact를 연결하고 승인된 업로드 단계·계정 조건·파일명 확인·수정 후 재업로드 안내로 바꿨다.
 - 확인하지 못한 것·남은 위험: platform-facts.md 6절의 실제 계정 표본 업로드·사용은 아직 미확인이다. 승인된 지시에 따라 이 결과를 기다리지 않고 구현했으며 최종 리뷰에서 확인해야 한다. zip 패키지는 만들지 않는다.
 - 리뷰어에게 묻고 싶은 것: 표본 SKILL.md의 실제 업로드와 활용 결과를 최종 리뷰 때 확인해 주세요.
+
+## WU-11 범용 가이드 화면
+
+- 상태: 완료
+- 변경 파일: `src/app/ai-guide/page.tsx`, `src/app/ai-guide/[platform]/page.tsx`, `src/components/ai-guide/{platform-guide-view,guide-artifacts,guide.test}.tsx`, `src/components/export/result-view.tsx`, `src/app/profiles/page.tsx`, `docs/codex/progress.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 854, 기존 건너뜀 4) build ✓ e2e -; 실제 브라우저 8개 경로·폭 조합 확인
+- 설계·지시와 다르게 구현한 부분과 이유: 없음. 플랫폼 문자열 분기 없이 콘텐츠 상태로 렌더링하고, 다운로드·복사만 클라이언트 컴포넌트로 분리했다. 문서가 없으면 파일 버튼을 비활성화하고 지침 복사는 허용한다. 종료·출시 예정 방법은 접힌 안내로 표시한다.
+- 이전 WU 수정: 결과 화면과 내 프로파일 화면에 AI에서 활용하기 진입점을 연결했다.
+- 확인하지 못한 것·남은 위험: 프로덕션 서버에서 목록과 세 상세 경로를 320px·393px로 검사하여 모두 HTTP 200, 가로 넘침 0, 페이지 오류 0, main 영역 1개를 확인했다. 320px 스크린샷도 확인했다. 전체 E2E와 실제 다운로드·클립보드는 WU-12에서 검증한다. 외부 서비스에 자동 업로드하지 않는다.
+- 리뷰어에게 묻고 싶은 것: 없음
