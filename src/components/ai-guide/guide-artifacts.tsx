@@ -1,5 +1,10 @@
 "use client";
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import {
+  ExportVariantPicker,
+  type ExportVariantSelection,
+} from "@/components/export/export-variant-picker";
+import { useContextAsOf } from "@/components/export/use-context-as-of";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
 import { COMMON_USAGE_INSTRUCTIONS } from "@/content/usage-instructions";
@@ -9,11 +14,18 @@ import {
   downloadTextFile,
   profileMarkdownFilename,
 } from "@/lib/export/download";
-import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import {
+  OPTIONAL_SECTION_IDS,
+  profileToCoreMarkdown,
+  profileToModuleMarkdown,
+  variantMarkdownFilename,
+  type VariantResult,
+} from "@/lib/export/profile-variants";
 import {
   createSkillPackageFile,
   createUsageInstructionsFile,
 } from "@/lib/export/skill";
+import { PROFILE_MODULE_IDS } from "@/types/profile";
 
 export function GuideArtifacts({
   artifacts,
@@ -21,8 +33,25 @@ export function GuideArtifacts({
   artifacts: readonly GuideArtifactId[];
 }) {
   const { profile, markdown } = useInterviewSession();
+  const asOf = useContextAsOf(profile);
+  const [selection, setSelection] = useState<ExportVariantSelection>({
+    variant: "full",
+    modules: [...PROFILE_MODULE_IDS],
+    sections: [...OPTIONAL_SECTION_IDS],
+  });
   const [message, setMessage] = useState<string | null>(null);
   const hasDocument = profile !== null && markdown.length > 0;
+  const result = useMemo<VariantResult | null>(() => {
+    if (!hasDocument || !profile || !asOf) return null;
+    if (selection.variant === "full") return { ok: true, markdown };
+    if (selection.variant === "core")
+      return profileToCoreMarkdown(profile, { asOf });
+    return profileToModuleMarkdown(profile, {
+      asOf,
+      modules: selection.modules,
+      sections: selection.sections,
+    });
+  }, [hasDocument, profile, markdown, asOf, selection]);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(COMMON_USAGE_INSTRUCTIONS);
@@ -37,12 +66,18 @@ export function GuideArtifacts({
       if (kind === "usage-instructions") {
         if (!downloadTextFile(createUsageInstructionsFile(), { bom: false }).ok)
           throw new Error("download_failed");
-      } else if (kind === "profile-markdown" && profile)
+      } else if (kind === "profile-markdown" && profile) {
+        if (!result?.ok) return;
         downloadMarkdown(
-          profileToMarkdown(profile),
-          profileMarkdownFilename(profile.metadata.schoolLevel),
+          result.markdown,
+          selection.variant === "full"
+            ? profileMarkdownFilename(profile.metadata.schoolLevel)
+            : variantMarkdownFilename(
+                profile.metadata.schoolLevel,
+                selection.variant,
+              ),
         );
-      else {
+      } else {
         const result = createSkillPackageFile({
           profile,
           now: new Date().toISOString(),
@@ -81,14 +116,30 @@ export function GuideArtifacts({
           switch (id) {
             case "profile-markdown":
               return (
-                <Button
-                  key={id}
-                  variant="outline"
-                  disabled={!hasDocument}
-                  onClick={() => download(id)}
-                >
-                  교사 Markdown 다운로드
-                </Button>
+                <div key={id} className="w-full min-w-0 space-y-3">
+                  <ExportVariantPicker
+                    value={selection}
+                    onChange={(next) => {
+                      setSelection(next);
+                      setMessage(null);
+                    }}
+                    disabled={!hasDocument}
+                  />
+                  {result && !result.ok ? (
+                    <p role="status" className="text-sm leading-6">
+                      {result.error === "no_modules"
+                        ? "모듈을 하나 이상 고르세요"
+                        : "검토를 마친 문서에서만 만들 수 있습니다. 문서를 다시 검토해 주세요."}
+                    </p>
+                  ) : null}
+                  <Button
+                    variant="outline"
+                    disabled={!hasDocument || !result?.ok}
+                    onClick={() => download(id)}
+                  >
+                    교사 Markdown 다운로드
+                  </Button>
+                </div>
               );
             case "skill-package":
               return (
