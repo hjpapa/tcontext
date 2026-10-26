@@ -96,11 +96,11 @@ export function ResultActions({
       aria-label="문서 내보내기"
       data-print-hidden="true"
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Button
           type="button"
           size="lg"
-          className="min-h-14 justify-start px-5 text-base sm:col-span-2"
+          className="h-auto min-h-14 min-w-0 justify-start px-5 py-3 text-left text-base whitespace-normal sm:col-span-2"
           onClick={() =>
             downloadMarkdown(
               markdown,
