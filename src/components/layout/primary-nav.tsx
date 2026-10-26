@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FolderOpen } from "lucide-react";
 
 const WORKFLOW_PATHS = ["/interview", "/review", "/result", "/admin"];
 
@@ -30,6 +30,15 @@ export function PrimaryNav() {
       >
         <span className="sm:hidden">예시</span>
         <span className="hidden sm:inline">문서 예시</span>
+      </Link>
+      <Link
+        href="/profiles"
+        aria-label="내 프로파일"
+        aria-current={isCurrentPath(pathname, "/profiles") ? "page" : undefined}
+        className="hover:bg-secondary inline-flex min-h-10 items-center rounded-full px-2 text-sm font-semibold sm:px-3"
+      >
+        <FolderOpen aria-hidden="true" className="size-4 sm:hidden" />
+        <span className="hidden sm:inline">내 프로파일</span>
       </Link>
       <Link
         href="/privacy"

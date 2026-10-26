@@ -52,6 +52,24 @@
 | `environmentConstraints`     | `limited_time`, `device_gap`, `unstable_network`, `large_class`, `preparation_load`, `mixed_achievement`, `attention_transition`                 |
 | `aiBoundaries`               | `no_personal_data`, `teacher_final_judgment`, `student_thinking_first`, `fact_check_required`, `copyright_review`, `disclose_ai_use`             |
 
+## 브라우저 로컬 저장(IndexedDB)
+
+교사가 켠 경우에만 DB `tcontext-local-profiles`(버전 1)를 만든다. 저장 형식 버전은 1이며 최대 10개 프로파일을 보관한다. Web Storage에는 프로파일 본문을 저장하지 않는다.
+
+| store      | 필드                                                                         | 목적                                                       |
+| ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `meta`     | `key: "settings"`, `enabledAt`, `storageSchemaVersion`                       | 명시적 활성화 시각과 저장 형식 버전                        |
+| `profiles` | `id`, `storageSchemaVersion`, `createdAt`, `updatedAt`, `revision`, `origin` | 무작위 문서 ID, 버전·시각, 충돌 검출, 인터뷰·가져오기 구분 |
+| `profiles` | `suggestedTags`                                                              | 검토 때 다시 선택할 수 있는 통제된 제안 태그               |
+| `profiles` | `confirmed: { profile, confirmedAt } \| null`                                | 검토 완료된 구조화 프로필과 확정 시각                      |
+| `profiles` | `draft: { profile, baseConfirmedAt, updatedAt } \| null`                     | 미완성 문장을 허용하는 편집 초안과 기준 확정 시각          |
+
+프로필에는 7개 모듈, 종합 목록 4종, 확인 태그와 생성 메타데이터가 포함된다. 초안의 개인정보 검사 결과는 검사 대기 값으로만 보관하며 확정본은 실제 검사 상태를 보존한다. `profiles`의 keyPath는 `id`, `updatedAt` 인덱스는 수정 순서 조회용이다.
+
+원문 인터뷰 답변, 서명된 검사 토큰, 기여 영수증, 경고 확인 체크 상태, 별도 Markdown 사본, IP 주소·사용자 에이전트·이름·이메일·쿠키는 저장하지 않는다. 교사가 내용을 검토하며 개인정보를 제거해야 한다.
+
+보존 기간은 교사가 지우거나 브라우저가 지울 때까지이며 자동 만료는 없다. `/profiles`에서 개별 문서 삭제·초안 버리기, `/profiles` 또는 `/privacy`에서 “로컬 저장 끄고 모두 삭제”를 제공한다. “이 탭의 모든 기록 삭제”는 저장된 프로파일을 지우지 않는다. 공용 기기에 주의하고 소실에 대비해 JSON 백업을 보관한다. 서버 기여와 내려받은 파일은 각각 별도로 삭제해야 한다.
+
 ## 분석 제한
 
 - 태그를 교사의 전문성, 성과, 인성 점수로 사용하지 않는다.

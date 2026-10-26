@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { LocalProfilesProvider } from "@/components/local-profiles/local-profiles-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { InterviewSessionProvider } from "@/components/layout/interview-session-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -69,9 +70,11 @@ export default function RootLayout({
     <html lang="ko" data-scroll-behavior="smooth">
       <body>
         <InterviewSessionProvider>
-          <TooltipProvider>
-            <AppShell>{children}</AppShell>
-          </TooltipProvider>
+          <LocalProfilesProvider>
+            <TooltipProvider>
+              <AppShell>{children}</AppShell>
+            </TooltipProvider>
+          </LocalProfilesProvider>
         </InterviewSessionProvider>
       </body>
     </html>

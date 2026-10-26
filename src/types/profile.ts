@@ -321,6 +321,32 @@ export const UNVERIFIED_PRIVACY_REVIEW: PrivacyReview = {
   ],
 };
 
+/** 편집 직후 최종 검사를 다시 받아야 하는 초안 상태이며 내보내기·기여 차단이 그대로 적용된다. */
+export const PENDING_PRIVACY_REVIEW: PrivacyReview = {
+  status: "needs_review",
+  items: [
+    {
+      text: "최종 개인정보 검사를 완료하지 않은 초안",
+      reason: "현재 내용은 최종 개인정보 검사를 다시 받아야 합니다.",
+      suggestedRewrite: "검토를 마친 뒤 최종 개인정보 검사를 실행해 주세요.",
+    },
+  ],
+};
+
+export function isPendingPrivacyReview(review: PrivacyReview): boolean {
+  const [item, ...rest] = review.items;
+  const [expected] = PENDING_PRIVACY_REVIEW.items;
+  return (
+    review.status === "needs_review" &&
+    rest.length === 0 &&
+    item !== undefined &&
+    expected !== undefined &&
+    item.text === expected.text &&
+    item.reason === expected.reason &&
+    item.suggestedRewrite === expected.suggestedRewrite
+  );
+}
+
 export function isUnverifiedPrivacyReview(review: PrivacyReview): boolean {
   const [item, ...rest] = review.items;
   const [expected] = UNVERIFIED_PRIVACY_REVIEW.items;
@@ -370,83 +396,97 @@ const editableTeacherContextProfileSchema =
     modules: z.array(profileModuleSchema).length(PROFILE_MODULE_IDS.length),
   });
 
-export const teacherContextProfileSchema =
-  editableTeacherContextProfileSchema.superRefine((profile, context) => {
-    for (const key of Object.keys(CONTROLLED_TAGS) as ControlledTagCategory[]) {
-      if (
-        new Set(profile.confirmedTags[key]).size !==
-        profile.confirmedTags[key].length
-      ) {
-        context.addIssue({
-          code: "custom",
-          message: `${key} 태그는 중복될 수 없습니다.`,
-          path: ["confirmedTags", key],
-        });
-      }
-    }
+type ProfileRefinementInput = {
+  confirmedTags: ConfirmedTags;
+  privacyReview: { status: PrivacyReview["status"]; items: readonly unknown[] };
+  modules: {
+    id: ProfileModuleId;
+    claims: Pick<ProfileClaim, "id" | "basis" | "confirmedByUser">[];
+  }[];
+};
 
+export function refineTeacherContextProfile(
+  profile: ProfileRefinementInput,
+  context: z.RefinementCtx,
+): void {
+  for (const key of Object.keys(CONTROLLED_TAGS) as ControlledTagCategory[]) {
     if (
-      profile.privacyReview.status === "clear" &&
-      profile.privacyReview.items.length > 0
+      new Set(profile.confirmedTags[key]).size !==
+      profile.confirmedTags[key].length
     ) {
       context.addIssue({
         code: "custom",
-        message: "clear 상태에는 검토 항목이 없어야 합니다.",
-        path: ["privacyReview", "items"],
+        message: `${key} 태그는 중복될 수 없습니다.`,
+        path: ["confirmedTags", key],
       });
     }
-    if (
-      profile.privacyReview.status === "needs_review" &&
-      profile.privacyReview.items.length === 0
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "needs_review 상태에는 한 개 이상의 검토 항목이 필요합니다.",
-        path: ["privacyReview", "items"],
-      });
-    }
+  }
 
-    profile.modules.forEach((module, moduleIndex) => {
-      module.claims.forEach((claim, claimIndex) => {
-        if (claim.basis === "needs_confirmation" && claim.confirmedByUser) {
-          context.addIssue({
-            code: "custom",
-            message:
-              "확인된 문장은 needs_confirmation 대신 direct 또는 inferred여야 합니다.",
-            path: [
-              "modules",
-              moduleIndex,
-              "claims",
-              claimIndex,
-              "confirmedByUser",
-            ],
-          });
-        }
-      });
+  if (
+    profile.privacyReview.status === "clear" &&
+    profile.privacyReview.items.length > 0
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "clear 상태에는 검토 항목이 없어야 합니다.",
+      path: ["privacyReview", "items"],
     });
+  }
+  if (
+    profile.privacyReview.status === "needs_review" &&
+    profile.privacyReview.items.length === 0
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "needs_review 상태에는 한 개 이상의 검토 항목이 필요합니다.",
+      path: ["privacyReview", "items"],
+    });
+  }
 
-    const moduleIds = profile.modules.map((module) => module.id);
-    for (const id of PROFILE_MODULE_IDS) {
-      if (moduleIds.filter((candidate) => candidate === id).length !== 1) {
+  profile.modules.forEach((module, moduleIndex) => {
+    module.claims.forEach((claim, claimIndex) => {
+      if (claim.basis === "needs_confirmation" && claim.confirmedByUser) {
         context.addIssue({
           code: "custom",
-          message: `프로파일에는 ${id} 모듈이 정확히 한 번 포함되어야 합니다.`,
-          path: ["modules"],
+          message:
+            "확인된 문장은 needs_confirmation 대신 direct 또는 inferred여야 합니다.",
+          path: [
+            "modules",
+            moduleIndex,
+            "claims",
+            claimIndex,
+            "confirmedByUser",
+          ],
         });
       }
-    }
+    });
+  });
 
-    const claimIds = profile.modules.flatMap((module) =>
-      module.claims.map((claim) => claim.id),
-    );
-    if (new Set(claimIds).size !== claimIds.length) {
+  const moduleIds = profile.modules.map((module) => module.id);
+  for (const id of PROFILE_MODULE_IDS) {
+    if (moduleIds.filter((candidate) => candidate === id).length !== 1) {
       context.addIssue({
         code: "custom",
-        message: "claim id는 프로파일 전체에서 고유해야 합니다.",
+        message: `프로파일에는 ${id} 모듈이 정확히 한 번 포함되어야 합니다.`,
         path: ["modules"],
       });
     }
-  });
+  }
+
+  const claimIds = profile.modules.flatMap((module) =>
+    module.claims.map((claim) => claim.id),
+  );
+  if (new Set(claimIds).size !== claimIds.length) {
+    context.addIssue({
+      code: "custom",
+      message: "claim id는 프로파일 전체에서 고유해야 합니다.",
+      path: ["modules"],
+    });
+  }
+}
+
+export const teacherContextProfileSchema =
+  editableTeacherContextProfileSchema.superRefine(refineTeacherContextProfile);
 
 export type TeacherContextProfile = z.output<
   typeof teacherContextProfileSchema

@@ -42,16 +42,30 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LocalDraftStatus } from "@/components/local-profiles/local-draft-status";
+import { useLocalProfiles } from "@/components/local-profiles/local-profiles-provider";
+import { useLocalDraftAutosave } from "@/components/local-profiles/use-local-draft-autosave";
+import { LOCAL_PROFILE_ERROR_MESSAGES } from "@/components/local-profiles/local-save-panel";
+import { getLocalProfile } from "@/lib/storage/profiles/repository";
+import { toEditableSession } from "@/lib/storage/profiles/serialize";
+import {
+  createTeacherAuthoredClaim,
+  diffProfiles,
+} from "@/lib/profile/changes";
 import { downloadMarkdown } from "@/lib/export/download";
+import {
+  confirmedTagsFromSelection,
+  selectedTagKeysFromConfirmedTags,
+} from "@/lib/profile/tags";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
 import { fetchWithDeadline } from "@/lib/http/fetch-with-deadline";
 import { rateLimitMessage } from "@/lib/http/retry-after";
 import { jsonRequestHeaders } from "@/lib/http/tab-id";
 import {
-  confirmedTagsFromCandidates,
   hasUnresolvedClaims,
   isUnverifiedPrivacyReview,
   PROFILE_MODULE_TITLES,
+  PENDING_PRIVACY_REVIEW,
   UNVERIFIED_PRIVACY_REVIEW,
   type ControlledTagCategory,
   type PrivacyReview,
@@ -142,17 +156,6 @@ const TAG_LABELS: Record<string, string> = {
   fact_check_required: "사실 확인 필수",
   copyright_review: "저작권 확인",
   disclose_ai_use: "AI 사용 알림",
-};
-
-const PENDING_PRIVACY_REVIEW: PrivacyReview = {
-  status: "needs_review",
-  items: [
-    {
-      text: "최종 개인정보 검사를 완료하지 않은 초안",
-      reason: "현재 내용은 최종 개인정보 검사를 다시 받아야 합니다.",
-      suggestedRewrite: "검토를 마친 뒤 최종 개인정보 검사를 실행해 주세요.",
-    },
-  ],
 };
 
 function markPrivacyReviewPending(
@@ -371,6 +374,11 @@ function focusReviewField(targetId: string) {
 }
 
 export function ProfileReview() {
+  const { localProfileLink } = useInterviewSession();
+  return <ProfileReviewBody key={localProfileLink?.openedAt ?? "interview"} />;
+}
+
+function ProfileReviewBody() {
   const router = useRouter();
   const {
     profile,
@@ -379,8 +387,32 @@ export function ProfileReview() {
     setMarkdown,
     setPrivacyReviewToken,
     clearBrowserRecords,
+    localProfileLink,
+    setLocalProfileLink,
+    openProfile,
   } = useInterviewSession();
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(() =>
+    profile
+      ? selectedTagKeysFromConfirmedTags(profile.confirmedTags)
+      : new Set(),
+  );
+  const { options: localOptions, setWriteStatus } = useLocalProfiles();
+  const autosave = useLocalDraftAutosave({
+    profile,
+    selectedTags,
+    suggestedTags,
+    link: localProfileLink,
+    setLink: setLocalProfileLink,
+    options: localOptions,
+    setStatus: setWriteStatus,
+  });
+  const changes = useMemo(
+    () =>
+      profile && localProfileLink?.baseline
+        ? diffProfiles(localProfileLink.baseline, profile)
+        : null,
+    [profile, localProfileLink],
+  );
   const [privacyReview, setPrivacyReview] = useState<PrivacyReview | null>(
     null,
   );
@@ -455,8 +487,9 @@ export function ProfileReview() {
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">검토할 초안이 없습니다.</h1>
         <p className="mt-4 text-lg leading-8 text-[#536159]">
-          답변과 초안은 서버나 브라우저 저장소에 보관하지 않습니다. 새로고침한
-          경우 인터뷰를 다시 시작해 주세요.
+          원문 답변과 저장하지 않은 초안은 새로고침하면 사라집니다. 보관한
+          프로파일이나 JSON 백업이 있다면 내 프로파일에서 열어 주세요. 보관한
+          문서가 없다면 인터뷰를 다시 시작해 주세요.
         </p>
         <Button
           asChild
@@ -468,6 +501,49 @@ export function ProfileReview() {
       </section>
     );
   }
+
+  const reloadLocalProfile = async () => {
+    if (!localProfileLink) return;
+    await autosave.settle();
+    const record = await getLocalProfile(
+      localProfileLink.recordId,
+      localOptions,
+    );
+    if (!record.ok) {
+      setError(LOCAL_PROFILE_ERROR_MESSAGES[record.error]);
+      return;
+    }
+    const session = toEditableSession(record.value);
+    openProfile({
+      profile: session.profile,
+      suggestedTags: session.suggestedTags,
+      mode: "edit",
+      link: {
+        recordId: session.recordId,
+        revision: session.revision,
+        baseline: session.baseline,
+      },
+    });
+  };
+  const discardLocalDraft = async () => {
+    const result = await autosave.discard();
+    if (!result.ok) {
+      setError(LOCAL_PROFILE_ERROR_MESSAGES[result.error]);
+      return;
+    }
+    if (result.value.deleted) {
+      setProfile(null);
+      setMarkdown("");
+      setPrivacyReviewToken(null);
+      setLocalProfileLink(null);
+      router.push("/profiles");
+    } else await reloadLocalProfile();
+  };
+  const finalizeAndShowResult = (finalProfile: TeacherContextProfile) => {
+    setMarkdown(profileToMarkdown(finalProfile));
+    void autosave.finalize(finalProfile, suggestedTags);
+    router.push("/result");
+  };
 
   const resetPrivacyReview = () => {
     setPrivacyReview(null);
@@ -642,11 +718,9 @@ export function ProfileReview() {
     setPrivacyReviewToken(null);
     setPrivacyRetryNotice(null);
     try {
-      const confirmedTags = confirmedTagsFromCandidates(
-        suggestedTags.map((tag) => ({
-          ...tag,
-          confirmedByUser: selectedTags.has(`${tag.category}:${tag.tag}`),
-        })),
+      const confirmedTags = confirmedTagsFromSelection(
+        suggestedTags,
+        selectedTags,
       );
       const withTags: TeacherContextProfile = {
         ...markPrivacyReviewPending(profile),
@@ -704,8 +778,7 @@ export function ProfileReview() {
 
       if (review.status === "clear") {
         setPrivacyReviewToken(reviewToken);
-        setMarkdown(profileToMarkdown(reviewedProfile));
-        router.push("/result");
+        finalizeAndShowResult(reviewedProfile);
       }
     } catch (caught) {
       setError(
@@ -839,8 +912,7 @@ export function ProfileReview() {
     ) {
       return;
     }
-    setMarkdown(profileToMarkdown(profile));
-    router.push("/result");
+    finalizeAndShowResult(profile);
   };
 
   const privacyReviewUnverified =
@@ -848,6 +920,20 @@ export function ProfileReview() {
 
   return (
     <section aria-labelledby="review-title" className="space-y-12">
+      <LocalDraftStatus
+        link={localProfileLink}
+        onDiscard={() => void discardLocalDraft()}
+        onOverwrite={() => void autosave.overwrite()}
+        onReload={() => void reloadLocalProfile()}
+        onRetry={() => void autosave.retry()}
+      />
+      {localProfileLink && !localProfileLink.baseline ? (
+        <p>
+          확정본이 없는 가져온 초안입니다. 모든 문장을 다시 확인한 뒤 검토를
+          마쳐 주세요.
+        </p>
+      ) : null}
+      {changes ? <p>확정본 대비 변경 {changes.changedCount}곳</p> : null}
       <div className="max-w-4xl space-y-4">
         <p className="eyebrow">AI 초안 검토</p>
         <h1
@@ -982,6 +1068,22 @@ export function ProfileReview() {
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 {PROFILE_MODULE_TITLES[profileModule.id]}
+                {changes &&
+                (() => {
+                  const change = changes.modules[profileModule.id];
+                  return (
+                    change.titleChanged ||
+                    change.summaryChanged ||
+                    change.added.length ||
+                    change.edited.length ||
+                    change.removedCount ||
+                    change.reordered
+                  );
+                })() ? (
+                  <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                    변경
+                  </span>
+                ) : null}
                 {moduleUnresolved > 0 ? (
                   <span className="bg-destructive/10 text-destructive rounded-full px-1.5 py-0.5 text-[10px]">
                     {moduleUnresolved}
@@ -1144,6 +1246,27 @@ export function ProfileReview() {
               </div>
             </div>
 
+            <Button
+              type="button"
+              variant="outline"
+              aria-label={`${PROFILE_MODULE_TITLES[module.id]} 문장 추가`}
+              onClick={() => {
+                const claim = createTeacherAuthoredClaim(
+                  module.id,
+                  profile.modules.flatMap((item) =>
+                    item.claims.map((existing) => existing.id),
+                  ),
+                );
+                updateDraftProfile(
+                  updateModule(profile, module.id, (current) => ({
+                    ...current,
+                    claims: [...current.claims, claim],
+                  })),
+                );
+              }}
+            >
+              문장 추가
+            </Button>
             {module.claims.length === 0 ? (
               <p className="border-l-4 border-[#cfd8d0] py-2 pl-4 text-[#536159]">
                 이 모듈에 남긴 문장이 없습니다.
@@ -1167,6 +1290,19 @@ export function ProfileReview() {
                             문장 {claimIndex + 1}
                           </span>
                           <EvidenceBadge basis={claim.basis} />
+                          {changes?.modules[module.id].added.includes(
+                            claim.id,
+                          ) ? (
+                            <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                              새 문장
+                            </span>
+                          ) : changes?.modules[module.id].edited.includes(
+                              claim.id,
+                            ) ? (
+                            <span className="bg-secondary text-primary rounded-full px-2 py-1 text-xs font-semibold">
+                              수정됨
+                            </span>
+                          ) : null}
                           {claim.confirmedByUser ? (
                             <span className="inline-flex items-center gap-1 text-sm font-bold text-[#28684c]">
                               <Check aria-hidden="true" className="size-4" />
@@ -1430,6 +1566,19 @@ export function ProfileReview() {
                 <h3 id={`synthesis-${key}`} className="text-xl font-bold">
                   {title}
                 </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-label={`${title} 문장 추가`}
+                  onClick={() =>
+                    updateSynthesis({
+                      ...profile,
+                      [key]: [...profile[key], ""],
+                    })
+                  }
+                >
+                  문장 추가
+                </Button>
                 {items.length === 0 ? (
                   <p className="mt-3 border-l-4 border-[#cfd8d0] py-2 pl-4 text-[#536159]">
                     {emptyText}

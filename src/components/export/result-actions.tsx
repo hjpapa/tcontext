@@ -13,12 +13,15 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   downloadMarkdown,
+  downloadTextFile,
   profileMarkdownFilename,
 } from "@/lib/export/download";
 import {
   profileToCompactText,
   profileToPlainText,
 } from "@/lib/export/profile-to-text";
+import { createProfileBackupFile } from "@/lib/storage/profiles/backup";
+import type { SuggestedTag } from "@/lib/ai/schemas/profile";
 import type { TeacherContextProfile } from "@/types/profile";
 
 type CopyTarget = "markdown" | "plainText" | "compact";
@@ -36,10 +39,13 @@ const COPY_LABELS: Record<CopyTarget, string> = {
 export function ResultActions({
   profile,
   markdown,
+  suggestedTags = [],
 }: {
   profile: TeacherContextProfile;
   markdown: string;
+  suggestedTags?: readonly SuggestedTag[];
 }) {
+  const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>(null);
   const resetTimerRef = useRef<number | null>(null);
 
@@ -157,6 +163,38 @@ export function ResultActions({
           인쇄·PDF 저장
         </Button>
       </div>
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-12"
+        onClick={() => {
+          const result = createProfileBackupFile({
+            kind: "confirmed",
+            profile,
+            suggestedTags,
+            now: new Date().toISOString(),
+          });
+          if (!result.ok) {
+            setBackupStatus(
+              "백업을 만들지 못했습니다. 문서를 다시 검토해 주세요.",
+            );
+            return;
+          }
+          const downloaded = downloadTextFile(result.value, { bom: false });
+          setBackupStatus(
+            downloaded.ok
+              ? "JSON 백업을 내려받았습니다."
+              : "다운로드하지 못했습니다. 브라우저 권한을 확인하고 다시 시도해 주세요.",
+          );
+        }}
+      >
+        JSON 백업 다운로드
+      </Button>
+      <p className="text-muted-foreground text-sm leading-6">
+        Markdown은 AI 활용용, JSON은 TContext에서 다시 열기 위한
+        보관·복원용입니다.
+      </p>
+      {backupStatus ? <p role="status">{backupStatus}</p> : null}
       <p className="text-muted-foreground text-sm leading-6" aria-live="polite">
         {statusMessage}
       </p>
