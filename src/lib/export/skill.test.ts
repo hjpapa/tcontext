@@ -23,7 +23,9 @@ function header(content: string) {
       .split("\n")
       .map((line) => {
         const colon = line.indexOf(": ");
-        return [line.slice(0, colon), JSON.parse(line.slice(colon + 2))];
+        const key = line.slice(0, colon);
+        const value = line.slice(colon + 2);
+        return [key, key === "name" ? value : JSON.parse(value)];
       }),
   );
 }
@@ -46,11 +48,15 @@ it("exports exactly two files with fixed instructions and unchanged canonical do
   const parsed = header(instructions);
   expect(Object.keys(parsed)).toEqual(["name", "description"]);
   expect(parsed.name).toMatch(/^[a-z0-9-]+$/);
+  expect(instructions).toMatch(/^name: teacher-context$/m);
   expect(parsed.name).toBe(entries[0]!.path.split("/")[0]);
   expect(parsed.description).toBe(SKILL_DESCRIPTION);
   expect(instructions.match(/^---$/gm)).toHaveLength(2);
   expect(instructions).not.toContain(profile.profileTitle);
   expect(instructions).toContain("`references/teacher-profile.md`");
+  expect(instructions).toContain(
+    "# 교사 컨텍스트 사용 지침\n\n이 skill을 사용할 때는 답하기 전에 반드시 참고 파일 `references/teacher-profile.md` 전체를 먼저 읽으세요. 교사 컨텍스트는 이 파일에만 있습니다. 파일을 읽지 못했다면 그 사실을 사용자에게 알리고, 교사 프로파일 문서를 대화에 첨부해 달라고 요청하세요.",
+  );
   expect(instructions).toContain(COMMON_USAGE_INSTRUCTIONS);
   for (const principle of SKILL_USAGE_PRINCIPLES)
     expect(instructions).toContain(`- ${principle}`);
@@ -108,6 +114,8 @@ it("exports deterministic standalone instructions without a teacher profile", ()
   expect(file.path).toBe("SKILL.md");
   expect(file.mediaType).toBe("text/markdown");
   expect(header(file.content).name).toBe("teacher-context-guide");
+  expect(header(file.content).name).toMatch(/^[a-z0-9-]+$/);
+  expect(file.content).toMatch(/^name: teacher-context-guide$/m);
   expect(header(file.content).description).toBe(
     "대화에 첨부한 교사 프로파일 컨텍스트 문서를 함께 사용하기 위한 활용 지침입니다. 교육 관련 요청에서 참고합니다.",
   );

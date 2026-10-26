@@ -165,5 +165,5 @@
 
 ### 6.1 판단 (Claude, 2026-10-26)
 
-- zip 방식은 Gemini가 참고 파일을 **항상 읽는다고 확인되지 않았다.** 5.2의 확인 절차에 따라 Gemini의 기본 경로를 대화 첨부(A)로 바꾸는 조정이 필요하다(`docs/codex/wu-12a-gemini-guide-adjustment.md`, 사용자 승인 대기).
+- zip 방식은 Gemini가 참고 파일을 **항상 읽는다고 확인되지 않았다.** 5.2의 확인 절차에 따라 Gemini의 기본 경로를 대화 첨부(A)로 바꾸는 조정이 필요하다(`docs/codex/wu-12a-gemini-guide-adjustment.md`, 적용됨(WU-12a)).
 - 대화 첨부는 교사 문서가 대화 안에 직접 들어가므로 참고 파일 열람 여부에 의존하지 않는다.

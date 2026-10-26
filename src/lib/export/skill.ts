@@ -28,7 +28,7 @@ function instructionDocument(
 ): string {
   return [
     "---",
-    `name: ${yamlQuoted(name)}`,
+    `name: ${name}`,
     `description: ${yamlQuoted(description)}`,
     "---",
     "",
@@ -73,7 +73,7 @@ export function createSkillPackageFile({
                 SKILL_NAME,
                 SKILL_DESCRIPTION,
                 "교사 컨텍스트 사용 지침",
-                "교사 컨텍스트는 이 skill의 참고 파일 `references/teacher-profile.md`에 있습니다. 교육 관련 요청을 받으면 먼저 이 파일을 읽고 요청과 관련 있는 내용을 선별해 반영하세요.",
+                "이 skill을 사용할 때는 답하기 전에 반드시 참고 파일 `references/teacher-profile.md` 전체를 먼저 읽으세요. 교사 컨텍스트는 이 파일에만 있습니다. 파일을 읽지 못했다면 그 사실을 사용자에게 알리고, 교사 프로파일 문서를 대화에 첨부해 달라고 요청하세요.",
                 SKILL_USAGE_PRINCIPLES,
               ),
             ),

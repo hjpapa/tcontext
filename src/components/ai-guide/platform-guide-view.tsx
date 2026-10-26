@@ -121,7 +121,7 @@ export function PlatformGuideView({ guide }: { guide: PlatformGuide }) {
         <p className="text-muted-foreground mt-3 leading-7">{guide.summary}</p>
       </header>
       <GuideNotices />
-      {fallback ? (
+      {fallback && fallback.status !== "recommended" ? (
         <p>
           권장 방법을 이용하기 어렵다면{" "}
           <a

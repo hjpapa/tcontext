@@ -175,3 +175,15 @@ corepack pnpm test:e2e
 - 브랜치·커밋: `feat/local-profiles`에서 WU별 1개 커밋을 유지한다. WU-12 커밋에 이 요약을 포함하고 최종 리뷰를 위해 멈춘다. 기존 커밋 amend/rebase, 푸시·배포는 하지 않았다.
 - 보호한 계약: 서버/API, 로컬 저장 스키마·DB 이름·버전·키, JSON 백업 형식, canonical Markdown, 기존 테스트를 유지했다. 새 런타임·개발 의존성을 추가하지 않았다. 가이드는 외부 업로드를 자동 실행하지 않는다.
 - 남은 위험·리뷰 요청: 실제 ZIP 업로드 및 참고 파일 반영은 미확인이다. platform-facts.md 5.2의 실측/대안 경로 결정을 최종 리뷰에서 확인해야 한다. 미등록 가이드 경로의 HTTP 404는 정상 응답하지만 NoFallbackError 서버 로그가 남는다. 실제 기기와 다른 브라우저는 별도 검증 대상이다.
+
+## WU-12a Gemini 안내 조정(실측 반영)
+
+- 상태: 완료. 2026-10-26 사용자의 명시적 승인에 따라 수행했으며, 지시문 2.4의 테스트 기대값 변경도 승인 범위로 적용했다. 지시문 머리의 승인 대기 문구보다 이번 사용자 승인을 우선했다.
+- 변경 파일: `src/content/platform-guides/{gemini,schema.test}.ts`, `src/components/ai-guide/{platform-guide-view,transition.test}.tsx`, `src/lib/export/{skill,skill.test}.ts`, `e2e/ai-guide.spec.ts`, `docs/codex/{platform-facts,progress}.md`
+- 관문: lint ✓ typecheck ✓ test ✓(통과 874, 기존 건너뜀 4) build ✓ e2e ✓(Chromium 31, mobile 31, 총 62 통과; CI=1, 재시도 0, 프로덕션 next start). 모든 관문은 corepack pnpm으로 실행했고 첫 실행에 통과했다. 아키텍처 가드와 렌더러의 플랫폼 문자열 분기 금지 검사도 통과했다.
+- 설계·지시와 다르게 구현한 부분과 이유: 없음. 새 대안 안내 RTL은 기존 transition.test.tsx에 세 플랫폼별 케이스로 추가했다. 전환 시뮬레이션은 승인된 새 상태에서 출발하여 상태만 바꾸며, 종료·출시 예정 접힘 검증도 유지했다. 공식 도움말 verifiedAt은 기존 2026-10-25를 유지하고 실측 문구에 2026-10 한계를 표시했다.
+- 이전 WU 수정: Gemini를 대화 첨부 recommended → skill available → Gem transitioning 순서로 바꾸고 summary·skill 한계·대응 요령을 반영했다. 대안 자체가 recommended이면 대안 안내를 숨기는 상태 조건을 범용 렌더러에 추가했다. 두 SKILL.md의 name을 따옴표 없이 출력하며, ZIP 안 지침의 첫 문단은 참고 파일 전체를 먼저 읽고 실패 시 알리도록 바꿨다. description 인용, 지침 전용 파일의 첫 문단, ZIP 구조와 참고 파일 내용은 유지했다. platform-facts.md 6.1은 적용됨(WU-12a)으로 갱신했다.
+- 검증 근거: 새 RTL 3개로 Gemini의 자기 참조 대안 안내 미표시 및 ChatGPT·Claude의 기존 대안 안내를 검증했다. 머리말 두 name의 정확한 비인용 표기·안전 문자 패턴, 새 첫 문단, 기존 ZIP 참고 파일 바이트 일치·개인정보 경고 보존을 확인했다. E2E는 Gemini 첫 방법의 이름과 권장 배지, 320px 화면, 실제 파일·클립보드와 전체 기존 흐름을 검증했다. 독립 읽기 전용 리뷰에서 범위 위반이나 수정이 필요한 결함이 발견되지 않았다.
+- 확인하지 못한 것·남은 위험: 지침 변경 후 실제 Gemini 계정의 재업로드·참고 파일 반영은 재실측하지 않았다. 문구 강화만으로 참고 파일을 항상 읽는다고 보장하지 않으며 대화 첨부를 기본으로 안내한다. 외부 API는 모킹했고 실제 기기·다른 브라우저는 검증하지 않았다. 기존 미등록 가이드 경로의 HTTP 404는 통과했지만 Next.js Internal: NoFallbackError 로그와 실행 환경의 NO_COLOR/FORCE_COLOR 경고는 남아 있다. 이번 범위에서 수정하지 않았다.
+- 리뷰어에게 묻고 싶은 것: 없음.
+- 범위 점검: ChatGPT·Claude 콘텐츠, ZIP 작성기, canonical Markdown, 저장 스키마·DB·백업 형식, 서버와 의존성, 공개 함수 시그니처는 변경하지 않았다. feat/local-profiles에서 지정된 메시지로 커밋 1개를 만든 뒤 멈춘다.

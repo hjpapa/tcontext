@@ -64,6 +64,16 @@ test.describe("AI usage guides", () => {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         `${platform.name} 활용 가이드`,
       );
+      if (platform.id === "gemini") {
+        const firstMethod = page.getByRole("region").first();
+        await expect(firstMethod).toHaveAccessibleName("일반 대화에 첨부");
+        await expect(
+          firstMethod.getByText("권장", { exact: true }),
+        ).toBeVisible();
+        await expect(
+          page.getByText(/권장 방법을 이용하기 어렵다면/),
+        ).toHaveCount(0);
+      }
       for (const button of await page
         .getByRole("button", { name: /다운로드$/ })
         .all())
@@ -79,7 +89,7 @@ test.describe("AI usage guides", () => {
         (await instructions.path())!,
         "utf8",
       );
-      expect(instructionText).toMatch(/^---\nname: "teacher-context-guide"\n/);
+      expect(instructionText).toMatch(/^---\nname: teacher-context-guide\n/);
       expect(instructionText).toContain(COMMON_USAGE_INSTRUCTIONS);
       expect(instructionText).not.toContain(generatedProfile.profileTitle);
       expect(instructionText.match(/^---$/gm)).toHaveLength(2);
@@ -177,7 +187,7 @@ test.describe("AI usage guides", () => {
         ]);
         const instructions = new TextDecoder().decode(entries[0]!.content);
         expect(instructions).toMatch(
-          /^---\nname: "teacher-context"\ndescription: /,
+          /^---\nname: teacher-context\ndescription: /,
         );
         expect(instructions.match(/^---$/gm)).toHaveLength(2);
         expect(instructions).toContain(COMMON_USAGE_INSTRUCTIONS);

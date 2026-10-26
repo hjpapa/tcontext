@@ -40,9 +40,9 @@ it("validates approved platform methods, dates, links and available artifacts", 
   ).toEqual([
     ["chatgpt-project", "recommended", "2026-10-25"],
     ["chatgpt-chat-attachment", "available", "2026-10-25"],
-    ["gemini-skill", "recommended", "2026-10-25"],
+    ["gemini-chat-attachment", "recommended", "2026-10-25"],
+    ["gemini-skill", "available", "2026-10-25"],
     ["gemini-gem", "transitioning", "2026-10-25"],
-    ["gemini-chat-attachment", "available", "2026-10-25"],
     ["claude-project", "recommended", "2026-10-25"],
     ["claude-chat-attachment", "available", "2026-10-25"],
   ]);
