@@ -16,10 +16,11 @@ import {
   downloadTextFile,
   profileMarkdownFilename,
 } from "@/lib/export/download";
+import { profileToPlainText } from "@/lib/export/profile-to-text";
 import {
-  profileToCompactText,
-  profileToPlainText,
-} from "@/lib/export/profile-to-text";
+  profileToCoreMarkdown,
+  type ContextAsOf,
+} from "@/lib/export/profile-variants";
 import { createProfileBackupFile } from "@/lib/storage/profiles/backup";
 import type { SuggestedTag } from "@/lib/ai/schemas/profile";
 import type { TeacherContextProfile } from "@/types/profile";
@@ -33,16 +34,18 @@ type CopyStatus = {
 const COPY_LABELS: Record<CopyTarget, string> = {
   markdown: "전체 컨텍스트",
   plainText: "일반 텍스트",
-  compact: "짧은 AI 컨텍스트",
+  compact: "핵심본",
 };
 
 export function ResultActions({
   profile,
   markdown,
+  contextAsOf,
   suggestedTags = [],
 }: {
   profile: TeacherContextProfile;
   markdown: string;
+  contextAsOf: ContextAsOf;
   suggestedTags?: readonly SuggestedTag[];
 }) {
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
@@ -141,16 +144,21 @@ export function ResultActions({
           variant="outline"
           size="lg"
           className="bg-card min-h-14 justify-start px-5 text-base"
-          onClick={() => void copy(profileToCompactText(profile), "compact")}
+          onClick={() => {
+            const result = profileToCoreMarkdown(profile, {
+              asOf: contextAsOf,
+            });
+            if (result.ok) void copy(result.markdown, "compact");
+            else
+              setTemporaryCopyStatus({ target: "compact", result: "failed" });
+          }}
         >
           {copied("compact") ? (
             <Check aria-hidden="true" />
           ) : (
             <Sparkles aria-hidden="true" />
           )}
-          {copied("compact")
-            ? "짧은 AI 컨텍스트 복사됨"
-            : "짧은 AI 컨텍스트 복사"}
+          {copied("compact") ? "핵심본 복사됨" : "핵심본 복사"}
         </Button>
         <Button
           type="button"

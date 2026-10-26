@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { FICTIONAL_PROFILES } from "@/content/examples";
 import { ResultActions } from "./result-actions";
+import { contextAsOf } from "@/lib/export/profile-variants";
 import { downloadMarkdown, downloadTextFile } from "@/lib/export/download";
 afterEach(() => {
   cleanup();
@@ -19,7 +20,11 @@ it("downloads JSON without opening a database and reports download failure", () 
     .spyOn(HTMLAnchorElement.prototype, "click")
     .mockImplementation(() => {});
   render(
-    <ResultActions profile={FICTIONAL_PROFILES[0]!} markdown="# Markdown" />,
+    <ResultActions
+      profile={FICTIONAL_PROFILES[0]!}
+      contextAsOf={contextAsOf(FICTIONAL_PROFILES[0]!)}
+      markdown="# Markdown"
+    />,
   );
   fireEvent.click(screen.getByRole("button", { name: "JSON 백업 다운로드" }));
   expect(createObjectURL).toHaveBeenCalledOnce();

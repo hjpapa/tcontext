@@ -14,6 +14,7 @@ import {
   useInterviewSession,
 } from "@/components/layout/interview-session-provider";
 import { ResultActions } from "@/components/export/result-actions";
+import { contextAsOf } from "@/lib/export/profile-variants";
 import { FICTIONAL_PROFILES } from "@/content/examples";
 import { LocalProfilesProvider } from "./local-profiles-provider";
 import { LocalSavePanel } from "./local-save-panel";
@@ -32,7 +33,11 @@ function Content() {
     <>
       <LocalSavePanel />
       {value.profile ? (
-        <ResultActions profile={value.profile} markdown="# document" />
+        <ResultActions
+          profile={value.profile}
+          contextAsOf={contextAsOf(value.profile)}
+          markdown="# document"
+        />
       ) : null}
     </>
   );

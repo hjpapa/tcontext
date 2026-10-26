@@ -10,10 +10,11 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FICTIONAL_PROFILES } from "@/content/examples";
+import { profileToPlainText } from "@/lib/export/profile-to-text";
 import {
-  profileToCompactText,
-  profileToPlainText,
-} from "@/lib/export/profile-to-text";
+  contextAsOf,
+  profileToCoreMarkdown,
+} from "@/lib/export/profile-variants";
 import { ResultActions } from "./result-actions";
 
 function fictionalProfile() {
@@ -39,6 +40,7 @@ describe("ResultActions", () => {
     render(
       <ResultActions
         profile={fictionalProfile()}
+        contextAsOf={contextAsOf(fictionalProfile())}
         markdown="# Markdown document"
       />,
     );
@@ -56,7 +58,13 @@ describe("ResultActions", () => {
     );
     setClipboard(writeText);
 
-    render(<ResultActions profile={profile} markdown="# Markdown document" />);
+    render(
+      <ResultActions
+        profile={profile}
+        contextAsOf={contextAsOf(profile)}
+        markdown="# Markdown document"
+      />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "일반 텍스트 복사" }));
 
     await waitFor(() =>
@@ -77,22 +85,26 @@ describe("ResultActions", () => {
     );
     setClipboard(writeText);
 
-    render(<ResultActions profile={profile} markdown="# Markdown document" />);
+    render(
+      <ResultActions
+        profile={profile}
+        contextAsOf={contextAsOf(profile)}
+        markdown="# Markdown document"
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "전체 컨텍스트 복사" }));
     await waitFor(() =>
       expect(writeText).toHaveBeenLastCalledWith("# Markdown document"),
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "짧은 AI 컨텍스트 복사" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "핵심본 복사" }));
+    const core = profileToCoreMarkdown(profile, { asOf: contextAsOf(profile) });
+    if (!core.ok) throw new Error("Expected a valid core export");
     await waitFor(() =>
-      expect(writeText).toHaveBeenLastCalledWith(profileToCompactText(profile)),
+      expect(writeText).toHaveBeenLastCalledWith(core.markdown),
     );
-    expect(
-      screen.getByRole("button", { name: "짧은 AI 컨텍스트 복사됨" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "핵심본 복사됨" })).toBeVisible();
   });
 
   it("announces a clipboard permission failure without throwing", async () => {
@@ -101,6 +113,7 @@ describe("ResultActions", () => {
     render(
       <ResultActions
         profile={fictionalProfile()}
+        contextAsOf={contextAsOf(fictionalProfile())}
         markdown="# Markdown document"
       />,
     );
