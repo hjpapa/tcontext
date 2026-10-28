@@ -13,6 +13,8 @@ import {
 import { LocalSavePanel } from "@/components/local-profiles/local-save-panel";
 import { ContributionPanel } from "@/components/consent/contribution-panel";
 import { ResultActions } from "@/components/export/result-actions";
+import { ExportVariantPanel } from "@/components/export/export-variant-panel";
+import { useContextAsOf } from "@/components/export/use-context-as-of";
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
@@ -33,8 +35,9 @@ export function ResultView({
   const router = useRouter();
   const { profile, markdown, suggestedTags, clearBrowserRecords } =
     useInterviewSession();
+  const asOf = useContextAsOf(profile);
 
-  if (!profile || !markdown) {
+  if (!profile || !markdown || !asOf) {
     return (
       <section className="mx-auto max-w-2xl py-12 text-center">
         <h1 className="text-3xl font-bold">완성된 문서가 없습니다.</h1>
@@ -186,7 +189,13 @@ export function ResultView({
       <ResultActions
         profile={profile}
         markdown={markdown}
+        contextAsOf={asOf}
         suggestedTags={suggestedTags}
+      />
+      <ExportVariantPanel
+        profile={profile}
+        markdown={markdown}
+        contextAsOf={asOf}
       />
 
       <LocalSavePanel />
