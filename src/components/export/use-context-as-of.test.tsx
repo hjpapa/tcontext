@@ -110,6 +110,51 @@ describe("useContextAsOf", () => {
     expect((await factory.databases()).length).toBe(1);
   });
 
+  it("uses the confirmed date only while the saved confirmed version matches the current content", async () => {
+    const factory = new IDBFactory();
+    const saved = await createConfirmed(factory, "2026-10-20T01:00:00.000Z");
+    const edited = profile();
+    edited.modules[0]!.claims[0]!.text += " 수업마다 다시 확인한다.";
+    const read = vi.spyOn(repository, "getLocalProfile");
+    const { result } = renderContext(factory);
+    await waitFor(() =>
+      expect(result.current.local.availability).toBe("enabled"),
+    );
+    act(() => {
+      result.current.session.setProfile(edited);
+      result.current.session.setLocalProfileLink(link(saved.id));
+    });
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await read.mock.results[0]!.value;
+    });
+    expect(result.current.asOf).toEqual({
+      date: "2026-10-02",
+      source: "generated",
+    });
+
+    const snapshot = toConfirmedSnapshot(edited, "2026-10-28T03:00:00.000Z");
+    if (!snapshot.ok) throw new Error("Invalid edited snapshot");
+    const confirmed = await repository.saveConfirmed(
+      saved.id,
+      { confirmed: snapshot.snapshot, expectedRevision: 1 },
+      { factory },
+    );
+    expect(confirmed.ok).toBe(true);
+    act(() =>
+      result.current.session.setLocalProfileLink({
+        ...link(saved.id),
+        revision: 2,
+      }),
+    );
+    await waitFor(() =>
+      expect(result.current.asOf).toEqual({
+        date: "2026-10-28",
+        source: "confirmed",
+      }),
+    );
+  });
+
   it("keeps the generated date for an unlinked profile even when local storage is enabled", async () => {
     const factory = new IDBFactory();
     await createConfirmed(factory, "2026-10-25T15:30:00.000Z");
