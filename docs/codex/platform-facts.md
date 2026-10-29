@@ -167,3 +167,45 @@
 
 - zip 방식은 Gemini가 참고 파일을 **항상 읽는다고 확인되지 않았다.** 5.2의 확인 절차에 따라 Gemini의 기본 경로를 대화 첨부(A)로 바꾸는 조정이 필요하다(`docs/codex/wu-12a-gemini-guide-adjustment.md`, 적용됨(WU-12a)).
 - 대화 첨부는 교사 문서가 대화 안에 직접 들어가므로 참고 파일 열람 여부에 의존하지 않는다.
+
+## 7. skill 공식 사양 (2026-10-30 확인, Phase 4 입력)
+
+Claude가 2026-10-30에 공식 문서를 직접 읽고 정리했다. Phase 4 콘텐츠(`chatgpt-skill`, `claude-skill`)와 호환성 검사(`src/content/skill-format.ts`)는 이 절의 값만 쓴다.
+
+### 7.1 공개 Agent Skills 사양
+
+출처: [Agent Skills Specification](https://agentskills.io/specification)
+
+- 폴더 하나가 skill 하나다. 필수 파일은 `SKILL.md`이고, `references/`·`scripts/`·`assets/`는 선택이다.
+- `SKILL.md`는 YAML 머리말 뒤에 Markdown 본문이 온다.
+- `name`(필수): 1~64자, 소문자·숫자·하이픈만, 하이픈으로 시작·끝나거나 연속(`--`)이면 안 된다. **상위 폴더 이름과 같아야 한다.**
+- `description`(필수): 1~1024자. 무엇을 하는지와 언제 쓰는지를 적는다.
+- 선택 필드: `license`, `compatibility`(1~500자), `metadata`(문자열 키-값), `allowed-tools`(실험적)
+- 점진적 로딩: 시작할 때는 `name`·`description`만, skill이 켜지면 `SKILL.md` 본문 전체, `references/` 등의 파일은 **필요할 때만** 읽힌다.
+- 본문은 5,000토큰 미만, 500줄 미만을 권장한다. 참조는 `SKILL.md`에서 한 단계 깊이만 둔다.
+
+### 7.2 Claude
+
+출처: [Create custom skills](https://claude.com/docs/skills/how-to), [Using Skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude)
+
+- 이용 조건: Free·Pro·Max·Team·Enterprise. **코드 실행이 켜져 있어야 한다.** Team·Enterprise는 소유자가 사용자 skill을 끌 수 있고, Enterprise 사용자 역할에 skill 만들기 권한이 없을 수 있다.
+- 올리기: **Customize → Skills → + → Create skill → Upload a skill**에서 zip 파일을 올린다.
+- zip 구조: 최상위에 skill 폴더가 있어야 한다(`<skill-name>/SKILL.md`). 루트에 `SKILL.md`만 있으면 skill로 인식하지 않는다. 폴더 이름은 `name`과 같아야 한다.
+- 흔한 실패: zip 크기 초과, 폴더 이름과 skill 이름 불일치, `SKILL.md` 누락, 이름·설명의 잘못된 문자
+- 올린 뒤 Customize → Skills에서 skill을 켠다.
+
+### 7.3 ChatGPT
+
+출처: [Skills in ChatGPT](https://help.openai.com/en/articles/20001066-skills-in-chatgpt) (페이지 표시: "Updated: 9일 전")
+
+- 이용 조건: **Business·Enterprise·Healthcare·Edu** 사용자. 워크스페이스 설정과 제품 제공 여부에 따라 다르다. Plus·Free는 공식 문서에 없다.
+- 찾기: 사이드바 **Plugins** → Plugin Directory의 **Skills** 탭
+- 올리기: Skills → **Create** → **Upload from your computer**
+- 올린 skill은 검사(scan)를 거친다. 대부분 검사 직후 쓸 수 있고, 일부는 Needs Review나 Blocked가 될 수 있다.
+- Enterprise·Edu 관리자는 skill 사용, 올리기, 공유 권한을 따로 켜고 끈다.
+- **확인되지 않은 점**: 업로드 파일 형식(zip, 폴더, 단일 파일). 그래서 가이드에 "업로드가 되지 않으면 대화 첨부 방식을 쓰세요"를 붙인다(설계 9장 결정 8).
+
+### 7.4 Gemini
+
+- 2.2의 사실(2026-10-25)을 그대로 쓴다. 파일·폴더·zip 업로드, 이름은 소문자와 하이픈, 파일을 바꾸려면 Replace skill로 다시 올린다.
+- Phase 4 구현 뒤 사용자가 핵심본을 넣은 새 `SKILL.md`로 다시 실측해 6절에 기록한다.
