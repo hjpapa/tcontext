@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { SCHOOL_LEVEL_DISPLAY_LABELS } from "@/content/profile-document";
+import { findPlatformGuide } from "@/content/platform-guides";
 import { TEACHER_ROLE_LABELS, type TeacherRole } from "@/types/interview";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,7 +27,11 @@ import {
   getLocalProfile,
   type LocalProfileListItem,
 } from "@/lib/storage/profiles/repository";
-import { MAX_LOCAL_PROFILES } from "@/lib/storage/profiles/schema";
+import {
+  MAX_LOCAL_PROFILES,
+  type LocalProfileRecord,
+  type ProfileExportFormat,
+} from "@/lib/storage/profiles/schema";
 import { toEditableSession } from "@/lib/storage/profiles/serialize";
 import { createProfileBackupFile } from "@/lib/storage/profiles/backup";
 import { downloadTextFile } from "@/lib/export/download";
@@ -40,6 +46,37 @@ import {
   LocalProfileDeleteControls,
 } from "./local-profile-delete-controls";
 import { BackupImport } from "./backup-import";
+
+export function toViewSession(
+  record: LocalProfileRecord,
+  id: string,
+): OpenProfileInput | null {
+  if (!record.confirmed) return null;
+  return {
+    profile: record.confirmed.profile,
+    suggestedTags: mergeSuggestedTags(
+      record.suggestedTags,
+      suggestedTagsFromConfirmedTags(record.confirmed.profile.confirmedTags),
+    ),
+    mode: "view",
+    link: {
+      recordId: id,
+      revision: record.revision,
+      baseline: record.confirmed.profile,
+    },
+  };
+}
+export function exportTargetLabel(target: string): string {
+  return target === "result"
+    ? "결과 화면"
+    : (findPlatformGuide(target)?.name ?? target);
+}
+export const EXPORT_FORMAT_LABELS: Record<ProfileExportFormat, string> = {
+  full: "전체본",
+  core: "핵심본",
+  modules: "모듈 선택본",
+  "skill-package": "skill 패키지",
+};
 
 export function ProfileLibrary() {
   const { availability, items, options, refresh } = useLocalProfiles();
@@ -67,22 +104,8 @@ export function ProfileLibrary() {
       return;
     }
     const record = result.value;
-    if (mode === "view" && record.confirmed)
-      requestOpen({
-        profile: record.confirmed.profile,
-        suggestedTags: mergeSuggestedTags(
-          record.suggestedTags,
-          suggestedTagsFromConfirmedTags(
-            record.confirmed.profile.confirmedTags,
-          ),
-        ),
-        mode,
-        link: {
-          recordId: id,
-          revision: record.revision,
-          baseline: record.confirmed.profile,
-        },
-      });
+    const viewSession = mode === "view" ? toViewSession(record, id) : null;
+    if (viewSession) requestOpen(viewSession);
     else {
       const session = toEditableSession(record);
       requestOpen({
@@ -196,6 +219,37 @@ export function ProfileLibrary() {
                       · 마지막 수정:{" "}
                       {new Date(item.updatedAt).toLocaleString("ko-KR")}
                     </p>
+                    <p className="text-sm">
+                      처음 저장{" "}
+                      {new Date(item.createdAt).toLocaleString("ko-KR")}
+                    </p>
+                    <p className="flex flex-wrap items-center gap-2 text-sm">
+                      <span>버전 {item.versionCount}개</span>
+                      {item.confirmedAt ? (
+                        <Link
+                          className="text-primary inline-flex min-h-10 items-center font-semibold underline"
+                          href={`/profiles/versions?record=${item.id}`}
+                        >
+                          버전 기록
+                        </Link>
+                      ) : null}
+                    </p>
+                    {item.lastExport ? (
+                      <p className="text-sm break-words">
+                        최근 내보낸 기록:{" "}
+                        {exportTargetLabel(item.lastExport.target)} ·{" "}
+                        {EXPORT_FORMAT_LABELS[item.lastExport.format]} ·{" "}
+                        {new Date(item.lastExport.exportedAt).toLocaleString(
+                          "ko-KR",
+                        )}
+                      </p>
+                    ) : null}
+                    {item.outdatedExportTargets.length > 0 ? (
+                      <p className="text-sm">
+                        이전 버전을 내보낸 곳{" "}
+                        {item.outdatedExportTargets.length}곳
+                      </p>
+                    ) : null}
                     <div className="flex flex-wrap gap-2 text-sm">
                       {item.hasDraft ? <span>편집 중 초안</span> : null}
                       {item.privacyStatus === "warning" ||
