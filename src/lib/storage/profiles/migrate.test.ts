@@ -22,7 +22,7 @@ const backup = () => ({
 it("validates v1 without migration and preserves raw input", () => {
   const raw = {
     id,
-    storageSchemaVersion: 1,
+    storageSchemaVersion: 2,
     createdAt: now,
     updatedAt: now,
     revision: 1,
@@ -30,6 +30,8 @@ it("validates v1 without migration and preserves raw input", () => {
     suggestedTags: [],
     confirmed: { profile: profile(), confirmedAt: now },
     draft: null,
+    history: [],
+    exports: [],
   };
   const before = structuredClone(raw);
   expect(migrateLocalProfileRecord(raw)).toEqual({
@@ -40,7 +42,7 @@ it("validates v1 without migration and preserves raw input", () => {
   expect(raw).toEqual(before);
 });
 it("distinguishes future and corrupt records and retains ids", () => {
-  expect(migrateLocalProfileRecord({ id, storageSchemaVersion: 2 })).toEqual({
+  expect(migrateLocalProfileRecord({ id, storageSchemaVersion: 3 })).toEqual({
     ok: false,
     error: "unsupported_version",
     id,
@@ -99,7 +101,7 @@ it("classifies backup errors in priority order", () => {
 function validRecord() {
   return {
     id,
-    storageSchemaVersion: 1,
+    storageSchemaVersion: 2,
     createdAt: now,
     updatedAt: now,
     revision: 1,
@@ -107,6 +109,8 @@ function validRecord() {
     suggestedTags: [],
     confirmed: { profile: profile(), confirmedAt: now },
     draft: null,
+    history: [],
+    exports: [],
   };
 }
 it("accepts ordinary cross-realm records and backups", () => {
@@ -173,12 +177,13 @@ it("isolates mutable upgrades and rejects failed or invalid upgrades", () => {
       ).profile.profileTitle = "수정";
       return candidate;
     },
+    1: (candidate) => ({ ...candidate, storageSchemaVersion: 2 }),
   });
   expect(result).toMatchObject({
     ok: true,
     migrated: true,
     record: {
-      storageSchemaVersion: 1,
+      storageSchemaVersion: 2,
       confirmed: { profile: { profileTitle: "수정" } },
     },
   });
@@ -188,7 +193,7 @@ it("isolates mutable upgrades and rejects failed or invalid upgrades", () => {
       throw new Error("failure");
     },
     (candidate) => candidate,
-    (candidate) => ({ ...candidate, storageSchemaVersion: 2 }),
+    (candidate) => ({ ...candidate, storageSchemaVersion: 3 }),
     (() => null) as unknown as RecordUpgrade,
     (() => []) as unknown as RecordUpgrade,
   ];

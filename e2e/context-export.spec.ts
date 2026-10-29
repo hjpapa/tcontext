@@ -300,7 +300,7 @@ test.describe("context export variants", () => {
     const confirmedAt = "2026-10-25T15:30:00.000Z";
     const record = localProfileRecordSchema.parse({
       id: "00000000-0000-4000-8000-000000000013",
-      storageSchemaVersion: 1,
+      storageSchemaVersion: 2,
       createdAt: confirmedAt,
       updatedAt: confirmedAt,
       revision: 1,
@@ -308,6 +308,8 @@ test.describe("context export variants", () => {
       suggestedTags: [],
       confirmed: { profile: generatedProfile, confirmedAt },
       draft: null,
+      history: [],
+      exports: [],
     });
     await page.evaluate(
       async ({ name, saved }) => {

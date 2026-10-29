@@ -20,7 +20,14 @@ export type RecordMigrationResult =
 export type RecordUpgrade = (
   raw: Record<string, unknown>,
 ) => Record<string, unknown>;
-const RECORD_UPGRADES: Readonly<Record<number, RecordUpgrade>> = {};
+const RECORD_UPGRADES: Readonly<Record<number, RecordUpgrade>> = {
+  1: (raw) => ({
+    ...raw,
+    storageSchemaVersion: 2,
+    history: [],
+    exports: [],
+  }),
+};
 function isObject(raw: unknown): raw is Record<string, unknown> {
   return Object.prototype.toString.call(raw) === "[object Object]";
 }
@@ -48,7 +55,11 @@ export function migrateLocalProfileRecord(
     version > LOCAL_PROFILE_STORAGE_SCHEMA_VERSION
   )
     return { ok: false, error: "unsupported_version", id };
-  for (const snapshot of [raw.confirmed, raw.draft]) {
+  for (const snapshot of [
+    raw.confirmed,
+    raw.draft,
+    ...(Array.isArray(raw.history) ? raw.history : []),
+  ]) {
     if (isObject(snapshot) && hasUnsupportedProfileVersion(snapshot.profile))
       return { ok: false, error: "unsupported_version", id };
   }

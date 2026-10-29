@@ -1,5 +1,7 @@
+import { z } from "zod";
 import type { SuggestedTag } from "@/lib/ai/schemas/profile";
 import { mergeSuggestedTags } from "@/lib/profile/tags";
+import { sameProfileContent } from "@/lib/profile/versions";
 import {
   isUnverifiedPrivacyReview,
   type SchoolLevel,
@@ -18,7 +20,14 @@ import { migrateLocalProfileRecord } from "./migrate";
 import {
   localProfileRecordSchema,
   localProfileSettingsSchema,
+  LOCAL_PROFILE_SETTINGS_VERSION,
+  LOCAL_PROFILE_STORAGE_SCHEMA_VERSION,
   MAX_LOCAL_PROFILES,
+  MAX_PROFILE_HISTORY,
+  MAX_PROFILE_EXPORTS,
+  exportTargetSchema,
+  profileExportFormatSchema,
+  type ProfileExportFormat,
   type LocalProfileRecord,
 } from "./schema";
 import type { ConfirmedSnapshot, DraftSnapshot } from "./serialize";
@@ -33,6 +42,7 @@ export type LocalProfileErrorCode =
   | "conflict"
   | "corrupted"
   | "not_found"
+  | "draft_exists"
   | "limit_reached"
   | "blocked"
   | "invalid";
@@ -82,6 +92,13 @@ export type LocalProfileListItem =
       updatedAt: string;
       confirmedAt: string | null;
       hasDraft: boolean;
+      versionCount: number;
+      lastExport: {
+        target: string;
+        format: ProfileExportFormat;
+        exportedAt: string;
+      } | null;
+      outdatedExportTargets: string[];
       privacyStatus: "clear" | "warning" | "unverified" | null;
     }
   | { kind: "corrupted"; id: string | null }
@@ -233,7 +250,7 @@ export function enableLocalProfiles(
         const settings = localProfileSettingsSchema.safeParse({
           key: "settings",
           enabledAt: now(options),
-          storageSchemaVersion: 1,
+          storageSchemaVersion: LOCAL_PROFILE_SETTINGS_VERSION,
         });
         if (!settings.success) {
           context.fail("invalid");
@@ -250,6 +267,10 @@ function listItem(
 ): LocalProfileListItem {
   const profile = (record.draft ?? record.confirmed)!.profile;
   const review = record.confirmed?.profile.privacyReview;
+  const exports = [...record.exports].sort(
+    (a, b) => Date.parse(b.exportedAt) - Date.parse(a.exportedAt),
+  );
+  const latest = exports[0];
   return {
     kind: "record",
     id,
@@ -265,6 +286,17 @@ function listItem(
     updatedAt: record.updatedAt,
     confirmedAt: record.confirmed?.confirmedAt ?? null,
     hasDraft: record.draft !== null,
+    versionCount: record.confirmed ? 1 + record.history.length : 0,
+    lastExport: latest
+      ? {
+          target: latest.target,
+          format: latest.format,
+          exportedAt: latest.exportedAt,
+        }
+      : null,
+    outdatedExportTargets: exports
+      .filter((item) => item.confirmedAt !== record.confirmed?.confirmedAt)
+      .map((item) => item.target),
     privacyStatus: !review
       ? null
       : review.status === "clear"
@@ -369,7 +401,7 @@ export function createLocalProfile(
         const savedAt = now(options);
         const parsed = localProfileRecordSchema.safeParse({
           id,
-          storageSchemaVersion: 1,
+          storageSchemaVersion: LOCAL_PROFILE_STORAGE_SCHEMA_VERSION,
           createdAt: savedAt,
           updatedAt: savedAt,
           revision: 1,
@@ -377,6 +409,8 @@ export function createLocalProfile(
           suggestedTags: mergeSuggestedTags(input.suggestedTags),
           confirmed: input.origin === "interview" ? input.confirmed : null,
           draft: input.origin === "import" ? input.draft : null,
+          history: [],
+          exports: [],
         });
         if (!parsed.success) {
           context.fail("invalid");
@@ -446,19 +480,134 @@ export function saveConfirmed(
   options?: LocalProfileRepositoryOptions,
 ): Promise<LocalProfileResult<{ revision: number; savedAt: string }>> {
   return update(id, input, options, true, (record, context) => {
-    record.confirmed = input.confirmed;
+    const incoming = localProfileRecordSchema.shape.confirmed.safeParse(
+      input.confirmed,
+    );
+    if (!incoming.success || !incoming.data) {
+      context.fail("invalid");
+      return;
+    }
+    const savedAt = now(options);
+    if (
+      record.confirmed &&
+      sameProfileContent(record.confirmed.profile, incoming.data.profile)
+    ) {
+      record.confirmed = {
+        profile: incoming.data.profile,
+        confirmedAt: record.confirmed.confirmedAt,
+      };
+    } else {
+      if (record.confirmed) {
+        record.history.unshift({ ...record.confirmed, replacedAt: savedAt });
+        record.history = record.history.slice(0, MAX_PROFILE_HISTORY);
+      }
+      record.confirmed = incoming.data;
+    }
     record.draft = null;
     record.suggestedTags = mergeSuggestedTags(
       record.suggestedTags,
       input.suggestedTags ?? [],
     );
     record.revision++;
-    record.updatedAt = now(options);
+    record.updatedAt = savedAt;
     putRecord(record, context, {
       revision: record.revision,
       savedAt: record.updatedAt,
     });
   });
+}
+const versionInputSchema = z.object({ confirmedAt: z.iso.datetime() }).strict();
+const restoreInputSchema = versionInputSchema
+  .extend({ expectedRevision: z.number().int().min(1) })
+  .strict();
+const exportInputSchema = z
+  .object({
+    target: exportTargetSchema,
+    format: profileExportFormatSchema,
+    confirmedAt: z.iso.datetime(),
+  })
+  .strict();
+
+export function restoreVersion(
+  id: string,
+  input: { confirmedAt: string; expectedRevision: number },
+  options?: LocalProfileRepositoryOptions,
+): Promise<LocalProfileResult<{ revision: number; savedAt: string }>> {
+  const parsed = restoreInputSchema.safeParse(input);
+  if (!parsed.success) return Promise.resolve({ ok: false, error: "invalid" });
+  return update(id, parsed.data, options, true, (record, context) => {
+    if (record.draft) {
+      context.fail("draft_exists");
+      return;
+    }
+    const selected = record.history.find(
+      (item) => item.confirmedAt === parsed.data.confirmedAt,
+    );
+    if (!selected || !record.confirmed) {
+      context.fail("not_found");
+      return;
+    }
+    const savedAt = now(options);
+    record.history = [
+      { ...record.confirmed, replacedAt: savedAt },
+      ...record.history.filter(
+        (item) => item.confirmedAt !== selected.confirmedAt,
+      ),
+    ];
+    record.confirmed = {
+      profile: selected.profile,
+      confirmedAt: selected.confirmedAt,
+    };
+    record.revision++;
+    record.updatedAt = savedAt;
+    putRecord(record, context, { revision: record.revision, savedAt });
+  });
+}
+
+export function deleteVersion(
+  id: string,
+  input: { confirmedAt: string },
+  options?: LocalProfileRepositoryOptions,
+): Promise<LocalProfileResult<{ deleted: boolean }>> {
+  const parsed = versionInputSchema.safeParse(input);
+  if (!parsed.success) return Promise.resolve({ ok: false, error: "invalid" });
+  return transaction(options, "readwrite", false, true, (context) =>
+    readRecord(context, id, (record) => {
+      const history = record.history.filter(
+        (item) => item.confirmedAt !== parsed.data.confirmedAt,
+      );
+      if (history.length === record.history.length) {
+        context.done({ deleted: false });
+        return;
+      }
+      record.history = history;
+      putRecord(record, context, { deleted: true });
+    }),
+  );
+}
+
+export function recordExport(
+  id: string,
+  input: { target: string; format: ProfileExportFormat; confirmedAt: string },
+  options?: LocalProfileRepositoryOptions,
+): Promise<LocalProfileResult<{ recorded: boolean }>> {
+  const parsed = exportInputSchema.safeParse(input);
+  if (!parsed.success) return Promise.resolve({ ok: false, error: "invalid" });
+  return transaction(options, "readwrite", false, true, (context) =>
+    readRecord(context, id, (record) => {
+      if (record.confirmed?.confirmedAt !== parsed.data.confirmedAt) {
+        context.done({ recorded: false });
+        return;
+      }
+      record.exports = [
+        { ...parsed.data, exportedAt: now(options) },
+        ...record.exports.filter((item) => item.target !== parsed.data.target),
+      ]
+        .sort((a, b) => Date.parse(b.exportedAt) - Date.parse(a.exportedAt))
+        .slice(0, MAX_PROFILE_EXPORTS);
+      putRecord(record, context, { recorded: true });
+    }),
+  );
 }
 export function discardDraft(
   id: string,

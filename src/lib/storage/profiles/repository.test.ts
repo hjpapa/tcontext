@@ -304,7 +304,7 @@ it("lists damaged and future records without an index and only allows deletion",
   await s.create();
   for (const [key, version, error] of [
     ["broken", 1, "corrupted"],
-    ["future", 2, "unsupported_version"],
+    ["future", 3, "unsupported_version"],
   ] as const) {
     const raw = { id: key, storageSchemaVersion: version, junk: true };
     await rawPut(s.factory, raw);

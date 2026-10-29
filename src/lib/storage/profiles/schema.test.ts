@@ -17,7 +17,7 @@ const now = "2026-10-25T00:00:00.000Z";
 const profile = () => structuredClone(FICTIONAL_PROFILES[0]!);
 const record = () => ({
   id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
-  storageSchemaVersion: 1,
+  storageSchemaVersion: 2,
   createdAt: now,
   updatedAt: now,
   revision: 1,
@@ -25,6 +25,8 @@ const record = () => ({
   suggestedTags: [],
   confirmed: { profile: profile(), confirmedAt: now },
   draft: null,
+  history: [],
+  exports: [],
 });
 it("accepts all examples, legacy metadata and review outcomes", () => {
   for (const p of FICTIONAL_PROFILES)

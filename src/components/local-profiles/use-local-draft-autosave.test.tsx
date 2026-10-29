@@ -16,13 +16,15 @@ function fixture(linked = true) {
     value: {
       id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
       revision: 1,
-      storageSchemaVersion: 1,
+      storageSchemaVersion: 2,
       origin: "interview",
       createdAt: now,
       updatedAt: now,
       suggestedTags: [],
       confirmed: snapshot.snapshot,
       draft: null,
+      history: [],
+      exports: [],
     },
   });
   const draft = vi
