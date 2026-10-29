@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { expect, it } from "vitest";
-import { AS_OF_NOTICE } from "@/content/export-variants";
+import {
+  AS_OF_NOTICE,
+  CORE_AS_OF_NOTICE,
+  CORE_USAGE_RULES,
+} from "@/content/export-variants";
 import { PROFILE_MODULE_IDS, type ProfileModuleId } from "@/types/profile";
 import {
   verifyVariantFidelity,
@@ -63,11 +67,12 @@ it.each(VARIANT_FIXTURES)(
   },
 );
 
-it("accepts deduplicated multiline claims and canonical duplicates in protected sections", () => {
+it("accepts repeated synthesis items and multiline summaries without deduplication", () => {
   const profile = structuredClone(MAX_VARIANT_PROFILE);
-  profile.modules[4]!.claims[0]!.text =
-    profile.modules[2]!.claims[0]!.text.replaceAll(" ", "  ");
-  profile.modules[5]!.claims[1]!.text = profile.modules[0]!.claims[1]!.text;
+  profile.modules[4]!.summary =
+    "교사가 확인한 요약 첫 줄입니다.\n교사가 확인한 요약 둘째 줄입니다.";
+  profile.teachingDesignPrinciples[1] = profile.teachingDesignPrinciples[0]!;
+  profile.classSupportConsiderations[0] = profile.teachingDesignPrinciples[0]!;
   const markdown = variantMarkdown(
     profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
   );
@@ -84,22 +89,26 @@ it("accepts deduplicated multiline claims and canonical duplicates in protected 
 const profile = MAX_VARIANT_PROFILE;
 const direct = profile.modules[0]!.claims[0]!.text;
 const inferred = profile.modules[0]!.claims[1]!.text;
-const unconfirmed = profile.modules[0]!.claims[2]!.text;
 const notice = AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source);
+const coreNotice = CORE_AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source);
 const coreMutations: ReadonlyArray<{
   name: string;
   rule: FidelityRule;
   mutate: (markdown: string) => string;
 }> = [
   {
-    name: "truncated confirmed claim",
+    name: "truncated principle",
     rule: "claim_coverage",
-    mutate: (md) => md.replace(direct, direct.slice(0, -10)),
+    mutate: (md) =>
+      md.replace(
+        profile.teachingDesignPrinciples[1]!,
+        profile.teachingDesignPrinciples[1]!.slice(0, -10),
+      ),
   },
   {
-    name: "missing inference label",
+    name: "missing synthesis attribution rule",
     rule: "ai_label",
-    mutate: (md) => md.replace(`[AI 해석·교사 승인] ${inferred}`, inferred),
+    mutate: (md) => md.replace(`- ${CORE_USAGE_RULES[1]}\n`, ""),
   },
   {
     name: "missing constraint",
@@ -113,9 +122,14 @@ const coreMutations: ReadonlyArray<{
       md.replace(`- ${profile.aiCollaborationInstructions[1]}\n`, ""),
   },
   {
-    name: "missing class date while support date remains",
+    name: "missing document date",
     rule: "as_of",
-    mutate: (md) => md.replace(notice, ""),
+    mutate: (md) => md.replace(coreNotice, ""),
+  },
+  {
+    name: "document date moved after synthesis",
+    rule: "as_of",
+    mutate: (md) => `${md.replace(coreNotice, "")}\n${coreNotice}\n`,
   },
   {
     name: "invented list item",
@@ -123,19 +137,27 @@ const coreMutations: ReadonlyArray<{
     mutate: (md) => `${md}\n- 이 문장은 교사 원문에 없는 새로운 주장입니다.\n`,
   },
   {
-    name: "unconfirmed claim inserted",
+    name: "claim inserted as a list inside module summaries",
     rule: "claim_coverage",
     mutate: (md) =>
       md.replace(
-        `- [직접] ${direct}`,
-        `- [직접] ${direct}\n- [AI 해석·교사 승인] ${unconfirmed}`,
+        "## 영역별 요약",
+        `## 영역별 요약\n\n- ${profile.modules[0]!.claims[2]!.text}`,
       ),
   },
   {
-    name: "incorrect excluded count",
+    name: "missing module summary paragraph",
     rule: "claim_coverage",
-    mutate: (md) =>
-      md.replace("확인되지 않은 문장 16개", "확인되지 않은 문장 15개"),
+    mutate: (md) => md.replace(profile.modules[0]!.summary, ""),
+  },
+  {
+    name: "reordered module summary blocks",
+    rule: "claim_coverage",
+    mutate: (md) => {
+      const first = `### ${profile.modules[0]!.title}\n\n${profile.modules[0]!.summary}`;
+      const second = `### ${profile.modules[1]!.title}\n\n${profile.modules[1]!.summary}`;
+      return md.replace(`${first}\n\n${second}`, `${second}\n\n${first}`);
+    },
   },
 ];
 it.each(coreMutations)("detects core mutation: $name", ({ rule, mutate }) => {
@@ -252,18 +274,55 @@ it("rejects constraints inserted into a variant where that section is disabled",
   ).toContain("constraints");
 });
 
+it.each([false, true])(
+  "retains legacy module-checker recognition of excluded-claim notices, all confirmed: %s",
+  (allConfirmed) => {
+    const source = structuredClone(MAX_VARIANT_PROFILE);
+    if (allConfirmed)
+      for (const profileModule of source.modules)
+        for (const claim of profileModule.claims) {
+          claim.confirmedByUser = true;
+          claim.basis = "direct";
+        }
+    const legacyNotice = allConfirmed
+      ? "> **확인되지 않은 문장 제외:** 확인되지 않은 문장 0개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요."
+      : `> **확인되지 않은 문장 제외:** 확인되지 않은 문장 16개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요. 확인된 문장이 없는 영역: ${source.modules[6]!.title}.`;
+    const modules: ProfileModuleId[] = ["identity_and_role"];
+    const good = variantMarkdown(
+      profileToModuleMarkdown(source, {
+        asOf: TEST_AS_OF,
+        modules,
+        sections: [],
+      }),
+    );
+    const markdown = good.replace(
+      "## 이 문서의 범위",
+      `${legacyNotice}\n\n## 이 문서의 범위`,
+    );
+    expect(markdown).not.toBe(good);
+    expect(
+      verifyVariantFidelity({
+        profile: source,
+        variant: "modules",
+        markdown,
+        modules,
+        sections: [],
+        asOf: TEST_AS_OF,
+      }),
+    ).toEqual([]);
+  },
+);
+
 it("requires the support date at its own location even when the class module has one", () => {
-  for (const variant of ["core", "modules"] as const) {
+  for (const variant of ["modules"] as const) {
     const modules: ProfileModuleId[] = ["class_context"];
     const sections = OPTIONAL_SECTION_IDS;
     const good = variantMarkdown(
-      variant === "core"
-        ? profileToCoreMarkdown(profile, { asOf: TEST_AS_OF })
-        : profileToModuleMarkdown(profile, {
-            asOf: TEST_AS_OF,
-            modules,
-            sections,
-          }),
+      profileToModuleMarkdown(profile, {
+        asOf: TEST_AS_OF,
+        modules,
+        sections,
+      }),
     );
     const index = good.lastIndexOf(notice);
     expect(index).toBeGreaterThan(good.indexOf(notice));
@@ -278,6 +337,83 @@ it("requires the support date at its own location even when the class module has
         asOf: TEST_AS_OF,
       }).map((issue) => issue.rule),
     ).toContain("as_of");
+  }
+});
+
+it("detects duplicate dates, duplicate or empty module headings, and changed synthesis order", () => {
+  const source = structuredClone(MAX_VARIANT_PROFILE);
+  source.modules[6]!.summary = "";
+  const good = variantMarkdown(
+    profileToCoreMarkdown(source, { asOf: TEST_AS_OF }),
+  );
+  const firstBlock = `### ${source.modules[0]!.title}\n\n${source.modules[0]!.summary}`;
+  const cases: Array<[FidelityRule, string]> = [
+    ["as_of", good.replace(coreNotice, `${coreNotice}\n\n${coreNotice}`)],
+    [
+      "claim_coverage",
+      good.replace(firstBlock, `${firstBlock}\n\n${firstBlock}`),
+    ],
+    [
+      "claim_coverage",
+      good.replace(
+        "## 영역별 요약",
+        `## 영역별 요약\n\n### ${source.modules[6]!.title}`,
+      ),
+    ],
+    [
+      "claim_coverage",
+      good.replace(
+        `- ${source.teachingDesignPrinciples[1]}\n- ${source.teachingDesignPrinciples[2]}`,
+        `- ${source.teachingDesignPrinciples[2]}\n- ${source.teachingDesignPrinciples[1]}`,
+      ),
+    ],
+    [
+      "constraints",
+      good.replace(
+        `- ${source.realisticConstraints[1]}\n- ${source.realisticConstraints[2]}`,
+        `- ${source.realisticConstraints[2]}\n- ${source.realisticConstraints[1]}`,
+      ),
+    ],
+  ];
+  for (const [rule, markdown] of cases) {
+    expect(markdown).not.toBe(good);
+    expect(
+      verifyVariantFidelity({
+        profile: source,
+        variant: "core",
+        markdown,
+        asOf: TEST_AS_OF,
+      }).map((issue) => issue.rule),
+    ).toContain(rule);
+  }
+});
+
+it("accepts empty summaries and synthesis lists and summaries with list-like lines", () => {
+  const source = structuredClone(MAX_VARIANT_PROFILE);
+  source.shortSummary = "";
+  source.modules.forEach((profileModule) => {
+    profileModule.summary = "";
+  });
+  source.teachingDesignPrinciples = [];
+  source.classSupportConsiderations = [];
+  source.realisticConstraints = [];
+  source.aiCollaborationInstructions = [];
+  for (const summary of [
+    "",
+    "- 교사가 확인한 문단입니다.\n## 요약 안에 포함한 글줄입니다.",
+  ]) {
+    source.modules[0]!.summary = summary;
+    const markdown = variantMarkdown(
+      profileToCoreMarkdown(source, { asOf: TEST_AS_OF }),
+    );
+    expect(
+      verifyVariantFidelity({
+        profile: source,
+        variant: "core",
+        markdown,
+        asOf: TEST_AS_OF,
+      }),
+    ).toEqual([]);
   }
 });
 

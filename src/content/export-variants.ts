@@ -1,17 +1,25 @@
-export const VARIANT_FORMAT_VERSION = "1.0";
+export const MODULE_FORMAT_VERSION = "1.0";
 
+export const CORE_FORMAT_VERSION = "2.0";
 export const CORE_USAGE_RULES = [
+  "이 문서는 반복해서 쓰는 교사의 핵심 맥락이다. 교과·단원·성취기준·시간처럼 수업마다 달라지는 정보는 요청에서 받고, 요청이 이 문서와 다르면 요청을 우선한다.",
+  "요약과 목록은 AI가 인터뷰를 종합하고 교사가 확인한 내용이다. 교사가 직접 말한 사실처럼 단정하지 말고, 근거가 되는 교사 진술이 필요하면 전체본을 요청한다.",
+  "학생 개인을 추정·분류하거나 개인정보를 만들거나 요구하지 않는다. 제안은 초안이며 최종 판단과 선택은 교사가 한다.",
+] as const;
+
+export const CORE_AS_OF_NOTICE = (
+  date: string,
+  source: "confirmed" | "generated",
+) =>
+  `이 문서는 ${date}에 ${source === "confirmed" ? "확정" : "작성"}한 기준입니다. 학기나 수업 집단이 바뀌면 학급 맥락과 지원 고려사항을 다시 확인하세요.`;
+
+export const MODULE_USAGE_RULES = [
   "이 문서는 반복해서 사용하는 교사의 핵심 맥락이다. 교과·단원·성취기준·시간처럼 수업마다 달라지는 정보는 요청에 따로 적는다.",
   "현재 요청의 정보가 이 문서와 다르면 현재 요청을 우선한다.",
   "AI 해석으로 표시된 내용은 교사가 승인한 해석이며, 교사가 직접 말한 사실처럼 단정하지 않는다.",
   "학생 개인을 추정하거나 분류하지 않고, 개인정보를 만들거나 요구하지 않는다.",
   "AI의 제안은 초안이며 최종 판단과 선택은 교사가 한다.",
 ] as const;
-
-export const CORE_CLAIM_LABELS = {
-  direct: "[직접]",
-  inferred: "[AI 해석·교사 승인]",
-} as const;
 
 export const MODULE_SCOPE_NOTICE = (titles: string) =>
   `이 문서는 교사 프로파일 중 다음 영역만 담고 있습니다: ${titles}. 담기지 않은 영역에 대한 교사의 선호나 조건을 추측하지 말고, 필요하면 사용자에게 먼저 물어보세요.`;
@@ -24,15 +32,9 @@ export const AS_OF_NOTICE = (
     ? `이 내용은 ${date}에 확정한 기준입니다. 학기나 수업 집단이 바뀌면 다시 확인하세요.`
     : `이 내용은 ${date}에 작성한 기준입니다. 학기나 수업 집단이 바뀌면 다시 확인하세요.`;
 
-export const CORE_EXCLUDED_NOTICE = (
-  count: number,
-  emptyModuleTitles: readonly string[],
-) =>
-  `> **확인되지 않은 문장 제외:** 확인되지 않은 문장 ${count}개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요.${emptyModuleTitles.length ? ` 확인된 문장이 없는 영역: ${emptyModuleTitles.join("·")}.` : ""}`;
-
 export const EMPTY_SECTION_LINE = "- 확인된 내용이 없습니다.";
 export const VARIANT_PICKER_HINT =
-  "반복해서 쓸 때는 핵심본이 가볍습니다. 특정 작업에는 모듈 선택본을 쓰세요.";
+  "반복해서 쓸 때는 핵심본이 가볍습니다. 교사 진술 근거가 필요한 작업에는 전체본이나 모듈 선택본을 쓰세요.";
 
 // Copied verbatim from the canonical document; tests guard against drift.
 export const EVIDENCE_GUIDE_LINES = [

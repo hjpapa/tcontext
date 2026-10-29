@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import {
   AS_OF_NOTICE,
   CLAIM_REVIEW_WARNING,
+  CORE_AS_OF_NOTICE,
   CORE_USAGE_RULES,
   EMPTY_SECTION_LINE,
   EVIDENCE_GUIDE_LINES,
@@ -10,7 +11,7 @@ import {
   PRIVACY_REVIEW_WARNING,
   PRIVACY_UNVERIFIED_WARNING,
 } from "@/content/export-variants";
-import { CONTEXT_DOCUMENT_TITLE } from "@/content/profile-document";
+import { FICTIONAL_PROFILES } from "@/content/examples";
 import {
   PENDING_PRIVACY_REVIEW,
   PROFILE_MODULE_IDS,
@@ -84,7 +85,7 @@ it("uses valid maximal and privacy fixtures without changing canonical inputs", 
   }
 });
 
-it("writes the prescribed core metadata, section order, exclusions and unabridged confirmed claims", () => {
+it("writes the exact core 2.0 metadata and section order without individual claims", () => {
   const profile = MAX_VARIANT_PROFILE;
   const markdown = variantMarkdown(
     profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
@@ -94,107 +95,134 @@ it("writes the prescribed core metadata, section order, exclusions and unabridge
     "document_type",
     "export_variant",
     "variant_format_version",
-    "title",
     "profile_title",
-    "service",
-    "language",
     "school_level",
     "role",
     ...(profile.metadata.teachingSubject === undefined
       ? []
       : ["teaching_subject"]),
-    "schema_version",
-    "created_at",
     "context_as_of",
     "context_as_of_source",
-    "privacy_rule",
     "privacy_review",
-    "needs_claim_review",
   ]);
   expect(header).toMatchObject({
     document_type: "teacher_profile_context",
     export_variant: "core",
-    variant_format_version: "1.0",
-    title: CONTEXT_DOCUMENT_TITLE,
+    variant_format_version: "2.0",
     profile_title: profile.profileTitle,
-    service: "TContext",
-    language: "ko-KR",
-    schema_version: profile.metadata.schemaVersion,
-    created_at: profile.metadata.generatedAt,
     context_as_of: TEST_AS_OF.date,
     context_as_of_source: "confirmed",
     privacy_review: "clear",
-    needs_claim_review: false,
   });
-  expect(header).not.toHaveProperty("document_format_version");
+  for (const key of [
+    "title",
+    "service",
+    "language",
+    "schema_version",
+    "created_at",
+    "privacy_rule",
+    "needs_claim_review",
+    "document_format_version",
+  ])
+    expect(header).not.toHaveProperty(key);
   expect(markdown.match(/^## .+$/gm)).toEqual([
     "## 이 문서를 사용하는 방법",
     "## 요약",
-    "## 확인된 교사 맥락",
+    "## 영역별 요약",
     "## 수업 설계 원칙",
     "## 학급 지원 고려사항",
     "## 현실적인 제약과 대체안",
     "## AI 협업 지침과 판단 경계",
   ]);
-  for (const rule of CORE_USAGE_RULES) expect(markdown).toContain(`- ${rule}`);
-  expect(markdown).toContain(
-    "> **확인되지 않은 문장 제외:** 확인되지 않은 문장 16개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요.",
+  const notice = CORE_AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source);
+  expect(section(markdown, "이 문서를 사용하는 방법").trimEnd()).toBe(
+    [
+      "## 이 문서를 사용하는 방법",
+      "",
+      ...CORE_USAGE_RULES.map((rule) => `- ${rule}`),
+      "",
+      notice,
+    ].join("\n"),
   );
-  expect(markdown).toContain(
-    `확인된 문장이 없는 영역: ${profile.modules[6]!.title}.`,
+  expect(markdown.match(/^### .+$/gm)).toEqual(
+    PROFILE_MODULE_IDS.map(
+      (id) =>
+        `### ${profile.modules.find((profileModule) => profileModule.id === id)!.title}`,
+    ),
   );
-  expect(markdown).not.toContain(`### ${profile.modules[6]!.title}`);
+  const synthesisTexts = new Set(
+    [
+      profile.shortSummary,
+      ...profile.modules.map((profileModule) => profileModule.summary),
+      ...profile.teachingDesignPrinciples,
+      ...profile.classSupportConsiderations,
+      ...profile.realisticConstraints,
+      ...profile.aiCollaborationInstructions,
+    ].map(sanitizeMarkdownText),
+  );
   for (const profileModule of profile.modules)
     for (const claim of profileModule.claims) {
-      if (claim.confirmedByUser && claim.basis !== "needs_confirmation") {
-        const label =
-          claim.basis === "direct" ? "[직접]" : "[AI 해석·교사 승인]";
-        expect(markdown).toContain(`- ${label} ${bulletText(claim.text)}`);
-      } else expect(markdown).not.toContain(bulletText(claim.text));
+      if (!synthesisTexts.has(sanitizeMarkdownText(claim.text)))
+        expect(markdown).not.toContain(sanitizeMarkdownText(claim.text));
     }
-  expect(markdown).toContain("&lt;선택&gt; &amp;");
-  expect(markdown).toContain("javascript&#58;");
-  expect(markdown).not.toContain("javascript:");
   for (const excluded of [
+    "[직접]",
+    "[AI 해석",
+    "[검토 전]",
+    "### 교사가 직접 말한 내용",
+    "## 근거 표시를 읽는 법",
+    "## 확인된 교사 맥락",
+    CLAIM_REVIEW_WARNING,
+    "확인되지 않은 문장 제외",
     "# 수업마다 추가할 작업 컨텍스트",
     "# AI에게 바로 전달할 실행 프롬프트",
     "## 생성 결과 자기 점검",
   ])
     expect(markdown).not.toContain(excluded);
-  const notice = AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source);
-  expect(markdown.split(notice)).toHaveLength(3);
-  const classStart = markdown.indexOf(`### ${profile.modules[3]!.title}`);
-  expect(markdown.indexOf(notice, classStart)).toBeLessThan(
-    markdown.indexOf(`### ${profile.modules[4]!.title}`),
+  expect(markdown.split(notice)).toHaveLength(2);
+  expect(markdown.indexOf(notice)).toBeLessThan(markdown.indexOf("## 요약"));
+  expect(markdown).not.toContain(
+    AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source),
   );
-  expect(section(markdown, "학급 지원 고려사항")).toContain(notice);
+  expect(markdown.endsWith("\n")).toBe(true);
+  expect(markdown.endsWith("\n\n")).toBe(false);
 });
 
-it("deduplicates confirmed claims, principles and supports but retains every constraint and AI instruction", () => {
+it("preserves ordered summaries and every synthesis item including duplicates and multiple lines", () => {
   const profile = structuredClone(MAX_VARIANT_PROFILE);
-  // A later confirmed claim differing only in whitespace is redundant.
-  profile.modules[1]!.claims[1]!.text =
-    profile.modules[0]!.claims[0]!.text.replaceAll(" ", "  ");
+  profile.shortSummary = "전체 요약 첫 줄\n전체 요약 둘째 줄";
+  profile.modules[1]!.summary =
+    "요약 <선택> & 확인\njavascript: 대신 안전한 안내";
+  profile.teachingDesignPrinciples[2] = "첫 번째 원칙\n두 번째 줄";
+  profile.teachingDesignPrinciples[3] = profile.teachingDesignPrinciples[2]!;
+  profile.classSupportConsiderations[1] = profile.teachingDesignPrinciples[2]!;
+  profile.modules.reverse();
   const markdown = variantMarkdown(
     profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
   );
-  expect(markdown).not.toContain(
-    `- [AI 해석·교사 승인] ${profile.modules[1]!.claims[1]!.text}`,
+  expect(section(markdown, "요약").trimEnd()).toBe(
+    `## 요약\n\n${sanitizeMarkdownText(profile.shortSummary)}`,
   );
-  expect(section(markdown, "수업 설계 원칙")).not.toContain(
-    profile.teachingDesignPrinciples[0]!,
+  expect(section(markdown, "영역별 요약").trimEnd()).toBe(
+    "## 영역별 요약" +
+      PROFILE_MODULE_IDS.map((id) => {
+        const profileModule = profile.modules.find((item) => item.id === id)!;
+        return `\n\n### ${sanitizeMarkdownText(profileModule.title)}\n\n${sanitizeMarkdownText(profileModule.summary)}`;
+      }).join(""),
   );
-  expect(section(markdown, "학급 지원 고려사항")).not.toContain(
-    profile.classSupportConsiderations[0]!,
-  );
-  for (const text of profile.realisticConstraints)
-    expect(section(markdown, "현실적인 제약과 대체안")).toContain(
-      `- ${bulletText(text)}`,
+  for (const [title, values] of [
+    ["수업 설계 원칙", profile.teachingDesignPrinciples],
+    ["학급 지원 고려사항", profile.classSupportConsiderations],
+    ["현실적인 제약과 대체안", profile.realisticConstraints],
+    ["AI 협업 지침과 판단 경계", profile.aiCollaborationInstructions],
+  ] as const) {
+    expect(section(markdown, title).trimEnd()).toBe(
+      `## ${title}\n\n${values.map((text) => `- ${bulletText(text)}`).join("\n")}`,
     );
-  for (const text of profile.aiCollaborationInstructions)
-    expect(section(markdown, "AI 협업 지침과 판단 경계")).toContain(
-      `- ${bulletText(text)}`,
-    );
+  }
+  expect(markdown).toContain("&lt;선택&gt; &amp;");
+  expect(markdown).toContain("javascript&#58;");
+  expect(markdown).not.toContain("javascript:");
 });
 
 it("omits blank summaries and represents empty context and synthesis sections explicitly", () => {
@@ -212,8 +240,8 @@ it("omits blank summaries and represents empty context and synthesis sections ex
     profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
   );
   expect(core).not.toContain("## 요약");
+  expect(core).not.toContain("## 영역별 요약");
   for (const title of [
-    "확인된 교사 맥락",
     "수업 설계 원칙",
     "학급 지원 고려사항",
     "현실적인 제약과 대체안",
@@ -230,6 +258,44 @@ it("omits blank summaries and represents empty context and synthesis sections ex
   expect(modules).toContain("- 작성된 내용이 없습니다.");
   expect(modules).toContain(AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source));
 });
+
+it("omits sanitized-empty summaries and keeps only nonempty module summaries", () => {
+  const profile = structuredClone(MAX_VARIANT_PROFILE);
+  profile.shortSummary = "\u0000 \r\n \u0001";
+  profile.modules.forEach((profileModule) => {
+    profileModule.summary = " \u0000\r\n ";
+  });
+  profile.modules[1]!.summary = "  남겨 둘 첫 줄\r\n둘째 줄  ";
+  const core = variantMarkdown(
+    profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
+  );
+  expect(core).not.toContain("## 요약");
+  expect(section(core, "영역별 요약").trimEnd()).toBe(
+    `## 영역별 요약\n\n### ${profile.modules[1]!.title}\n\n남겨 둘 첫 줄\n둘째 줄`,
+  );
+  expect(core.match(/^### .+$/gm)).toEqual([
+    `### ${profile.modules[1]!.title}`,
+  ]);
+  const notice = CORE_AS_OF_NOTICE(TEST_AS_OF.date, TEST_AS_OF.source);
+  expect(core.split(notice)).toHaveLength(2);
+  expect(core.indexOf(notice)).toBeLessThan(core.indexOf("## 영역별 요약"));
+});
+
+it.each(FICTIONAL_PROFILES)(
+  "keeps the $metadata.schoolLevel fictional core within 35 percent of the full export",
+  (profile) => {
+    const full = profileToMarkdown(profile);
+    const core = variantMarkdown(
+      profileToCoreMarkdown(profile, { asOf: TEST_AS_OF }),
+    );
+    expect(core.length).toBeLessThanOrEqual(full.length * 0.35);
+    expect(core).toContain(sanitizeMarkdownText(profile.shortSummary));
+    for (const profileModule of profile.modules)
+      expect(core).toContain(
+        `### ${sanitizeMarkdownText(profileModule.title)}\n\n${sanitizeMarkdownText(profileModule.summary)}`,
+      );
+  },
+);
 
 it.each(VARIANT_FIXTURES)(
   "preserves each complete module block and exact copied notices: $name",

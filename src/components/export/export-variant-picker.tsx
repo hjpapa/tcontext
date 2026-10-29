@@ -30,7 +30,7 @@ const FORMATS = [
   {
     value: "core",
     label: "핵심본",
-    description: "확인된 맥락과 원칙만, 반복 사용에 적합",
+    description: "요약과 원칙·지원·제약·AI 지침만, 반복 사용에 적합",
   },
   { value: "modules", label: "모듈 선택본", description: "고른 영역만" },
 ] as const;
