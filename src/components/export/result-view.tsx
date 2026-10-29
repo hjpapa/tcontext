@@ -15,6 +15,8 @@ import { ContributionPanel } from "@/components/consent/contribution-panel";
 import { ResultActions } from "@/components/export/result-actions";
 import { ExportVariantPanel } from "@/components/export/export-variant-panel";
 import { useContextAsOf } from "@/components/export/use-context-as-of";
+import { useRecordExport } from "@/components/export/use-record-export";
+import { ExportRefreshNotice } from "@/components/export/export-refresh-notice";
 import { EvidenceBadge } from "@/components/profile/evidence-badge";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
@@ -33,9 +35,15 @@ export function ResultView({
   retentionDays: number;
 }) {
   const router = useRouter();
-  const { profile, markdown, suggestedTags, clearBrowserRecords } =
-    useInterviewSession();
+  const {
+    profile,
+    markdown,
+    suggestedTags,
+    clearBrowserRecords,
+    localProfileLink,
+  } = useInterviewSession();
   const asOf = useContextAsOf(profile);
+  const record = useRecordExport();
 
   if (!profile || !markdown || !asOf) {
     return (
@@ -191,13 +199,18 @@ export function ResultView({
         markdown={markdown}
         contextAsOf={asOf}
         suggestedTags={suggestedTags}
+        onExported={(format) => record("result", format)}
       />
       <ExportVariantPanel
         profile={profile}
         markdown={markdown}
         contextAsOf={asOf}
+        onExported={(format) => record("result", format)}
       />
 
+      {localProfileLink ? (
+        <ExportRefreshNotice recordId={localProfileLink.recordId} />
+      ) : null}
       <LocalSavePanel />
       <Button asChild variant="outline" data-print-hidden="true">
         <Link href="/ai-guide">AI에서 활용하기</Link>

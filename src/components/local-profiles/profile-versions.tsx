@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExportRefreshNotice } from "@/components/export/export-refresh-notice";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { z } from "zod";
@@ -278,6 +279,7 @@ function LoadedProfileVersions({ id }: { id: string }) {
           );
         })}
       </ol>
+      <ExportRefreshNotice recordId={id} mode="all" />
       <Link
         href="/profiles"
         className="text-primary inline-flex min-h-11 items-center font-semibold underline"

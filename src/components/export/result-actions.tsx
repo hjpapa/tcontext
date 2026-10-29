@@ -23,6 +23,7 @@ import {
 } from "@/lib/export/profile-variants";
 import { createProfileBackupFile } from "@/lib/storage/profiles/backup";
 import type { SuggestedTag } from "@/lib/ai/schemas/profile";
+import type { ProfileExportFormat } from "@/lib/storage/profiles/schema";
 import type { TeacherContextProfile } from "@/types/profile";
 
 type CopyTarget = "markdown" | "plainText" | "compact";
@@ -42,15 +43,24 @@ export function ResultActions({
   markdown,
   contextAsOf,
   suggestedTags = [],
+  onExported,
 }: {
   profile: TeacherContextProfile;
   markdown: string;
   contextAsOf: ContextAsOf;
   suggestedTags?: readonly SuggestedTag[];
+  onExported?: (format: ProfileExportFormat) => void;
 }) {
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<CopyStatus>(null);
   const resetTimerRef = useRef<number | null>(null);
+  const notifyExported = (format: ProfileExportFormat) => {
+    try {
+      onExported?.(format);
+    } catch {
+      // Optional record keeping must not change a successful export.
+    }
+  };
 
   useEffect(
     () => () => {
@@ -76,6 +86,8 @@ export function ResultActions({
     try {
       await navigator.clipboard.writeText(value);
       setTemporaryCopyStatus({ target, result: "copied" });
+      if (target !== "plainText")
+        notifyExported(target === "compact" ? "core" : "full");
     } catch {
       setTemporaryCopyStatus({ target, result: "failed" });
     }
@@ -101,12 +113,13 @@ export function ResultActions({
           type="button"
           size="lg"
           className="h-auto min-h-14 min-w-0 justify-start px-5 py-3 text-left text-base whitespace-normal sm:col-span-2"
-          onClick={() =>
+          onClick={() => {
             downloadMarkdown(
               markdown,
               profileMarkdownFilename(profile.metadata.schoolLevel),
-            )
-          }
+            );
+            notifyExported("full");
+          }}
         >
           <Download aria-hidden="true" className="size-5" />
           수업 설계용 Markdown 다운로드

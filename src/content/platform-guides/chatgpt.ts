@@ -26,6 +26,8 @@ export const CHATGPT_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "••• → Project settings의 프로젝트 지침",
+      updateNote:
+        "프로젝트 소스 목록에서 이전 교사 문서를 삭제하고 새로 내려받은 문서를 올립니다.",
       availabilityNote:
         "로그인이 필요하며 요금제와 워크스페이스 설정에 따라 다릅니다. 파일은 Free 5개, Go·Plus 25개, Edu·Pro·Business·Enterprise 40개까지, 한 번에 10개까지 올릴 수 있습니다.",
       officialUrl:
@@ -52,6 +54,7 @@ export const CHATGPT_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "대화 입력창",
+      updateNote: "새 대화를 시작할 때 새로 내려받은 문서를 첨부합니다.",
       officialUrl:
         "https://help.openai.com/en/articles/10169521-projects-in-chatgpt",
       verifiedAt: "2026-10-25",

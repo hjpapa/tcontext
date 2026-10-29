@@ -26,6 +26,8 @@ export const CLAUDE_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "Set project instructions",
+      updateNote:
+        "프로젝트 지식에서 이전 교사 문서를 지우고 새로 내려받은 문서를 올립니다.",
       availabilityNote:
         "무료 계정을 포함한 모든 사용자가 프로젝트를 쓸 수 있으며 무료 계정은 최대 5개입니다. 요금제에 따라 프로젝트 지침을 쓰지 못할 수 있습니다. 그 경우 대화를 시작할 때 공통 지침을 붙여 넣으세요. 일부 Pro·Max 계정은 새 프로젝트 화면 배포로 화면이 다를 수 있습니다.",
       officialUrl:
@@ -52,6 +54,7 @@ export const CLAUDE_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "대화 입력창",
+      updateNote: "새 대화를 시작할 때 새로 내려받은 문서를 첨부합니다.",
       officialUrl:
         "https://support.claude.com/en/articles/10185728-understanding-claude-s-personalization-features",
       verifiedAt: "2026-10-25",

@@ -202,7 +202,10 @@ it("renders current and two historical versions in stored order with dates and c
   expect(within(rows[0]!).getByText("바뀐 영역: 전체 요약")).toBeVisible();
   expect(within(rows[1]!).getByText("바뀐 영역: 전체 요약")).toBeVisible();
   expect(within(rows[2]!).getByText("바뀐 영역: 문서 제목")).toBeVisible();
-  expect(screen.queryByText("내보내기 기록")).not.toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "내보내기 기록" }),
+  ).toBeVisible();
+  expect(screen.getByText("아직 내보낸 기록이 없습니다.")).toBeVisible();
 });
 
 it("opens and closes the selected comparison accessibly", async () => {

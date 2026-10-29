@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import type { ProfileExportFormat } from "@/lib/storage/profiles/schema";
 import {
   downloadTextFile,
   profileMarkdownFilename,
@@ -28,10 +29,12 @@ export function ExportVariantPanel({
   profile,
   markdown,
   contextAsOf,
+  onExported,
 }: {
   profile: TeacherContextProfile;
   markdown: string;
   contextAsOf: ContextAsOf;
+  onExported?: (format: ProfileExportFormat) => void;
 }) {
   const titleId = useId();
   const [selection, setSelection] = useState<ExportVariantSelection>({
@@ -40,6 +43,13 @@ export function ExportVariantPanel({
     sections: [...OPTIONAL_SECTION_IDS],
   });
   const [message, setMessage] = useState<string | null>(null);
+  const notifyExported = () => {
+    try {
+      onExported?.(selection.variant);
+    } catch {
+      // Optional record keeping must not change a successful export.
+    }
+  };
   const result = useMemo<VariantResult>(() => {
     if (selection.variant === "full") return { ok: true, markdown };
     if (selection.variant === "core")
@@ -56,6 +66,7 @@ export function ExportVariantPanel({
     try {
       await navigator.clipboard.writeText(result.markdown);
       setMessage("내보낼 내용을 복사했습니다.");
+      notifyExported();
     } catch {
       setMessage(
         "복사하지 못했습니다. 브라우저의 클립보드 권한을 확인해 주세요.",
@@ -80,6 +91,7 @@ export function ExportVariantPanel({
         ? "Markdown 다운로드를 시작했습니다."
         : "다운로드하지 못했습니다. 브라우저 설정을 확인하고 다시 시도해 주세요.",
     );
+    if (downloaded.ok) notifyExported();
   };
 
   return (

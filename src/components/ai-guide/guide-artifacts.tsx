@@ -5,6 +5,7 @@ import {
   type ExportVariantSelection,
 } from "@/components/export/export-variant-picker";
 import { useContextAsOf } from "@/components/export/use-context-as-of";
+import { useRecordExport } from "@/components/export/use-record-export";
 import { useInterviewSession } from "@/components/layout/interview-session-provider";
 import { Button } from "@/components/ui/button";
 import { COMMON_USAGE_INSTRUCTIONS } from "@/content/usage-instructions";
@@ -29,11 +30,14 @@ import { PROFILE_MODULE_IDS } from "@/types/profile";
 
 export function GuideArtifacts({
   artifacts,
+  exportTarget,
 }: {
   artifacts: readonly GuideArtifactId[];
+  exportTarget?: string;
 }) {
   const { profile, markdown } = useInterviewSession();
   const asOf = useContextAsOf(profile);
+  const recordExport = useRecordExport();
   const [selection, setSelection] = useState<ExportVariantSelection>({
     variant: "full",
     modules: [...PROFILE_MODULE_IDS],
@@ -77,6 +81,7 @@ export function GuideArtifacts({
                 selection.variant,
               ),
         );
+        if (exportTarget) recordExport(exportTarget, selection.variant);
       } else {
         const result = createSkillPackageFile({
           profile,
@@ -90,6 +95,7 @@ export function GuideArtifacts({
         }
         if (!downloadTextFile(result.value, { bom: false }).ok)
           throw new Error("download_failed");
+        if (exportTarget) recordExport(exportTarget, "skill-package");
       }
       setMessage(
         kind === "skill-package"

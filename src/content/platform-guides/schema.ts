@@ -59,6 +59,7 @@ export const platformGuideMethodSchema = z
     instructionTarget: text.optional(),
     availabilityNote: text.optional(),
     migrationNote: text.optional(),
+    updateNote: text.optional(),
     replaces: id.optional(),
     officialUrl: z
       .url()
