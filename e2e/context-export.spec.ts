@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { AS_OF_NOTICE } from "../src/content/export-variants";
+import {
+  AS_OF_NOTICE,
+  CORE_AS_OF_NOTICE,
+} from "../src/content/export-variants";
 import {
   LOCAL_PROFILE_DB_NAME,
   localProfileRecordSchema,
@@ -118,9 +121,18 @@ test.describe("context export variants", () => {
     await panel.getByRole("radio", { name: "핵심본", exact: true }).click();
     const core = await preview.inputValue();
     expect(core).toContain('export_variant: "core"');
-    expect(core).toContain(`[직접] ${MODULES[0].claim.text}`);
-    expect(core).toContain(`[AI 해석·교사 승인] ${MODULES[1].claim.text}`);
-    expect(core).toContain(AS_OF_NOTICE("2026-07-31", "generated"));
+    for (const profileModule of MODULES) {
+      expect(core).toContain(profileModule.summary);
+      expect(core).not.toContain(profileModule.claim.text);
+    }
+    for (const item of [
+      ...generatedProfile.teachingDesignPrinciples,
+      ...generatedProfile.classSupportConsiderations,
+      ...generatedProfile.realisticConstraints,
+      ...generatedProfile.aiCollaborationInstructions,
+    ])
+      expect(core).toContain(item);
+    expect(core).toContain(CORE_AS_OF_NOTICE("2026-07-31", "generated"));
     expect(core).not.toContain("# 수업마다 추가할 작업 컨텍스트");
     expect(core).not.toContain("# AI에게 바로 전달할 실행 프롬프트");
     const coreFile = await downloadedMarkdown(
@@ -266,7 +278,7 @@ test.describe("context export variants", () => {
     expect(unexpected).toEqual([]);
   });
 
-  test("excludes unresolved claims and uses the confirmed date for a saved profile", async ({
+  test("exports summaries without individual claims and uses the confirmed date for a saved profile", async ({
     page,
   }) => {
     const unexpected = await mockApis(page);
@@ -335,11 +347,9 @@ test.describe("context export variants", () => {
     await expect(preview).toHaveValue(/context_as_of: "2026-10-26"/);
     const core = await preview.inputValue();
     expect(core).toContain('context_as_of_source: "confirmed"');
-    expect(core).toContain(AS_OF_NOTICE("2026-10-26", "confirmed"));
-    expect(core).toContain(MODULES[0].claim.text);
-    expect(core).toContain("확인되지 않은 문장 2개");
-    expect(core).not.toContain(MODULES[1].claim.text);
-    expect(core).not.toContain(MODULES[2].claim.text);
+    expect(core).toContain(CORE_AS_OF_NOTICE("2026-10-26", "confirmed"));
+    for (const profileModule of MODULES)
+      expect(core).not.toContain(profileModule.claim.text);
     expect(core).not.toContain("# 수업마다 추가할 작업 컨텍스트");
     expect(core).not.toContain("# AI에게 바로 전달할 실행 프롬프트");
     const file = await downloadedMarkdown(

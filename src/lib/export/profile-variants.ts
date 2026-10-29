@@ -7,15 +7,16 @@ import {
   AS_OF_NOTICE,
   CLAIM_GROUPS,
   CLAIM_REVIEW_WARNING,
-  CORE_CLAIM_LABELS,
-  CORE_EXCLUDED_NOTICE,
+  CORE_AS_OF_NOTICE,
+  CORE_FORMAT_VERSION,
   CORE_USAGE_RULES,
+  MODULE_USAGE_RULES,
   EMPTY_SECTION_LINE,
   EVIDENCE_GUIDE_LINES,
   MODULE_SCOPE_NOTICE,
   PRIVACY_REVIEW_WARNING,
   PRIVACY_UNVERIFIED_WARNING,
-  VARIANT_FORMAT_VERSION,
+  MODULE_FORMAT_VERSION,
   VARIANT_SECTION_TITLES,
 } from "@/content/export-variants";
 import { TEACHER_ROLE_LABELS, teacherRoleSchema } from "@/types/interview";
@@ -96,24 +97,21 @@ function orderedModules(profile: TeacherContextProfile): ProfileModule[] {
   );
 }
 
-function frontMatter(
+function moduleFrontMatter(
   profile: TeacherContextProfile,
-  variant: "core" | "modules",
   asOf: ContextAsOf,
   modules: readonly ProfileModule[],
   sections: readonly OptionalSectionId[],
 ): string {
   const role = teacherRoleSchema.safeParse(profile.metadata.role);
-  const needsReview =
-    variant === "modules" &&
-    modules.some((module) =>
-      module.claims.some((claim) => !confirmedClaim(claim)),
-    );
+  const needsReview = modules.some((module) =>
+    module.claims.some((claim) => !confirmedClaim(claim)),
+  );
   return [
     "---",
     `document_type: ${yamlQuoted("teacher_profile_context")}`,
-    `export_variant: ${yamlQuoted(variant)}`,
-    `variant_format_version: ${yamlQuoted(VARIANT_FORMAT_VERSION)}`,
+    `export_variant: ${yamlQuoted("modules")}`,
+    `variant_format_version: ${yamlQuoted(MODULE_FORMAT_VERSION)}`,
     `title: ${yamlQuoted(CONTEXT_DOCUMENT_TITLE)}`,
     `profile_title: ${yamlQuoted(profile.profileTitle)}`,
     `service: ${yamlQuoted("TContext")}`,
@@ -132,12 +130,33 @@ function frontMatter(
     `privacy_rule: ${yamlQuoted("이름·학교명·특정 학급명·개별 학생 정보는 포함하지 않음")}`,
     `privacy_review: ${yamlQuoted(profile.privacyReview.status)}`,
     `needs_claim_review: ${needsReview}`,
-    ...(variant === "modules"
-      ? [
-          `included_modules: [${modules.map((module) => yamlQuoted(module.id)).join(", ")}]`,
-          `included_sections: [${sections.map(yamlQuoted).join(", ")}]`,
-        ]
-      : []),
+    `included_modules: [${modules.map((module) => yamlQuoted(module.id)).join(", ")}]`,
+    `included_sections: [${sections.map(yamlQuoted).join(", ")}]`,
+    "---",
+  ].join("\n");
+}
+
+function coreFrontMatter(
+  profile: TeacherContextProfile,
+  asOf: ContextAsOf,
+): string {
+  const role = teacherRoleSchema.safeParse(profile.metadata.role);
+  return [
+    "---",
+    `document_type: ${yamlQuoted("teacher_profile_context")}`,
+    `export_variant: ${yamlQuoted("core")}`,
+    `variant_format_version: ${yamlQuoted(CORE_FORMAT_VERSION)}`,
+    `profile_title: ${yamlQuoted(profile.profileTitle)}`,
+    `school_level: ${yamlQuoted(SCHOOL_LEVEL_DISPLAY_LABELS[profile.metadata.schoolLevel])}`,
+    `role: ${yamlQuoted(role.success ? TEACHER_ROLE_LABELS[role.data] : profile.metadata.role)}`,
+    ...(profile.metadata.teachingSubject === undefined
+      ? []
+      : [
+          `teaching_subject: ${yamlQuoted(TEACHING_SUBJECT_LABELS[profile.metadata.teachingSubject])}`,
+        ]),
+    `context_as_of: ${yamlQuoted(asOf.date)}`,
+    `context_as_of_source: ${yamlQuoted(asOf.source)}`,
+    `privacy_review: ${yamlQuoted(profile.privacyReview.status)}`,
     "---",
   ].join("\n");
 }
@@ -179,69 +198,43 @@ export function profileToCoreMarkdown(
     return { ok: false, error: "pending_review" };
   const { asOf } = config.data;
   const modules = orderedModules(data);
-  const excluded = modules
-    .flatMap((module) => module.claims)
-    .filter((claim) => !confirmedClaim(claim)).length;
-  const empty = modules
-    .filter((module) => !module.claims.some(confirmedClaim))
-    .map((module) => safe(module.title));
   const lines = [
-    frontMatter(data, "core", asOf, modules, []),
+    coreFrontMatter(data, asOf),
     "",
     `# ${safe(data.profileTitle)}`,
     "",
     "## 이 문서를 사용하는 방법",
     "",
     ...CORE_USAGE_RULES.map((rule) => `- ${rule}`),
+    "",
+    CORE_AS_OF_NOTICE(asOf.date, asOf.source),
     ...privacyWarning(data),
   ];
-  if (excluded) lines.push("", CORE_EXCLUDED_NOTICE(excluded, empty));
-  if (data.shortSummary) lines.push("", "## 요약", "", safe(data.shortSummary));
-  lines.push("", "## 확인된 교사 맥락");
-  const seen = new Set<string>();
-  const first = (text: string) => {
-    const key = safe(text).replace(/\s+/gu, " ");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  };
-  let hasConfirmed = false;
-  for (const profileModule of modules) {
-    const claims = profileModule.claims.filter(confirmedClaim);
-    if (!claims.length) continue;
-    hasConfirmed = true;
-    lines.push("", `### ${safe(profileModule.title)}`);
-    if (profileModule.summary) lines.push("", safe(profileModule.summary));
-    if (profileModule.id === "class_context")
-      lines.push("", AS_OF_NOTICE(asOf.date, asOf.source));
-    lines.push("");
-    for (const claim of claims) {
-      if (claim.basis !== "needs_confirmation" && first(claim.text))
-        lines.push(
-          `- ${CORE_CLAIM_LABELS[claim.basis]} ${listText(claim.text)}`,
-        );
-    }
+  const summary = safe(data.shortSummary);
+  if (summary) lines.push("", "## 요약", "", summary);
+  const summaries = modules
+    .map((profileModule) => ({
+      title: safe(profileModule.title),
+      summary: safe(profileModule.summary),
+    }))
+    .filter((profileModule) => profileModule.summary !== "");
+  if (summaries.length) {
+    lines.push("", "## 영역별 요약");
+    for (const profileModule of summaries)
+      lines.push("", `### ${profileModule.title}`, "", profileModule.summary);
   }
-  if (!hasConfirmed) lines.push("", EMPTY_SECTION_LINE);
-  appendSection(
-    lines,
-    "teachingDesignPrinciples",
-    data.teachingDesignPrinciples.filter(first),
-    asOf,
-  );
-  appendSection(
-    lines,
-    "classSupportConsiderations",
-    data.classSupportConsiderations.filter(first),
-    asOf,
-  );
-  appendSection(lines, "realisticConstraints", data.realisticConstraints, asOf);
-  appendSection(
-    lines,
+  for (const id of [
+    ...OPTIONAL_SECTION_IDS,
     "aiCollaborationInstructions",
-    data.aiCollaborationInstructions,
-    asOf,
-  );
+  ] as const)
+    lines.push(
+      "",
+      `## ${VARIANT_SECTION_TITLES[id]}`,
+      "",
+      data[id].length
+        ? data[id].map((value) => `- ${listText(value)}`).join("\n")
+        : EMPTY_SECTION_LINE,
+    );
   return { ok: true, markdown: lines.join("\n") + "\n" };
 }
 
@@ -291,7 +284,7 @@ export function profileToModuleMarkdown(
     config.data.sections.includes(id),
   );
   const lines = [
-    frontMatter(data, "modules", asOf, modules, sections),
+    moduleFrontMatter(data, asOf, modules, sections),
     "",
     `# ${safe(data.profileTitle)}`,
     "",
@@ -299,7 +292,7 @@ export function profileToModuleMarkdown(
     "",
     MODULE_SCOPE_NOTICE(modules.map((module) => safe(module.title)).join("·")),
     "",
-    ...CORE_USAGE_RULES.map((rule) => `- ${rule}`),
+    ...MODULE_USAGE_RULES.map((rule) => `- ${rule}`),
     "",
     "## 근거 표시를 읽는 법",
     "",
