@@ -54,19 +54,27 @@
 
 ## 브라우저 로컬 저장(IndexedDB)
 
-교사가 켠 경우에만 DB `tcontext-local-profiles`(버전 1)를 만든다. 저장 형식 버전은 1이며 최대 10개 프로파일을 보관한다. Web Storage에는 프로파일 본문을 저장하지 않는다.
+교사가 켠 경우에만 DB `tcontext-local-profiles`(버전 1)를 만든다. 프로파일 기록 형식은 버전 2이며 설정 레코드는 버전 1을 유지한다. 최대 10개 프로파일을 보관하고 Web Storage에는 프로파일 본문을 저장하지 않는다. v1 기록은 읽을 때 `history: []`, `exports: []`를 더해 v2로 변환하며 다음 쓰기에서 저장한다. 읽기만으로 DB를 고치지 않는다.
 
 | store      | 필드                                                                         | 목적                                                       |
 | ---------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `meta`     | `key: "settings"`, `enabledAt`, `storageSchemaVersion`                       | 명시적 활성화 시각과 저장 형식 버전                        |
+| `meta`     | `key: "settings"`, `enabledAt`, `storageSchemaVersion: 1`                    | 명시적 활성화 시각과 설정 형식 버전                        |
 | `profiles` | `id`, `storageSchemaVersion`, `createdAt`, `updatedAt`, `revision`, `origin` | 무작위 문서 ID, 버전·시각, 충돌 검출, 인터뷰·가져오기 구분 |
 | `profiles` | `suggestedTags`                                                              | 검토 때 다시 선택할 수 있는 통제된 제안 태그               |
 | `profiles` | `confirmed: { profile, confirmedAt } \| null`                                | 검토 완료된 구조화 프로필과 확정 시각                      |
 | `profiles` | `draft: { profile, baseConfirmedAt, updatedAt } \| null`                     | 미완성 문장을 허용하는 편집 초안과 기준 확정 시각          |
+| `profiles` | `history: { profile, confirmedAt, replacedAt }[]`                           | 이전 확정본 최대 5개, 원래 확정 시각과 교체 시각           |
+| `profiles` | `exports: { target, format, confirmedAt, exportedAt }[]`                    | 대상별 최근 내보내기 1건, 전체 최대 10건                   |
 
 프로필에는 7개 모듈, 종합 목록 4종, 확인 태그와 생성 메타데이터가 포함된다. 초안의 개인정보 검사 결과는 검사 대기 값으로만 보관하며 확정본은 실제 검사 상태를 보존한다. `profiles`의 keyPath는 `id`, `updatedAt` 인덱스는 수정 순서 조회용이다.
 
-원문 인터뷰 답변, 서명된 검사 토큰, 기여 영수증, 경고 확인 체크 상태, 별도 Markdown 사본, IP 주소·사용자 에이전트·이름·이메일·쿠키는 저장하지 않는다. 교사가 내용을 검토하며 개인정보를 제거해야 한다.
+`history`는 `replacedAt` 내림차순이며 이력이 있으면 현재 확정본도 있어야 한다. 각 프로필은 지원하는 버전과 확정본 검사 규칙을 따르고, `confirmedAt`은 현재 확정본과 이력 전체에서 고유하다. 전체본 Markdown 내용이 같으면 이력을 만들지 않고 확정 시각을 유지한다. 복원은 선택한 버전의 원래 `confirmedAt`을 유지하며 초안이 있으면 거절한다.
+
+`exports.target`은 소문자·숫자·하이픈으로 된 최대 64자의 불투명한 대상 id이며 중복되지 않는다. `format`은 `full`, `core`, `modules`, `skill-package` 중 하나다. `confirmedAt`은 내보낸 확정본의 식별 시각이고 `exportedAt`은 내보내기 기록 시각이다. 10건을 넘으면 가장 오래전에 내보낸 기록부터 지운다. 해당 확정본이 이력 보관 범위를 벗어나도 내보내기 기록은 남을 수 있다. 내보내기 기록과 이력 하나 삭제는 본문 수정이 아니므로 `revision`·`updatedAt`을 바꾸지 않는다.
+
+원문 인터뷰 답변, 서명된 검사 토큰, 기여 영수증, 경고 확인 체크 상태, 별도 Markdown 사본, 내보낸 내용·모듈 선택·외부 계정 정보, IP 주소·사용자 에이전트·이름·이메일·쿠키는 저장하지 않는다. 내보내기 기록은 외부 서비스에 실제 등록했다는 뜻이 아니다. 교사가 내용을 검토하며 개인정보를 제거해야 한다.
+
+프로파일 삭제 시 `history`와 `exports`도 함께 삭제한다. JSON 백업은 기존 형식을 유지하고 선택한 현재 확정본 또는 초안 하나만 담으며, 이력과 내보내기 기록은 포함하지 않는다.
 
 보존 기간은 교사가 지우거나 브라우저가 지울 때까지이며 자동 만료는 없다. `/profiles`에서 개별 문서 삭제·초안 버리기, `/profiles` 또는 `/privacy`에서 “로컬 저장 끄고 모두 삭제”를 제공한다. “이 탭의 모든 기록 삭제”는 저장된 프로파일을 지우지 않는다. 공용 기기에 주의하고 소실에 대비해 JSON 백업을 보관한다. 서버 기여와 내려받은 파일은 각각 별도로 삭제해야 한다.
 
