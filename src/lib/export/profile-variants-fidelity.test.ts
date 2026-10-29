@@ -274,44 +274,49 @@ it("rejects constraints inserted into a variant where that section is disabled",
   ).toContain("constraints");
 });
 
-it.each([false, true])(
-  "retains legacy module-checker recognition of excluded-claim notices, all confirmed: %s",
-  (allConfirmed) => {
-    const source = structuredClone(MAX_VARIANT_PROFILE);
-    if (allConfirmed)
-      for (const profileModule of source.modules)
-        for (const claim of profileModule.claims) {
-          claim.confirmedByUser = true;
-          claim.basis = "direct";
-        }
-    const legacyNotice = allConfirmed
-      ? "> **확인되지 않은 문장 제외:** 확인되지 않은 문장 0개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요."
-      : `> **확인되지 않은 문장 제외:** 확인되지 않은 문장 16개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요. 확인된 문장이 없는 영역: ${source.modules[6]!.title}.`;
-    const modules: ProfileModuleId[] = ["identity_and_role"];
-    const good = variantMarkdown(
-      profileToModuleMarkdown(source, {
-        asOf: TEST_AS_OF,
-        modules,
-        sections: [],
-      }),
-    );
-    const markdown = good.replace(
-      "## 이 문서의 범위",
-      `${legacyNotice}\n\n## 이 문서의 범위`,
-    );
-    expect(markdown).not.toBe(good);
-    expect(
-      verifyVariantFidelity({
-        profile: source,
-        variant: "modules",
-        markdown,
-        modules,
-        sections: [],
-        asOf: TEST_AS_OF,
-      }),
-    ).toEqual([]);
+it.each([
+  {
+    name: "a core 1.0 attributed claim",
+    content: `- [직접] ${sanitizeMarkdownText(direct).replaceAll("\n", "\n  ")}`,
   },
-);
+  {
+    name: "a core 1.0 excluded-claim notice",
+    content:
+      "> **확인되지 않은 문장 제외:** 확인되지 않은 문장 0개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요.",
+  },
+  {
+    name: "the whole-profile summary section",
+    content: `## 요약\n\n${sanitizeMarkdownText(profile.shortSummary)}`,
+  },
+  {
+    name: "the whole-profile summary paragraph",
+    content: sanitizeMarkdownText(profile.shortSummary),
+  },
+])("rejects $name inside a module export", ({ content }) => {
+  const modules: ProfileModuleId[] = ["identity_and_role"];
+  const good = variantMarkdown(
+    profileToModuleMarkdown(profile, {
+      asOf: TEST_AS_OF,
+      modules,
+      sections: [],
+    }),
+  );
+  const markdown = good.replace(
+    "## 이 문서의 범위",
+    `${content}\n\n## 이 문서의 범위`,
+  );
+  expect(markdown).not.toBe(good);
+  expect(
+    verifyVariantFidelity({
+      profile,
+      variant: "modules",
+      markdown,
+      modules,
+      sections: [],
+      asOf: TEST_AS_OF,
+    }).map((issue) => issue.rule),
+  ).toContain("unknown_line");
+});
 
 it("requires the support date at its own location even when the class module has one", () => {
   for (const variant of ["modules"] as const) {

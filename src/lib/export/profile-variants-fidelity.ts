@@ -36,10 +36,6 @@ type Item = {
 const sectionIds = Object.keys(VARIANT_SECTION_TITLES) as SectionId[];
 const safe = sanitizeMarkdownText;
 const list = (text: string) => `- ${safe(text).replaceAll("\n", "\n  ")}`;
-// Recognize misplaced attributed claims when checking the unchanged module format.
-const attributionLabels = ["[직접]", "[AI 해석·교사 승인]"] as const;
-const attributedClaim = (claim: ProfileClaim) =>
-  `- ${attributionLabels[claim.basis === "inferred" ? 1 : 0]} ${safe(claim.text).replaceAll("\n", "\n  ")}`;
 const moduleClaim = (claim: ProfileClaim) =>
   `${list(claim.text)}${claim.confirmedByUser ? "" : " **[검토 전]**"}`;
 const sameCounts = (left: readonly string[], right: readonly string[]) => {
@@ -264,17 +260,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     ...(input.sections ?? []),
     "aiCollaborationInstructions",
   ]);
-  // The module checker historically recognized this legacy fragment, even
-  // though the module generator never emitted it. Preserve that classification.
-  const confirmedClaim = (claim: ProfileClaim) =>
-    claim.confirmedByUser && claim.basis !== "needs_confirmation";
-  const excludedCount = modules
-    .flatMap((profileModule) => profileModule.claims)
-    .filter((claim) => !confirmedClaim(claim)).length;
-  const emptyTitles = modules
-    .filter((profileModule) => !profileModule.claims.some(confirmedClaim))
-    .map((profileModule) => safe(profileModule.title));
-  const legacyExcludedNotice = `> **확인되지 않은 문장 제외:** 확인되지 않은 문장 ${excludedCount}개는 이 핵심본에서 제외했습니다. 전체본에서 확인하고 검토를 마쳐 주세요.${emptyTitles.length ? ` 확인된 문장이 없는 영역: ${emptyTitles.join("·")}.` : ""}`;
   const asOfNotice = AS_OF_NOTICE(input.asOf.date, input.asOf.source);
   const scopeNotice = MODULE_SCOPE_NOTICE(
     selectedModules.map((profileModule) => safe(profileModule.title)).join("·"),
@@ -313,10 +298,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     EMPTY_SECTION_LINE,
     "- 작성된 내용이 없습니다.",
     asOfNotice,
-    legacyExcludedNotice,
-    "## 이 문서를 사용하는 방법",
-    "## 확인된 교사 맥락",
-    "## 요약",
     "## 이 문서의 범위",
     "## 근거 표시를 읽는 법",
     scopeNotice,
@@ -324,9 +305,9 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     ...sectionIds.map((id) => `## ${VARIANT_SECTION_TITLES[id]}`),
     ...CLAIM_GROUPS.map((group) => `### ${group.title}`),
   ]);
+  // The whole-profile summary is never part of a module export (decision 4).
   const canonicalTexts = [
     profile.profileTitle,
-    profile.shortSummary,
     ...modules.flatMap((profileModule) => [
       profileModule.title,
       profileModule.summary,
@@ -336,7 +317,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
   ];
   for (const text of [
     profile.profileTitle,
-    profile.shortSummary,
     ...modules.map((profileModule) => profileModule.summary),
   ]) {
     if (safe(text)) fragments.add(safe(text));
@@ -345,8 +325,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     if (!safe(text)) continue;
     fragments.add(list(text));
     fragments.add(`${list(text)} **[검토 전]**`);
-    for (const label of attributionLabels)
-      fragments.add(`- ${label} ${safe(text).replaceAll("\n", "\n  ")}`);
   }
   for (const profileModule of modules) {
     fragments.add(`### ${safe(profileModule.title)}`);
@@ -384,9 +362,7 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     // Summaries can contain multiple lines; do not mistake their text for structure.
     const summary = moduleId
       ? modules.find((profileModule) => profileModule.id === moduleId)!.summary
-      : section === "summary"
-        ? profile.shortSummary
-        : "";
+      : "";
     if (summaryPending) {
       summaryPending = false;
       if (summary && matches(at, safe(summary))) {
@@ -401,7 +377,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     if (moduleId === null) {
       const notice = [
         scopeNotice,
-        legacyExcludedNotice,
         PRIVACY_UNVERIFIED_WARNING,
         PRIVACY_REVIEW_WARNING,
         CLAIM_REVIEW_WARNING,
@@ -431,13 +406,9 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
       group = null;
       section =
         sectionIds.find((id) => line === `## ${VARIANT_SECTION_TITLES[id]}`) ??
-        (line === "## 확인된 교사 맥락"
-          ? "context"
-          : line === "## 요약"
-            ? "summary"
-            : "overview");
+        "overview";
       actualSections.add(section);
-      summaryPending = section === "summary";
+      summaryPending = false;
       continue;
     }
     const claimGroup = CLAIM_GROUPS.find(
@@ -491,7 +462,6 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     modules.flatMap((profileModule) =>
       profileModule.claims.flatMap((claim) => [
         list(claim.text),
-        attributedClaim(claim),
         moduleClaim(claim),
       ]),
     ),
@@ -536,13 +506,7 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
     [
       ...profile.realisticConstraints,
       ...profile.aiCollaborationInstructions,
-    ].flatMap((text) => [
-      list(text),
-      `${list(text)} **[검토 전]**`,
-      ...attributionLabels.map(
-        (label) => `- ${label} ${safe(text).replaceAll("\n", "\n  ")}`,
-      ),
-    ]),
+    ].flatMap((text) => [list(text), `${list(text)} **[검토 전]**`]),
   );
   for (const item of items) {
     if (!protectedItems.has(item.raw)) continue;
@@ -552,8 +516,7 @@ function verifyModuleFidelity(input: FidelityInput): FidelityIssue[] {
             .get(item.module)!
             .some((claim) => moduleClaim(claim) === item.raw)
         : expectedSections.get(item.section as SectionId)?.includes(item.raw) ||
-          ((item.section === "overview" || item.section === "context") &&
-            fixedOverviewItems.has(item.raw));
+          (item.section === "overview" && fixedOverviewItems.has(item.raw));
     if (!allowedHere)
       add(
         "constraints",
