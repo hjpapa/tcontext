@@ -39,3 +39,25 @@
 - 관문 보정 이력: 없음.
 - 확인하지 못한 것·남은 위험: 실제 외부 서비스 등록 여부는 알 수 없으며 내보낸 기록만 표시한다. 브라우저 전체 검증은 WU-23 대상이다.
 - 리뷰어에게 묻고 싶은 것: 없음.
+
+## WU-22 skill 패키지 2.0과 호환성 검사
+
+- 상태: 완료. WU-21 `7fd1b66` 뒤에 착수했다. 기존 E2E 기대값 충돌로 한 차례 중단했으며, 사용자가 해당 한 줄의 추가 예외를 승인한 뒤 재개했다.
+- 변경 파일: `src/lib/export/skill.ts`, 신규 `skill-package-v2.test.ts`·`skill-check.ts`·`skill-check.test.ts`, 신규 `src/content/skill-format.ts`, `src/components/ai-guide/guide-artifacts.tsx`와 신규 `guide-skill-check.test.tsx`, `src/content/platform-guides/{chatgpt,claude}.ts`와 신규 `skill-methods.test.ts`, E5 `skill.test.ts`, E6 `schema.test.ts`, 추가 승인된 `e2e/ai-guide.spec.ts` 한 줄, 이 진행 기록.
+- 관문: lint ✓ typecheck ✓ test ✓(1,179개 통과, 기존 건너뜀 4) build ✓ e2e -(WU-23 대상). 가짜 외부 키를 설정한 corepack pnpm으로 실행했다. 검사기 50/50, 생성기·기존 출력 15/15, 가이드·콘텐츠 57/57 집중 검사도 통과했다.
+- 중단·재개 근거: `e2e/ai-guide.spec.ts:194`의 `expect(instructions).not.toContain(generatedProfile.profileTitle)`는 기준 커밋 `07bd62c`에도 있는 기대값이며 핵심본 포함 사양과 충돌한다. E1~E6 밖이므로 runbook 4절 2번에 따라 멈춘 뒤, 사용자가 2026-10-30 대화에서 그 한 줄을 `expect(instructions).toContain(generatedProfile.profileTitle)`로 바꾸는 추가 예외와 WU-22~23 재개를 승인했다. 승인 범위를 다른 기존 E2E 기대값으로 확대하지 않았다.
+- 설계·지시와 다르게 구현한 부분과 이유: 명세 변경 없음. 핵심본 본문은 앞 빈 줄부터 그대로 붙이고, 전체본 참고 파일과 지침 전용 파일은 유지한다. 형식 결과는 ZIP 버튼 가까이 표시하며 현재 문서·기준 시점이 바뀌면 이전 검사 결과를 숨긴다.
+- 이전 WU 수정: 없음.
+- 승인된 기존 테스트 예외(변경 후 줄): E5 `src/lib/export/skill.test.ts:55,58`; 기존 도입 문단 기대값은 신규 `skill-package-v2.test.ts:67-69`의 글자·줄 초과 대체 테스트로 옮겼다. E6 `src/content/platform-guides/schema.test.ts:43,49`. 대화 추가 승인 `e2e/ai-guide.spec.ts:194`.
+- 검증 근거: 정상 예제 4건·최대 크기·개인정보 경고·미완료 확인·legacy 패키지 통과, 핵심본 접미부 일치, 전체본 바이트 보존, 기준일 전달·기본값, 결정적 출력·입력 보존을 검사했다. 한도 초과 두 사례는 수정 전 SKILL.md의 SHA-256 `822177ebe65aa2becfa9ea951629964fbe8232dfd332f5b858e46d1f417161ec`와 일치한다. 규칙별 잘못된 패키지와 가이드 실패 시 다운로드·기록 차단도 검사했다.
+- 관문 보정 이력: 신규 가이드 테스트의 ZIP `mediaType`이 일반 문자열로 추론되는 타입 오류를 리터럴로 고쳤다(보정 1회). 타입 검사와 해당 테스트 10/10을 다시 통과했으며 제품 코드 변경은 없다.
+- 확인하지 못한 것·남은 위험: 실제 외부 서비스 업로드와 반영은 병합 뒤 사용자 확인 대상이다. 프로덕션 E2E는 WU-23에서 실행한다.
+- 리뷰어에게 묻고 싶은 것: 없음.
+
+## 현재 커밋과 남은 범위
+
+- WU-19: `a5ccc2d` 완료.
+- WU-20: `be28119` 완료.
+- WU-21: `7fd1b66` 완료.
+- WU-22: 완료.
+- WU-23: 미착수. Phase 4 완료 요약은 WU-23 완료 후 작성한다.
