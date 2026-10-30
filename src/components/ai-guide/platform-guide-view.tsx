@@ -44,7 +44,7 @@ function Method({
     <section
       id={method.id}
       aria-labelledby={`${method.id}-title`}
-      className={`min-w-0 space-y-5 rounded-2xl border p-5 sm:p-7 ${method.status === "recommended" ? "border-primary bg-secondary/20" : "bg-card"}`}
+      className={`min-w-0 space-y-5 rounded-2xl border p-5 break-words sm:p-7 ${method.status === "recommended" ? "border-primary bg-secondary/20" : "bg-card"}`}
     >
       <div className="flex flex-wrap items-center gap-3">
         <h2 id={`${method.id}-title`} className="text-2xl font-bold">
