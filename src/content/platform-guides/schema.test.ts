@@ -40,11 +40,13 @@ it("validates approved platform methods, dates, links and available artifacts", 
   ).toEqual([
     ["chatgpt-project", "recommended", "2026-10-25"],
     ["chatgpt-chat-attachment", "available", "2026-10-25"],
+    ["chatgpt-skill", "available", "2026-10-30"],
     ["gemini-chat-attachment", "recommended", "2026-10-25"],
     ["gemini-skill", "available", "2026-10-25"],
     ["gemini-gem", "transitioning", "2026-10-25"],
     ["claude-project", "recommended", "2026-10-25"],
     ["claude-chat-attachment", "available", "2026-10-25"],
+    ["claude-skill", "available", "2026-10-30"],
   ]);
   const facts = readFileSync(resolve("docs/codex/platform-facts.md"), "utf8");
   for (const method of PLATFORM_GUIDES.flatMap((g) => g.methods))

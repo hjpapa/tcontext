@@ -52,10 +52,10 @@ it("exports exactly two files with fixed instructions and unchanged canonical do
   expect(parsed.name).toBe(entries[0]!.path.split("/")[0]);
   expect(parsed.description).toBe(SKILL_DESCRIPTION);
   expect(instructions.match(/^---$/gm)).toHaveLength(2);
-  expect(instructions).not.toContain(profile.profileTitle);
+  expect(instructions).toContain(profile.profileTitle);
   expect(instructions).toContain("`references/teacher-profile.md`");
   expect(instructions).toContain(
-    "# 교사 컨텍스트 사용 지침\n\n이 skill을 사용할 때는 답하기 전에 반드시 참고 파일 `references/teacher-profile.md` 전체를 먼저 읽으세요. 교사 컨텍스트는 이 파일에만 있습니다. 파일을 읽지 못했다면 그 사실을 사용자에게 알리고, 교사 프로파일 문서를 대화에 첨부해 달라고 요청하세요.",
+    "# 교사 컨텍스트 사용 지침\n\n이 skill에는 교사가 검토한 핵심 맥락이 들어 있습니다. 이 파일의 사용 원칙 다음에 나오는 교사 프로파일이 교사 핵심 맥락이며, 교육 관련 요청에는 먼저 이 내용을 적용하세요. 교사가 직접 말한 근거 문장, 모듈별 세부 내용, 수업 작업 양식이 필요하면 참고 파일 `references/teacher-profile.md`를 읽으세요. 그 파일을 읽지 못했다면 사용자에게 알리고, 핵심 맥락만으로 답했다고 밝히세요.",
   );
   expect(instructions).toContain(COMMON_USAGE_INSTRUCTIONS);
   for (const principle of SKILL_USAGE_PRINCIPLES)

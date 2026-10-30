@@ -130,7 +130,7 @@ it("preserves selected existing tags and blank draft text", () => {
 it("opens draft first with an independent baseline and independent nested values", () => {
   const r: LocalProfileRecord = {
     id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
-    storageSchemaVersion: 1,
+    storageSchemaVersion: 2,
     createdAt: now,
     updatedAt: now,
     revision: 2,
@@ -138,6 +138,8 @@ it("opens draft first with an independent baseline and independent nested values
     suggestedTags: [{ category: "preferredTeachingMethods", tag: "making" }],
     confirmed: { profile: profile(), confirmedAt: now },
     draft: { profile: profile(), baseConfirmedAt: now, updatedAt: now },
+    history: [],
+    exports: [],
   };
   r.draft!.profile.profileTitle = "초안";
   const before = structuredClone(r);
@@ -184,7 +186,7 @@ it.each([0, 2])(
     );
     const session = toEditableSession({
       id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
-      storageSchemaVersion: 1,
+      storageSchemaVersion: 2,
       createdAt: now,
       updatedAt: now,
       revision: 1,
@@ -192,6 +194,8 @@ it.each([0, 2])(
       suggestedTags: [],
       confirmed: confirmed.snapshot,
       draft: draft.snapshot,
+      history: [],
+      exports: [],
     });
     for (const p of [
       confirmed.snapshot.profile,
@@ -226,7 +230,7 @@ it("restores unchecked confirmed tags as choices without selecting them", () => 
   draftProfile.confirmedTags.preferredTeachingMethods = [a.tag, c.tag];
   const session = toEditableSession({
     id: "c1d9ab22-56cd-491b-9654-5bab1976ab91",
-    storageSchemaVersion: 1,
+    storageSchemaVersion: 2,
     createdAt: now,
     updatedAt: now,
     revision: 1,
@@ -234,6 +238,8 @@ it("restores unchecked confirmed tags as choices without selecting them", () => 
     suggestedTags: [a],
     confirmed: { profile: confirmedProfile, confirmedAt: now },
     draft: { profile: draftProfile, baseConfirmedAt: now, updatedAt: now },
+    history: [],
+    exports: [],
   });
   expect(session.suggestedTags).toEqual([a, b, c]);
   expect(

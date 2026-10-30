@@ -191,7 +191,7 @@ test.describe("AI usage guides", () => {
         );
         expect(instructions.match(/^---$/gm)).toHaveLength(2);
         expect(instructions).toContain(COMMON_USAGE_INSTRUCTIONS);
-        expect(instructions).not.toContain(generatedProfile.profileTitle);
+        expect(instructions).toContain(generatedProfile.profileTitle);
         const reference = new TextDecoder().decode(entries[1]!.content);
         expect(reference).toBe(markdown.slice(1));
         expect(reference).not.toContain(safeAnswer);

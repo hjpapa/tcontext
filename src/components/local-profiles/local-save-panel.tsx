@@ -34,6 +34,7 @@ export const LOCAL_PROFILE_ERROR_MESSAGES: Record<
     "손상된 기록을 읽을 수 없습니다. JSON 백업에서 복원하거나 해당 기록을 삭제해 주세요.",
   not_found:
     "저장된 기록을 찾지 못했습니다. 내 프로파일 목록을 새로 확인해 주세요.",
+  draft_exists: "편집 중인 초안을 확정하거나 버린 뒤 복원할 수 있습니다.",
   limit_reached:
     "프로파일은 10개까지 보관할 수 있습니다. JSON 백업 후 불필요한 기록을 삭제해 주세요.",
   blocked:

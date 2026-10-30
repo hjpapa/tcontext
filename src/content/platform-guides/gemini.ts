@@ -27,6 +27,7 @@ export const GEMINI_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "대화 입력창",
+      updateNote: "새 대화를 시작할 때 새로 내려받은 문서를 첨부합니다.",
       availabilityNote:
         "한 번에 최대 10개 파일을 올릴 수 있으며 이용 가능 여부에 따라 다릅니다. 동영상이 아닌 파일은 최대 100 MB입니다.",
       officialUrl:
@@ -38,6 +39,8 @@ export const GEMINI_GUIDE: PlatformGuide = {
       label: "skill",
       status: "available",
       replaces: "gemini-gem",
+      updateNote:
+        "Skills 화면에서 Replace skill을 눌러 새 teacher-context.zip을 다시 올립니다.",
       requiredArtifacts: ["skill-package"],
       steps: [
         {
@@ -83,6 +86,8 @@ export const GEMINI_GUIDE: PlatformGuide = {
         },
       ],
       instructionTarget: "New Gem의 instructions",
+      updateNote:
+        "Gem을 고칠 수 있는 계정이면 지식 파일을 새 문서로 바꿉니다. 개인 계정은 2026-11-17부터 Gem을 고칠 수 없으므로 skill이나 대화 첨부로 옮깁니다.",
       availabilityNote:
         "새 Gem 만들기는 Workspace 교육용(2027-06-01 이전)·비즈니스(2027-03-01 이전) 계정의 경로로 안내합니다.",
       migrationNote:

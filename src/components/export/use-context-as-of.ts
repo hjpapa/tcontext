@@ -6,7 +6,7 @@ import {
   type LocalProfileLink,
 } from "@/components/layout/interview-session-provider";
 import { useLocalProfiles } from "@/components/local-profiles/local-profiles-provider";
-import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { sameProfileContent } from "@/lib/profile/versions";
 import { contextAsOf, type ContextAsOf } from "@/lib/export/profile-variants";
 import {
   getLocalProfile,
@@ -43,8 +43,7 @@ export function useContextAsOf(
           // A failed confirmed save leaves an older version behind; its date
           // must not be attached to content the teacher has since changed.
           const current =
-            stored !== null &&
-            profileToMarkdown(stored.profile) === profileToMarkdown(profile);
+            stored !== null && sameProfileContent(stored.profile, profile);
           setConfirmed({
             profile,
             link: localProfileLink,

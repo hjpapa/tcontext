@@ -32,9 +32,11 @@ export function GuideNotices() {
 }
 function Method({
   method,
+  exportTarget,
   downloads = true,
 }: {
   method: PlatformGuideMethod;
+  exportTarget: string;
   downloads?: boolean;
 }) {
   const [year, month] = method.verifiedAt.split("-");
@@ -42,7 +44,7 @@ function Method({
     <section
       id={method.id}
       aria-labelledby={`${method.id}-title`}
-      className={`min-w-0 space-y-5 rounded-2xl border p-5 sm:p-7 ${method.status === "recommended" ? "border-primary bg-secondary/20" : "bg-card"}`}
+      className={`min-w-0 space-y-5 rounded-2xl border p-5 break-words sm:p-7 ${method.status === "recommended" ? "border-primary bg-secondary/20" : "bg-card"}`}
     >
       <div className="flex flex-wrap items-center gap-3">
         <h2 id={`${method.id}-title`} className="text-2xl font-bold">
@@ -86,8 +88,16 @@ function Method({
           공통 지침을 붙여 넣는 곳: {method.instructionTarget}
         </p>
       ) : null}
+      {method.updateNote ? (
+        <p className="text-sm leading-7 break-words">
+          문서를 바꿀 때: {method.updateNote}
+        </p>
+      ) : null}
       {downloads ? (
-        <GuideArtifacts artifacts={method.requiredArtifacts} />
+        <GuideArtifacts
+          artifacts={method.requiredArtifacts}
+          exportTarget={exportTarget}
+        />
       ) : null}
       <a
         href={method.officialUrl}
@@ -134,7 +144,7 @@ export function PlatformGuideView({ guide }: { guide: PlatformGuide }) {
         </p>
       ) : null}
       {active.map((method) => (
-        <Method key={method.id} method={method} />
+        <Method key={method.id} method={method} exportTarget={guide.id} />
       ))}
       {announced.map((method) => (
         <details key={method.id} className="rounded-2xl border p-4">
@@ -142,7 +152,7 @@ export function PlatformGuideView({ guide }: { guide: PlatformGuide }) {
             {method.label} · 출시 예정 안내
           </summary>
           <div className="mt-4">
-            <Method method={method} downloads={false} />
+            <Method method={method} exportTarget={guide.id} downloads={false} />
           </div>
         </details>
       ))}
@@ -153,7 +163,12 @@ export function PlatformGuideView({ guide }: { guide: PlatformGuide }) {
           </summary>
           <div className="mt-4 space-y-4">
             {retired.map((method) => (
-              <Method key={method.id} method={method} downloads={false} />
+              <Method
+                key={method.id}
+                method={method}
+                exportTarget={guide.id}
+                downloads={false}
+              />
             ))}
           </div>
         </details>
