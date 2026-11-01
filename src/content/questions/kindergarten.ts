@@ -1,7 +1,8 @@
 import type { InterviewQuestion } from "@/types/interview";
 
-const PRIVACY_HINT =
+export const KINDERGARTEN_PRIVACY_HINT =
   "유아나 보호자의 이름, 전화번호, 이메일, 식별번호, 생년월일, 상세 주소, 정확한 기관이나 반 이름, 개인과 연결되는 건강, 발달, 가정 정보는 적지 마세요. 대략적인 인원, 활동 환경, 집단의 반응과 필요한 지원은 적어도 됩니다.";
+const PRIVACY_HINT = KINDERGARTEN_PRIVACY_HINT;
 
 type KindergartenCommonQuestionCopy = Pick<
   InterviewQuestion,
@@ -26,7 +27,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-personal-value": {
     prompt:
-      "사람으로서 중요하게 여기는 가치 하나가 유아와 함께 지낼 때 어떤 선택으로 드러나나요?",
+      "선생님이 평소 중요하게 여기는 가치 하나는 유아와 함께 지낼 때 어떤 선택으로 드러나나요?",
     intent:
       "성격을 유형화하지 않고, 선생님이 중요하게 여기는 개인적 가치 하나를 확인합니다.",
     example:
@@ -43,7 +44,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-educational-principle": {
     prompt:
-      "놀이와 일과에서 지키려는 원칙이 다른 요구와 부딪힐 때, 무엇을 기준으로 결정하나요?",
+      "놀이와 일과에서 꼭 지키려는 원칙이 바쁜 일정 같은 다른 요구와 부딪힐 때, 무엇을 먼저 챙기나요?",
     intent: "유아와 함께할 때 선택의 기준이 되는 원칙 하나를 확인합니다.",
     example:
       "유아가 스스로 해 볼 시간을 먼저 주려고 합니다. 일과가 바쁠 때도 바로 대신해 주지 않습니다.",
@@ -59,7 +60,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-adaptive-tendency": {
     prompt:
-      "계획한 활동과 다른 놀이가 이어질 때, 계획을 유지하거나 바꾸기로 판단하는 신호는 무엇인가요?",
+      "계획한 활동과 다른 놀이가 이어질 때, 무엇을 보고 계획을 바꿀지 그대로 갈지 정하나요?",
     intent:
       "고정된 유형 대신 상황마다 계획을 유지하거나 조정하는 기준을 확인합니다.",
     example:
@@ -68,7 +69,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-class-support": {
     prompt:
-      "놀이와 일과를 준비할 때 가장 먼저 고려하는 유아 집단의 상황 하나는 무엇인가요?",
+      "놀이와 일과를 정할 때 꼭 염두에 두는 반 유아들의 분위기나 특징은 무엇인가요?",
     intent: "놀이와 일과에 영향을 주는 집단의 상황 하나를 확인합니다.",
     example:
       "오전에 몸을 움직이는 놀이에 관심이 많은 편입니다. 넓은 공간과 조용한 공간을 함께 준비합니다.",
@@ -84,7 +85,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-environment": {
     prompt:
-      "놀이와 일과를 준비할 때 꼭 고려해야 하는 유치원의 현실 조건 하나는 무엇인가요?",
+      "시간, 공간, 재료처럼 놀이와 일과를 꾸릴 때 꼭 감안해야 하는 유치원 사정은 무엇인가요?",
     intent:
       "놀이와 일과에 영향을 주는 시간, 공간, 자료 조건 중 하나를 확인합니다.",
     example:
@@ -101,7 +102,7 @@ export const KINDERGARTEN_COMMON_QUESTION_OVERRIDES: Record<
   },
   "common-ai-task": {
     prompt:
-      "유아의 놀이와 일과를 지원하는 일 중 AI의 도움을 가장 먼저 받고 싶은 작업 하나는 무엇인가요?",
+      "놀이와 일과를 준비하는 일 중 AI에게 가장 먼저 맡기고 싶은 작업 하나는 무엇인가요?",
     intent:
       "AI에게 실제로 맡길 작업을 확인합니다. 사용 경험이 없어도 바라는 도움을 말할 수 있습니다.",
     example:

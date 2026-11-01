@@ -10,7 +10,7 @@ export const HIGH_QUESTIONS: InterviewQuestion[] = [
     source: "school_level",
     schoolLevels: ["high"],
     prompt:
-      "시험이나 수행평가가 이어지는 시기에도 학생이 자신의 답을 다시 고쳐 보게 하는 방법 하나는 무엇인가요?",
+      "시험과 수행평가가 몰리는 시기에도 학생이 자기 답을 다시 고쳐 보게 하는 방법 하나는 무엇인가요?",
     intent:
       "평가가 이어지는 시기에도 다시 시도하게 돕는 방법 하나를 확인합니다.",
     example:

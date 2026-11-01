@@ -1,7 +1,8 @@
 import type { InterviewQuestion } from "@/types/interview";
 
-const PRIVACY_HINT =
+export const COMMON_PRIVACY_HINT =
   "사람 이름, 전화번호, 이메일, 주민등록번호나 학생번호 같은 식별번호, 생년월일, 상세 주소, 정확한 학교나 반 이름, 개인과 연결되는 건강, 상담, 성적 정보는 적지 마세요. 학교급, 교과, 대략적인 인원, 수업 환경, 집단의 참여 경향과 필요한 지원은 적어도 됩니다.";
+const PRIVACY_HINT = COMMON_PRIVACY_HINT;
 
 export const COMMON_QUESTIONS: InterviewQuestion[] = [
   {
@@ -20,7 +21,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "identity_and_role",
     source: "common",
     prompt:
-      "사람으로서 중요하게 여기는 가치 하나가 수업에서 어떤 선택으로 드러나나요?",
+      "선생님이 평소 중요하게 여기는 가치 하나는 수업에서 어떤 선택으로 드러나나요?",
     intent:
       "성격을 유형화하지 않고, 선생님이 중요하게 여기는 개인적 가치 하나를 확인합니다.",
     example:
@@ -45,7 +46,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "educational_philosophy",
     source: "common",
     prompt:
-      "수업의 나침반처럼 지키려는 원칙이 다른 요구와 부딪힐 때, 무엇을 기준으로 결정하나요?",
+      "수업에서 꼭 지키려는 원칙이 진도 같은 다른 요구와 부딪힐 때, 무엇을 먼저 챙기나요?",
     intent: "수업에서 선택해야 할 때 기준이 되는 원칙 하나를 확인합니다.",
     example:
       "진도보다 학생이 먼저 생각할 시간을 지키려고 합니다. 시간이 부족하면 생각하는 시간 대신 문제 수를 줄입니다.",
@@ -68,7 +69,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "preferred_teaching",
     source: "common",
     prompt:
-      "수업이 예상과 다르게 흘러갈 때, 계획을 유지하거나 바꾸기로 판단하는 신호는 무엇인가요?",
+      "수업이 예상과 다르게 흘러갈 때, 무엇을 보고 계획을 바꿀지 그대로 갈지 정하나요?",
     intent:
       "고정된 유형 대신 상황마다 계획을 유지하거나 조정하는 기준을 확인합니다.",
     example:
@@ -81,7 +82,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "class_context",
     source: "common",
     prompt:
-      "수업을 준비할 때 가장 먼저 고려하는 학급의 상황 하나는 무엇인가요?",
+      "수업 방식을 정할 때 꼭 염두에 두는 학급의 분위기나 특징은 무엇인가요?",
     intent: "수업 설계에 영향을 주는 학급의 상황 하나를 확인합니다.",
     example:
       "설명을 오래 들으면 참여가 줄어드는 편입니다. 그래서 짧은 활동을 중간에 넣습니다.",
@@ -104,7 +105,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "environment_and_ai",
     source: "common",
     prompt:
-      "수업을 준비할 때 꼭 고려해야 하는 학교의 현실 조건 하나는 무엇인가요?",
+      "시간, 공간, 기기처럼 수업할 때 꼭 감안해야 하는 학교 사정은 무엇인가요?",
     intent:
       "수업 운영에 영향을 주는 학교의 시간, 공간, 자료 조건 중 하나를 확인합니다.",
     example:
@@ -117,7 +118,7 @@ export const COMMON_QUESTIONS: InterviewQuestion[] = [
     moduleId: "environment_and_ai",
     source: "common",
     prompt:
-      "교사로서 반복하는 일 중 AI의 도움을 가장 먼저 받고 싶은 작업 하나는 무엇인가요?",
+      "반복하는 일 중 AI에게 가장 먼저 맡기고 싶은 작업 하나는 무엇인가요?",
     intent:
       "교사의 현재 관심사와 구분하여 AI에게 실제로 맡길 작업을 확인합니다. 사용 경험이 없어도 바라는 도움을 말할 수 있습니다.",
     example:

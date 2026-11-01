@@ -8,7 +8,6 @@ export const followUpDecisionSchema = z
         prompt: z.string().trim().min(1).max(300),
         intent: z.string().trim().min(1).max(300),
         example: z.string().trim().min(1).max(300),
-        privacyHint: z.string().trim().min(1).max(300),
       })
       .strict()
       .nullable(),

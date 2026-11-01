@@ -10,10 +10,15 @@ import {
   runStructuredResponse,
   setOpenAIClientForTests,
 } from "@/lib/ai/client";
+import {
+  COMMON_PRIVACY_HINT,
+  KINDERGARTEN_PRIVACY_HINT,
+} from "@/content/questions";
 import { decideFollowUp } from "@/lib/ai/follow-up";
 import { reviewProfileWithAI } from "@/lib/ai/privacy";
 import { generateProfile, refineProfile } from "@/lib/ai/profile";
 import { profileToMarkdown } from "@/lib/export/profile-to-markdown";
+import { followUpDecisionSchema } from "@/lib/ai/schemas/follow-up";
 import { privacyReviewCandidatesOutputSchema } from "@/lib/ai/schemas/privacy";
 import {
   profileGenerationOutputSchema,
@@ -344,7 +349,6 @@ describe("OpenAI structured boundary", () => {
           prompt: "최근 \u5B78\u7FD2 장면에서 무엇을 바꾸었나요?",
           intent: "수업 조정 행동 하나를 확인합니다.",
           example: "활동 순서를 바꾸었습니다.",
-          privacyHint: "사람 이름은 적지 마세요.",
         },
       },
       usage: null,
@@ -385,22 +389,75 @@ describe("OpenAI structured boundary", () => {
     prompt: "말씀하신 고학년 학생이 질문을 적은 뒤 무엇이 달라졌나요?",
     intent: "참여 방식의 변화를 확인합니다.",
     example: "발표 전에 질문을 고르는 시간이 생겼습니다.",
-    privacyHint: "사람 이름이나 정확한 학교와 반 이름은 적지 마세요.",
   };
-
-  it("keeps a generated follow-up whose wording is ordinary teacher language", async () => {
+  const mockFollowUp = (question: Record<string, string>) =>
     setOpenAIClientForTests({
       responses: {
         parse: vi.fn().mockResolvedValue({
-          output_parsed: { needed: true, question: generatedFollowUp },
+          output_parsed: { needed: true, question },
           usage: null,
         }),
       },
     } as unknown as OpenAI);
 
+  it("keeps a generated follow-up whose wording is ordinary teacher language", async () => {
+    mockFollowUp(generatedFollowUp);
+
     await expect(decideFollowUp(followUpInput)).resolves.toMatchObject({
       needed: true,
-      question: { ...generatedFollowUp, basedOnQuestionId: "q-1" },
+      question: {
+        ...generatedFollowUp,
+        privacyHint: COMMON_PRIVACY_HINT,
+        basedOnQuestionId: "q-1",
+      },
+    });
+  });
+
+  it("uses the fixed kindergarten privacy hint instead of a generated one", async () => {
+    mockFollowUp(generatedFollowUp);
+
+    await expect(
+      decideFollowUp({ ...followUpInput, schoolLevel: "kindergarten" }),
+    ).resolves.toMatchObject({
+      needed: true,
+      question: { privacyHint: KINDERGARTEN_PRIVACY_HINT },
+    });
+  });
+
+  it("does not ask the model to write a privacy hint", () => {
+    expect(
+      followUpDecisionSchema.safeParse({
+        needed: true,
+        question: { ...generatedFollowUp, privacyHint: "이름은 적지 마세요." },
+      }).success,
+    ).toBe(false);
+  });
+
+  it.each([
+    ["two questions", "그때 무엇을 바꾸셨나요? 그렇게 한 이유는 무엇인가요?"],
+    ["no question mark", "그때 바꾼 방법 하나를 적어 주세요."],
+    ["a trailing remark", "그때 무엇을 바꾸셨나요? 편하게 적어 주세요."],
+    [
+      "a run-on question",
+      `${"학생들이 활동 안내를 듣고도 무엇을 해야 할지 몰라 서로 쳐다보는 순간에 ".repeat(3)}무엇을 하시나요?`,
+    ],
+  ] as const)("skips a generated follow-up with %s", async (_case, prompt) => {
+    mockFollowUp({ ...generatedFollowUp, prompt });
+
+    await expect(decideFollowUp(followUpInput)).resolves.toEqual({
+      needed: false,
+      question: null,
+    });
+  });
+
+  it("keeps a one-sentence follow-up that quotes the teacher", async () => {
+    const prompt =
+      "'반응이 별로'라고 느끼실 때, 학생들의 어떤 모습을 보고 알아차리시나요？";
+    mockFollowUp({ ...generatedFollowUp, prompt });
+
+    await expect(decideFollowUp(followUpInput)).resolves.toMatchObject({
+      needed: true,
+      question: { prompt },
     });
   });
 
@@ -408,7 +465,6 @@ describe("OpenAI structured boundary", () => {
     ["prompt", "김민수 학생은 그때 어떻게 반응했나요?"],
     ["intent", "햇살반에서 달라진 점을 확인합니다."],
     ["example", "한빛초등학교에서는 질문 카드를 썼습니다."],
-    ["privacyHint", "연락처 010-1234-5678처럼 적지 마세요."],
   ] as const)(
     "skips a generated follow-up whose %s trips the privacy detector",
     async (field, text) => {
