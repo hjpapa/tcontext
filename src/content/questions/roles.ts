@@ -39,14 +39,14 @@ export const ROLE_QUESTIONS: Record<TeacherRole, InterviewQuestion> = {
   special_education_teacher: roleQuestion(
     "special_education_teacher",
     "class_context",
-    "같은 목표를 배우되 방법을 다르게 줄 때, 가장 먼저 바꾸는 것은 무엇인가요?",
+    "같은 목표를 학생마다 다른 방법으로 배우게 할 때, 가장 먼저 바꾸는 것은 무엇인가요?",
     "같은 목표에 여러 방법으로 다가가도록 먼저 바꾸는 요소 하나를 확인합니다.",
     "말, 그림, 도구 가운데 답을 표현할 방법을 고르게 합니다. 학습 목표는 모두 같게 둡니다.",
   ),
   counselor: roleQuestion(
     "counselor",
     "participation_and_emotion",
-    "상담에서 알게 된 내용을 지키면서 교실 지원을 요청할 때, 꼭 지키는 원칙 하나는 무엇인가요?",
+    "상담 내용은 보호하면서 학급에 필요한 도움을 부탁할 때, 꼭 지키는 원칙 하나는 무엇인가요?",
     "상담 내용을 보호하며 교실 지원을 요청하는 원칙 하나를 확인합니다.",
     "상담 내용은 말하지 않습니다. 교실에서 필요한 지원 방법만 전달합니다.",
   ),

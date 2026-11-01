@@ -1,8 +1,9 @@
-export { COMMON_QUESTIONS } from "./common";
+export { COMMON_PRIVACY_HINT, COMMON_QUESTIONS } from "./common";
 export { ELEMENTARY_QUESTIONS } from "./elementary";
 export { HIGH_QUESTIONS } from "./high";
 export {
   KINDERGARTEN_COMMON_QUESTION_OVERRIDES,
+  KINDERGARTEN_PRIVACY_HINT,
   KINDERGARTEN_QUESTIONS,
 } from "./kindergarten";
 export { MIDDLE_QUESTIONS } from "./middle";
